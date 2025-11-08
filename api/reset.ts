@@ -1,5 +1,5 @@
 import { kv } from '@vercel/kv';
-import { getMockDataState } from './_lib/mockData';
+import { getMockDataState } from './_lib/mockData.js';
 
 const DATA_KEY = 'educenter_pro_data_kv_v1';
 
