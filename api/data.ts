@@ -8,22 +8,31 @@ const DATA_KEY = 'educenter_pro_data_kv_v1';
 export default async function handler(request: any) {
     if (request.method === 'GET') {
         try {
-            let data = await kv.get<Omit<AppData, 'loading'>>(DATA_KEY);
+            const data = await kv.get<Omit<AppData, 'loading'>>(DATA_KEY);
             
-            if (!data) {
-                console.log("KV store is empty. Initializing with mock data.");
-                const mockData = getMockDataState();
-                await kv.set(DATA_KEY, mockData);
-                data = mockData;
+            if (data) {
+                // Data exists, return it immediately
+                return new Response(JSON.stringify(data), {
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate'
+                    },
+                    status: 200,
+                });
+            } else {
+                // KV is empty, return the default app structure without saving it.
+                // This prevents a slow write operation on the first "cold start" GET request.
+                // The first POST request will create the entry in the KV store.
+                console.log("KV store is empty. Returning initial empty state.");
+                const initialData = getMockDataState();
+                return new Response(JSON.stringify(initialData), {
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate'
+                    },
+                    status: 200,
+                });
             }
-
-            return new Response(JSON.stringify(data), {
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Cache-Control': 'no-cache, no-store, must-revalidate'
-                },
-                status: 200,
-            });
         } catch (error) {
             console.error('Vercel KV GET Error:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown KV error';
