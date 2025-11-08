@@ -1,6 +1,6 @@
 import { kv } from '@vercel/kv';
-import { AppData } from '../services/api';
-import { getMockDataState } from '../services/mockData';
+import { AppData } from '../types';
+import { getMockDataState } from './_lib/mockData';
 
 // This is the key under which the entire application state will be stored in Vercel KV.
 const DATA_KEY = 'educenter_pro_data_kv_v1';
