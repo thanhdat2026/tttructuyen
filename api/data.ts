@@ -1,6 +1,6 @@
 import { kv } from '@vercel/kv';
-import { AppData } from '../types';
-import { getMockDataState } from '../services/mockData';
+import { AppData } from 'types';
+import { getMockDataState } from 'services/mockData';
 
 // This is the key under which the entire application state will be stored in Vercel KV.
 const DATA_KEY = 'educenter_pro_data_kv_v1';
@@ -9,15 +9,15 @@ export default async function handler(request: Request) {
     // Handle GET request to fetch data
     if (request.method === 'GET') {
         try {
-            // FIX: Changed kv.get to kv.GET. The error "Property 'get' does not exist" suggests an API version where methods might have been uppercase, mirroring Redis commands.
-            let data = await kv.GET<Omit<AppData, 'loading'>>(DATA_KEY);
+            // FIX: Changed kv.GET to kv.get. The error "Property 'GET' does not exist" indicates the method name is lowercase.
+            let data = await kv.get<Omit<AppData, 'loading'>>(DATA_KEY);
             
             // If no data exists in KV, initialize with mock data, set it, and return it.
             if (!data) {
                 console.log("KV store is empty. Initializing with mock data.");
                 const mockData = getMockDataState();
-                // FIX: Changed kv.set to kv.SET. The error "Property 'set' does not exist" suggests an API version where methods might have been uppercase.
-                await kv.SET(DATA_KEY, mockData);
+                // FIX: Changed kv.SET to kv.set. The error "Property 'SET' does not exist" indicates the method name is lowercase.
+                await kv.set(DATA_KEY, mockData);
                 data = mockData; // Use the mock data for the response
             }
 
@@ -47,8 +47,8 @@ export default async function handler(request: Request) {
             if (!newData || typeof newData.settings !== 'object') {
                  return new Response('Invalid data format provided.', { status: 400 });
             }
-            // FIX: Changed kv.set to kv.SET. The error "Property 'set' does not exist" suggests an API version where methods might have been uppercase.
-            await kv.SET(DATA_KEY, newData);
+            // FIX: Changed kv.SET to kv.set. The error "Property 'SET' does not exist" indicates the method name is lowercase.
+            await kv.set(DATA_KEY, newData);
             return new Response(JSON.stringify({ message: 'Data saved successfully' }), { status: 200 });
         } catch (error) {
             console.error('Vercel KV SET Error:', error);
