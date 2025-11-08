@@ -18,22 +18,32 @@ async function releaseLock(): Promise<void> {
 
 // Helper function to safely merge data against a default structure
 function safeMergeWithDefault(sourceData: Partial<Omit<AppData, 'loading'>> | null, defaultState: Omit<AppData, 'loading'>): Omit<AppData, 'loading'> {
-    const finalData: Omit<AppData, 'loading'> = { ...defaultState };
+    const finalData = { ...defaultState };
 
-    if (sourceData) {
-        for (const key of Object.keys(defaultState) as (keyof typeof defaultState)[]) {
-            if (key === 'settings') {
-                if (typeof sourceData.settings === 'object' && sourceData.settings !== null) {
-                    finalData.settings = { ...defaultState.settings, ...sourceData.settings };
-                }
-            } else if (Array.isArray(finalData[key])) {
-                // Only overwrite if the source data for this key is a valid array
-                if (Array.isArray(sourceData[key])) {
-                    (finalData as any)[key] = sourceData[key];
-                }
-            }
+    if (!sourceData) {
+        return finalData;
+    }
+
+    // Handle settings object separately
+    if (typeof sourceData.settings === 'object' && sourceData.settings !== null) {
+        finalData.settings = { ...defaultState.settings, ...sourceData.settings };
+    }
+
+    // Explicitly check and merge array properties to prevent data loss from old backups
+    const arrayKeys: (keyof Omit<AppData, 'loading' | 'settings'>)[] = [
+        'students', 'teachers', 'staff', 'classes', 'attendance', 
+        'invoices', 'progressReports', 'transactions', 'income', 
+        'expenses', 'payrolls', 'announcements'
+    ];
+
+    for (const key of arrayKeys) {
+        // Only accept the source data if it's a valid array.
+        // Otherwise, the default empty array `[]` from `defaultState` will be kept, preventing data loss.
+        if (Array.isArray(sourceData[key])) {
+            (finalData as any)[key] = sourceData[key];
         }
     }
+
     return finalData;
 }
 
