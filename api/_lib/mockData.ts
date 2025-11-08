@@ -633,7 +633,7 @@ export const MOCK_STUDENTS: Student[] = [
       "id": "HS160", "address": "", "createdAt": "2025-10-30", "balance": 0, "email": "hs100@email.com", "dob": "2014-09-15",
       "phone": "0349496356", "name": "Đào Quang Uy Long", "status": PersonStatus.ACTIVE, "parentName": ""
     }
-  ];
+];
 
 export const MOCK_TEACHERS: Teacher[] = [
     {
@@ -645,14 +645,14 @@ export const MOCK_TEACHERS: Teacher[] = [
       "id": "QUYEN", "subject": "Đa năng", "email": "", "address": "", "rate": 0, "name": "Đào Thị Quyến", "qualification": "",
       "role": UserRole.TEACHER, "createdAt": "", "phone": "", "salaryType": SalaryType.MONTHLY, "dob": "1989-12-01", "status": PersonStatus.ACTIVE
     }
-  ];
+];
 
 export const MOCK_STAFF: Staff[] = [
     {
       "id": "NV01", "email": "", "status": PersonStatus.ACTIVE, "dob": "1989-02-28", "role": UserRole.MANAGER, "address": "", "phone": "",
       "name": "Lê Văn Đạt", "position": "Nhân viên", "createdAt": ""
     }
-  ];
+];
 
 export const MOCK_CLASSES: Class[] = [
     {
@@ -702,7 +702,7 @@ export const MOCK_CLASSES: Class[] = [
       "schedule": [{"startTime": "19:00", "endTime": "20:45", "dayOfWeek": "Thursday"}, {"endTime": "20:45", "dayOfWeek": "Sunday", "startTime": "19:00"}],
       "fee": { "amount": 50000, "type": FeeType.PER_SESSION }
     }
-  ];
+];
 
 export const MOCK_ATTENDANCE: AttendanceRecord[] = (Object.values(
     [{"id":"A-1761379570687-HS063","studentId":"HS063","status":"PRESENT","date":"2025-10-25","classId":"L04"},
@@ -757,7 +757,7 @@ export const MOCK_SETTINGS: CenterSettings = {
     "adminPassword": "123456",
     "viewerAccountActive": true,
     "loginHeaderContent": "<p class=\"text-lg leading-7 text-indigo-200\">Hệ thống quản lý dạy thêm, trung tâm thông minh.<br/>Toàn diện, hiệu quả và dễ sử dụng.</p>"
-  };
+};
 
 export function getMockDataState(): Omit<AppData, 'loading'> {
     return {
