@@ -1,4 +1,5 @@
-import { Student, Teacher, Staff, Class, AttendanceRecord, Invoice, ProgressReport, Income, Expense, CenterSettings, UserRole, SalaryType, Announcement, Transaction, PersonStatus, FeeType, AttendanceStatus, TransactionType, Payroll, AppData } from '../../types.js';
+// FIX: Import missing types to resolve compilation errors.
+import { Student, Teacher, Staff, Class, AttendanceRecord, Invoice, ProgressReport, Income, Expense, CenterSettings, AppData, Transaction, Payroll, Announcement } from '../../types.js';
 
 export const MOCK_STUDENTS: Student[] = [];
 export const MOCK_TEACHERS: Teacher[] = [];
@@ -29,7 +30,6 @@ export const MOCK_SETTINGS: CenterSettings = {
     qrCodeUrl: "",
     adminPassword: "123456",
     viewerAccountActive: true,
-    // FIX: Corrected syntax for object property 'loginHeaderContent'.
     loginHeaderContent: "<p class=\"text-lg leading-7 text-indigo-200\">Hệ thống quản lý dạy thêm, trung tâm thông minh.<br/>Toàn diện, hiệu quả và dễ sử dụng.</p>"
 };
 
