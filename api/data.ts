@@ -1,5 +1,5 @@
 import { kv } from '@vercel/kv';
-import type { AppData } from '../types';
+import type { AppData } from '../types.js';
 import { getMockDataState } from './_lib/mockData.js';
 
 // This is the key under which the entire application state will be stored in Vercel KV.
