@@ -1,16 +1,7 @@
 import type {
     AppData,
-    Student,
-    Teacher,
-    Staff,
-    Class,
     AttendanceRecord,
-    ProgressReport,
-    Income,
-    Expense,
-    CenterSettings,
     Payroll,
-    Announcement,
     Transaction
 } from '../../types.js';
 
