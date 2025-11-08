@@ -23,13 +23,28 @@ export const config = {
 export default async function handler(request: Request) {
     if (request.method === 'GET') {
         try {
-            let data = await kv.get<Omit<AppData, 'loading'>>(DATA_KEY);
-            
-            if (!data) {
+            const dataFromKV = await kv.get<Partial<Omit<AppData, 'loading'>>>(DATA_KEY);
+            const defaultState = getMockDataState();
+            let data: Omit<AppData, 'loading'>;
+
+            if (!dataFromKV) {
                 console.log("KV store is empty. Seeding with initial data.");
-                data = getMockDataState();
+                data = defaultState;
                 await kv.set(DATA_KEY, data);
+            } else {
+                // Hợp nhất dữ liệu đã truy xuất với trạng thái mặc định để đảm bảo tất cả các khóa đều có mặt.
+                // Điều này làm cho ứng dụng tương thích với các cấu trúc dữ liệu cũ hơn.
+                data = {
+                    ...defaultState,
+                    ...dataFromKV,
+                    // Hợp nhất sâu các cài đặt để tránh mất cài đặt cũ khi thêm cài đặt mới
+                    settings: {
+                        ...defaultState.settings,
+                        ...(dataFromKV.settings || {}),
+                    },
+                };
             }
+            
             return new Response(JSON.stringify(data), {
                 headers: { 
                     'Content-Type': 'application/json',
@@ -57,9 +72,22 @@ export default async function handler(request: Request) {
                     const operation = await request.json();
                     
                     if (operation.op === 'restoreData') {
-                        // Special case for restore: just set the payload as the new data
-                        await kv.set(DATA_KEY, operation.payload);
-                        return new Response(JSON.stringify(operation.payload), {
+                        const defaultState = getMockDataState();
+                        const restoredDataFromFile = operation.payload;
+
+                        // Hợp nhất dữ liệu đã khôi phục với các giá trị mặc định để đảm bảo schema được cập nhật.
+                        // Điều này ngăn chặn việc mất các trường dữ liệu có thể không tồn tại trong một tệp sao lưu cũ.
+                        const finalRestoredData = {
+                            ...defaultState,
+                            ...restoredDataFromFile,
+                            settings: {
+                                ...defaultState.settings,
+                                ...(restoredDataFromFile.settings || {}),
+                            },
+                        };
+
+                        await kv.set(DATA_KEY, finalRestoredData);
+                        return new Response(JSON.stringify(finalRestoredData), {
                             headers: { 'Content-Type': 'application/json' },
                             status: 200,
                         });
