@@ -88,6 +88,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (err: any) {
         console.error("Không thể tải dữ liệu từ máy chủ:", err);
         setError(`Không thể tải dữ liệu từ máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại. Lỗi: ${err.message || 'Không rõ'}`);
+        // FIX: Replaced direct state update with functional update to preserve existing state properties.
         setState(prev => ({ ...prev, loading: false }));
     }
   }, []);
@@ -102,6 +103,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch (err: any) {
         console.error("Lỗi tải dữ liệu ban đầu:", err);
         setError(`Không thể tải dữ liệu từ máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại. Lỗi: ${err.message || 'Không rõ'}.`);
+        // FIX: Replaced direct state update with functional update to preserve existing state properties.
         setState(prev => ({ ...prev, loading: false }));
       } finally {
         setIsInitialLoad(false);
