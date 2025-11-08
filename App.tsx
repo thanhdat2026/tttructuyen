@@ -63,7 +63,6 @@ const ProtectedRoute: React.FC<{children: React.ReactNode, allowedRoles: UserRol
 
 const AppLayout: React.FC = () => {
     const location = useLocation();
-    const { error } = useData();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     
     const pageTitle = useMemo(() => {
@@ -94,12 +93,6 @@ const AppLayout: React.FC = () => {
             <div className="flex-1 flex flex-col overflow-hidden">
                 <Header pageTitle={pageTitle} onMenuClick={() => setIsSidebarOpen(true)} />
                 <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">
-                    {error && (
-                        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded-md" role="alert">
-                            <p className="font-bold">Thông báo</p>
-                            <p>{error}</p>
-                        </div>
-                    )}
                     <Outlet />
                 </main>
             </div>
@@ -108,17 +101,10 @@ const AppLayout: React.FC = () => {
 };
 
 const ParentLayout: React.FC = () => {
-    const { error } = useData();
     return (
         <div className="flex flex-col min-h-screen">
             <ParentHeader />
             <main className="flex-1 container mx-auto px-4 py-6">
-                {error && (
-                    <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded-md" role="alert">
-                        <p className="font-bold">Thông báo</p>
-                        <p>{error}</p>
-                    </div>
-                )}
                 <Outlet />
             </main>
         </div>
@@ -126,8 +112,8 @@ const ParentLayout: React.FC = () => {
 };
 
 const AppRoutes: React.FC = () => {
-    const { isAuthenticated, role } = useAuth();
-    const { state, isInitialLoad, error } = useData();
+    const { isAuthenticated, role, isAuthLoading } = useAuth();
+    const { state, isInitialOffline, error } = useData();
 
     useEffect(() => {
         const root = window.document.documentElement;
@@ -141,7 +127,7 @@ const AppRoutes: React.FC = () => {
         }
     }, [state.settings.name]);
     
-    if (isInitialLoad) {
+    if (state.loading || isAuthLoading) {
          return (
             <div className="flex h-screen w-screen items-center justify-center">
                 {ICONS.loading}
@@ -150,7 +136,7 @@ const AppRoutes: React.FC = () => {
         )
     }
 
-    if (!isInitialLoad && error) {
+    if (isInitialOffline) {
         return (
             <div className="flex h-screen w-screen items-center justify-center flex-col p-8 text-center bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
                 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>

@@ -1,4 +1,3 @@
-// FIX: Import missing types to resolve compilation errors.
 import { Student, Teacher, Staff, Class, AttendanceRecord, Invoice, ProgressReport, Income, Expense, CenterSettings, AppData, Transaction, Payroll, Announcement } from '../../types.js';
 
 export const MOCK_STUDENTS: Student[] = [];

@@ -28,7 +28,7 @@ const initialState: AppState = {
 interface DataContextType {
     state: AppState;
     error: string | null;
-    isInitialLoad: boolean;
+    isInitialOffline: boolean;
     refreshData: () => Promise<void>;
     addStudent: (payload: { student: Student, classIds: string[] }) => Promise<void>;
     updateStudent: (payload: { originalId: string, updatedStudent: Student, classIds: string[] }) => Promise<void>;
@@ -77,40 +77,26 @@ export const DataContext = createContext<DataContextType | undefined>(undefined)
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AppState>(initialState);
   const [error, setError] = useState<string | null>(null);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isInitialOffline, setIsInitialOffline] = useState(false);
 
   const refreshData = useCallback(async () => {
     setState(prev => ({ ...prev, loading: true }));
     setError(null);
+    setIsInitialOffline(false);
     try {
         const data = await api.loadInitialData();
         setState({ ...data, loading: false });
     } catch (err: any) {
         console.error("Không thể tải dữ liệu từ máy chủ:", err);
+        setIsInitialOffline(true);
         setError(`Không thể tải dữ liệu từ máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại. Lỗi: ${err.message || 'Không rõ'}`);
         setState(prev => ({ ...prev, loading: false }));
     }
   }, []);
 
   useEffect(() => {
-    const initialLoad = async () => {
-      setState(prev => ({ ...prev, loading: true }));
-      setError(null);
-      try {
-        const data = await api.loadInitialData();
-        setState({ ...data, loading: false });
-      } catch (err: any) {
-        console.error("Lỗi tải dữ liệu ban đầu:", err);
-        setError(`Không thể tải dữ liệu từ máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại. Lỗi: ${err.message || 'Không rõ'}.`);
-        // FIX: Correctly update state by preserving previous state and only changing the loading property.
-        setState(prev => ({ ...prev, loading: false }));
-      } finally {
-        setIsInitialLoad(false);
-      }
-    };
-
-    initialLoad();
-  }, []); 
+    refreshData();
+  }, [refreshData]); 
 
   const createRefreshingFunc = <T,>(apiFunc: (payload: T) => Promise<any>) => async (payload: T) => {
     await apiFunc(payload);
@@ -124,7 +110,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const value: DataContextType = {
     state,
     error,
-    isInitialLoad,
+    isInitialOffline,
     refreshData,
     addStudent: createRefreshingFunc(api.addStudent),
     updateStudent: createRefreshingFunc(api.updateStudent),
