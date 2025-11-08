@@ -5,7 +5,6 @@ import { ICONS } from '../../constants';
 import { CenterSettings, UserRole } from '../../types';
 import { GlobalSearch } from '../common/GlobalSearch';
 import { ChangePasswordModal } from '../auth/ChangePasswordModal';
-import { DonationModal } from '../common/DonationModal';
 
 interface HeaderProps {
   pageTitle: string;
@@ -40,7 +39,6 @@ export const Header: React.FC<HeaderProps> = ({ pageTitle, onMenuClick }) => {
   const { user, role, logout } = useAuth();
   const { state, updateSettings } = useData();
   const [isChangePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
-  const [isDonationModalOpen, setDonationModalOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -115,10 +113,6 @@ export const Header: React.FC<HeaderProps> = ({ pageTitle, onMenuClick }) => {
                             <span>Đổi mật khẩu</span>
                         </button>
                     )}
-                    <button onClick={() => { setDonationModalOpen(true); setIsUserMenuOpen(false); }} className={menuButtonClass}>
-                        {React.cloneElement(ICONS.heart, { className: "text-pink-500"})}
-                        <span>Mời cà phê</span>
-                    </button>
                     <div className="my-1 border-t dark:border-slate-700"></div>
                     <button onClick={logout} className={`${menuButtonClass} text-red-600 dark:text-red-400`}>
                         {ICONS.logout}
@@ -130,7 +124,6 @@ export const Header: React.FC<HeaderProps> = ({ pageTitle, onMenuClick }) => {
         </div>
       </header>
       <ChangePasswordModal isOpen={isChangePasswordModalOpen} onClose={() => setChangePasswordModalOpen(false)} />
-      <DonationModal isOpen={isDonationModalOpen} onClose={() => setDonationModalOpen(false)} />
     </>
   );
 };

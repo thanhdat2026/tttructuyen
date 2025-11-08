@@ -1,7 +1,7 @@
 import { kv } from '@vercel/kv';
 import { getMockDataState } from '../services/mockData';
 
-const DATA_KEY = 'educenter_pro_data_kv';
+const DATA_KEY = 'educenter_pro_data_kv_v1';
 
 export default async function handler(request: Request) {
     if (request.method === 'POST') {
