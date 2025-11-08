@@ -347,7 +347,12 @@ export async function addIncome(data: Omit<Income, 'id'>): Promise<Income> {
     return newItem;
 }
 
-export const updateIncome = (item: Income) => saveData({ ...(item as any) });
+export async function updateIncome(item: Income): Promise<void> {
+    const appData = await loadInitialData();
+    appData.income = appData.income.map(i => i.id === item.id ? item : i);
+    await saveData(appData);
+}
+
 export const deleteIncome = async (itemId: string) => {
     const appData = await loadInitialData();
     appData.income = appData.income.filter(i => i.id !== itemId);
@@ -361,7 +366,11 @@ export async function addExpense(data: Omit<Expense, 'id'>): Promise<Expense> {
     await saveData(appData);
     return newItem;
 }
-export const updateExpense = (item: Expense) => saveData({ ...(item as any) });
+export async function updateExpense(item: Expense): Promise<void> {
+    const appData = await loadInitialData();
+    appData.expenses = appData.expenses.map(e => e.id === item.id ? item : e);
+    await saveData(appData);
+}
 export const deleteExpense = async (itemId: string) => {
     const appData = await loadInitialData();
     appData.expenses = appData.expenses.filter(i => i.id !== itemId);
