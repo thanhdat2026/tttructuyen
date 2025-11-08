@@ -1,5 +1,5 @@
 import { kv } from '@vercel/kv';
-import type { AppData } from '../../types.js';
+import type { AppData } from '../types.js';
 import { getMockDataState } from './_lib/mockData.js';
 import { applyOperation } from './_lib/operations.js';
 

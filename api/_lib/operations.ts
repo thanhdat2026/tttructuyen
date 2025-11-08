@@ -1,27 +1,28 @@
-// FIX: Changed the import from a wholesale 'import type' to a mixed import.
-// This allows enums like PersonStatus, FeeType, etc., to be used as values at runtime,
-// while interfaces like AppData, Student, etc., are still imported as types.
+import type {
+    AppData,
+    Student,
+    Teacher,
+    Staff,
+    Class,
+    AttendanceRecord,
+    ProgressReport,
+    Income,
+    Expense,
+    CenterSettings,
+    Payroll,
+    Announcement,
+    Transaction
+} from '../../types.js';
+
 import {
-    type AppData,
-    type Student,
-    type Teacher,
-    type Staff,
-    type Class,
-    type AttendanceRecord,
     PersonStatus,
     FeeType,
     AttendanceStatus,
-    type ProgressReport,
-    type Income,
-    type Expense,
-    type CenterSettings,
-    type Payroll,
     SalaryType,
-    type Announcement,
     UserRole,
-    type Transaction,
     TransactionType
 } from '../../types.js';
+
 
 const generateUniqueId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
 

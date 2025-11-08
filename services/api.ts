@@ -1,5 +1,5 @@
 import {
-    Student, Teacher, Staff, Class, AttendanceRecord, ProgressReport, Income, Expense, CenterSettings, Payroll, Announcement, UserRole, Transaction, AppData
+    Student, Teacher, Staff, Class, AttendanceRecord, ProgressReport, Income, Expense, CenterSettings, Announcement, UserRole, Transaction, AppData
 } from '../types';
 
 // --- Core API Functions ---
