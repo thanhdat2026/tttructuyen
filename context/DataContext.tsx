@@ -1,7 +1,6 @@
 import React, { createContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { Student, Teacher, Staff, Class, AttendanceRecord, ProgressReport, Income, Expense, CenterSettings, Announcement, Transaction, UserRole } from '../types';
+import { Student, Teacher, Staff, Class, AttendanceRecord, ProgressReport, Income, Expense, CenterSettings, Announcement, Transaction, UserRole, AppData } from '../types';
 import * as api from '../services/api';
-import { AppData } from '../services/api';
 import { MOCK_SETTINGS } from '../services/mockData';
 
 

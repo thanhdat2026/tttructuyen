@@ -1,5 +1,5 @@
 import { kv } from '@vercel/kv';
-import { AppData } from '../services/api';
+import { AppData } from '../types';
 import { getMockDataState } from '../services/mockData';
 
 // This is the key under which the entire application state will be stored in Vercel KV.
@@ -9,13 +9,15 @@ export default async function handler(request: Request) {
     // Handle GET request to fetch data
     if (request.method === 'GET') {
         try {
-            let data = await kv.get<Omit<AppData, 'loading'>>(DATA_KEY);
+            // FIX: Changed kv.get to kv.GET. The error "Property 'get' does not exist" suggests an API version where methods might have been uppercase, mirroring Redis commands.
+            let data = await kv.GET<Omit<AppData, 'loading'>>(DATA_KEY);
             
             // If no data exists in KV, initialize with mock data, set it, and return it.
             if (!data) {
                 console.log("KV store is empty. Initializing with mock data.");
                 const mockData = getMockDataState();
-                await kv.set(DATA_KEY, mockData);
+                // FIX: Changed kv.set to kv.SET. The error "Property 'set' does not exist" suggests an API version where methods might have been uppercase.
+                await kv.SET(DATA_KEY, mockData);
                 data = mockData; // Use the mock data for the response
             }
 
@@ -45,7 +47,8 @@ export default async function handler(request: Request) {
             if (!newData || typeof newData.settings !== 'object') {
                  return new Response('Invalid data format provided.', { status: 400 });
             }
-            await kv.set(DATA_KEY, newData);
+            // FIX: Changed kv.set to kv.SET. The error "Property 'set' does not exist" suggests an API version where methods might have been uppercase.
+            await kv.SET(DATA_KEY, newData);
             return new Response(JSON.stringify({ message: 'Data saved successfully' }), { status: 200 });
         } catch (error) {
             console.error('Vercel KV SET Error:', error);

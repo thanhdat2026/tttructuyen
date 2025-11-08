@@ -1,22 +1,6 @@
 import {
-    Student, Teacher, Staff, Class, AttendanceRecord, Invoice, PersonStatus, FeeType, AttendanceStatus, ProgressReport, Income, Expense, CenterSettings, Payroll, SalaryType, Announcement, UserRole, Transaction, TransactionType
+    Student, Teacher, Staff, Class, AttendanceRecord, Invoice, PersonStatus, FeeType, AttendanceStatus, ProgressReport, Income, Expense, CenterSettings, Payroll, SalaryType, Announcement, UserRole, Transaction, TransactionType, AppData
 } from '../types';
-
-export interface AppData {
-  students: Student[];
-  teachers: Teacher[];
-  staff: Staff[];
-  classes: Class[];
-  attendance: AttendanceRecord[];
-  invoices: Invoice[];
-  progressReports: ProgressReport[];
-  transactions: Transaction[];
-  income: Income[];
-  expenses: Expense[];
-  settings: CenterSettings;
-  payrolls: Payroll[];
-  announcements: Announcement[];
-}
 
 // --- Core API Functions ---
 
