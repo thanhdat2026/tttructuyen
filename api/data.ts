@@ -208,18 +208,25 @@ export interface AppData {
 
 // INLINED MOCK DATA TO FIX VERCEL BUILD ISSUE
 const MOCK_STUDENTS: Student[] = [
-    {
-      "id": "HS001", "name": "Hoàng Thị Xuân", "createdAt": "2025-10-19", "status": PersonStatus.ACTIVE, "dob": "2013-01-01",
-      "parentName": "Đào Thị Xuyến", "address": "", "balance": 0, "email": "hs001@example.com", "phone": "0372624435"
-    },
-    {
-      "id": "HS002", "email": "hs002@example.com", "address": "", "parentName": "Đỗ Thị Ngọ", "balance": 0,
-      "createdAt": "2025-10-19", "phone": "0868899158", "dob": "2013-01-01", "name": "Lê Gia Bảo", "status": PersonStatus.ACTIVE
-    },
-    {
-      "id": "HS003", "status": PersonStatus.ACTIVE, "parentName": "Hoàng Thị Liên", "name": "Đào Quang Vĩnh Hưng", "address": "",
-      "dob": "2013-01-01", "balance": 0, "phone": "0978282633", "email": "hs003@example.com", "createdAt": "2025-10-19"
-    },
+    { "id": "HS001", "name": "Hoàng Thị Xuân", "createdAt": "2025-10-19", "status": PersonStatus.ACTIVE, "dob": "2013-01-01", "parentName": "Đào Thị Xuyến", "address": "", "balance": 0, "email": "hs001@example.com", "phone": "0372624435" },
+    { "id": "HS002", "email": "hs002@example.com", "address": "", "parentName": "Đỗ Thị Ngọ", "balance": 0, "createdAt": "2025-10-19", "phone": "0868899158", "dob": "2013-01-01", "name": "Lê Gia Bảo", "status": PersonStatus.ACTIVE },
+    { "id": "HS003", "status": PersonStatus.ACTIVE, "parentName": "Hoàng Thị Liên", "name": "Đào Quang Vĩnh Hưng", "address": "", "dob": "2013-01-01", "balance": 0, "phone": "0978282633", "email": "hs003@example.com", "createdAt": "2025-10-19" },
+    { "id": "HS004", "phone": "0937830935", "balance": 0, "address": "", "createdAt": "2025-10-19", "status": PersonStatus.ACTIVE, "email": "hs004@example.com", "dob": "2013-01-01", "name": "Lê Thị Kim Ngân", "parentName": "Lê Văn Tá" },
+    { "id": "HS005", "phone": "0978306800", "email": "hs005@example.com", "balance": 0, "address": "", "name": "Nguyễn Cẩm Tú", "createdAt": "2025-10-19", "dob": "2013-01-01", "parentName": "Nguyễn Thị Ngoan", "status": PersonStatus.ACTIVE },
+    { "id": "HS006", "parentName": "Nguyễn Thị Yến", "phone": "0966330350", "status": PersonStatus.ACTIVE, "createdAt": "2025-10-19", "address": "", "name": "Nguyễn Thị Anh Thơ", "dob": "2013-01-01", "balance": 0, "email": "hs006@example.com" },
+    { "id": "HS007", "parentName": "Đào Thị Huyền", "createdAt": "2025-10-19", "balance": 0, "phone": "0988846383", "status": PersonStatus.ACTIVE, "email": "hs007@example.com", "dob": "2013-01-01", "address": "", "name": "Đỗ Thành Đạt" },
+    { "id": "HS008", "email": "hs008@example.com", "balance": -250000, "dob": "2013-01-01", "address": "", "createdAt": "2025-10-19", "name": "Quách Hải Đăng", "phone": "0968378995", "parentName": "Nguyễn Thị Chang", "status": PersonStatus.INACTIVE },
+    { "id": "HS009", "name": "Đức Anh", "parentName": "Phụ huynh Đức Anh", "address": "", "balance": 0, "email": "hs009@example.com", "dob": "2013-01-01", "createdAt": "2025-10-19", "phone": "0353603657", "status": PersonStatus.ACTIVE },
+    { "id": "HS010", "parentName": "Lê Thị Huệ", "balance": 0, "email": "hs010@example.com", "name": "Đào Thị Thùy Vân", "status": PersonStatus.INACTIVE, "dob": "2013-01-01", "phone": "0962221038", "createdAt": "2025-10-19", "address": "" },
+    { "id": "HS011", "phone": "0398945679", "status": PersonStatus.ACTIVE, "parentName": "Nguyễn Thị Hường", "balance": 0, "email": "hs011@example.com", "createdAt": "2025-10-19", "dob": "2013-01-01", "address": "", "name": "Hoàng Gia Khánh" },
+    { "id": "HS012", "phone": "0975793681", "createdAt": "2025-10-19", "status": PersonStatus.ACTIVE, "dob": "2013-01-01", "balance": 0, "name": "Đào Thị Ngân Hà", "address": "", "email": "hs012@example.com", "parentName": "Nguyễn Thị Tuyết" },
+    { "id": "HS013", "createdAt": "2025-10-19", "email": "hs013@example.com", "phone": "0971875193", "parentName": "Đỗ Thị Hòa", "status": PersonStatus.ACTIVE, "address": "", "name": "Hoàng Văn Phúc", "dob": "2013-01-01", "balance": -200000 },
+    { "id": "HS014", "balance": 0, "phone": "0966381191", "name": "Quách Thiện Triệu", "status": PersonStatus.ACTIVE, "createdAt": "2025-10-19", "email": "hs014@example.com", "parentName": "Đào Thùy Linh", "address": "", "dob": "2013-01-01" },
+    { "id": "HS015", "name": "Quách Thị Phương Anh", "balance": 0, "parentName": "Đào Thị Ngoan", "createdAt": "2025-10-19", "email": "hs015@example.com", "status": PersonStatus.ACTIVE, "phone": "0379366500", "address": "", "dob": "2013-01-01" },
+    { "id": "HS017", "phone": "0999909164", "status": PersonStatus.INACTIVE, "email": "hs017@example.com", "address": "", "balance": -800000, "parentName": "Phụ huynh Anh Quân", "dob": "2013-01-01", "name": "Anh Quân", "createdAt": "2025-10-19" },
+    { "id": "HS018", "createdAt": "2025-10-19", "phone": "0781382675", "dob": "2013-01-01", "name": "Hương Giang", "balance": 0, "parentName": "Phụ huynh Hương Giang", "status": PersonStatus.ACTIVE, "email": "hs018@example.com", "address": "" },
+    { "id": "HS019", "address": "", "phone": "0974472784", "parentName": "Nguyễn Thị Trà", "status": PersonStatus.ACTIVE, "balance": 0, "dob": "2013-01-01", "createdAt": "2025-10-19", "name": "Đào Thị Diệu Linh", "email": "hs019@example.com" },
+    { "id": "HS020", "name": "Đào Quang Khải", "createdAt": "2025-10-19", "balance": -1400000, "email": "hs020@example.com", "parentName": "Đào Thị Hoa", "dob": "2013-01-01", "address": "", "phone": "0988560026", "status": PersonStatus.ACTIVE },
     { "id": "HS160", "address": "", "createdAt": "2025-10-30", "balance": 0, "email": "hs100@email.com", "dob": "2014-09-15", "phone": "0349496356", "name": "Đào Quang Uy Long", "status": PersonStatus.ACTIVE, "parentName": "" }
 ];
 const MOCK_TEACHERS: Teacher[] = [
@@ -244,13 +251,21 @@ const MOCK_CLASSES: Class[] = [
       "id": "L01", "fee": { "type": FeeType.PER_SESSION, "amount": 50000 }, "name": "Toán 6 cơ bản",
       "schedule": [{"endTime": "16:45", "dayOfWeek": "Thursday", "startTime": "15:00"}, {"dayOfWeek": "Sunday", "startTime": "15:00", "endTime": "16:45"}],
       "teacherIds": ["DAT", "QUYEN"],
-      "studentIds": ["HS001", "HS002", "HS003", "HS160"], "subject": "Toán"
+      "studentIds": ["HS001", "HS002", "HS003", "HS004", "HS005", "HS006", "HS007", "HS008", "HS009", "HS010", "HS011", "HS012", "HS013", "HS014", "HS015", "HS017", "HS160"], "subject": "Toán"
+    },
+    {
+      "id": "L02", "fee": { "type": FeeType.PER_SESSION, "amount": 50000 }, "teacherIds": ["DAT", "QUYEN"],
+      "studentIds": ["HS018", "HS019", "HS020"],
+      "subject": "Toán", "name": "Toán 6 mục tiêu 8+", "schedule": [{"dayOfWeek": "Tuesday", "startTime": "15:00", "endTime": "16:45"}, {"dayOfWeek": "Friday", "endTime": "16:45", "startTime": "15:00"}]
     }
 ];
 const MOCK_ATTENDANCE: AttendanceRecord[] = [];
 const MOCK_INVOICES: Invoice[] = [];
 const MOCK_PROGRESS_REPORTS: ProgressReport[] = [];
-const MOCK_TRANSACTIONS: Transaction[] = [];
+const MOCK_TRANSACTIONS: Transaction[] = [
+    { "id": "FT1760976132124", "type": TransactionType.ADJUSTMENT_DEBIT, "description": "Học phí tháng 9", "date": "2025-10-20", "studentId": "HS008", "amount": -250000 },
+    { "id": "FT1760976164388", "studentId": "HS013", "type": TransactionType.ADJUSTMENT_DEBIT, "amount": -200000, "description": "Học phí tháng 9", "date": "2025-10-20" }
+];
 const MOCK_INCOME: Income[] = [];
 const MOCK_EXPENSES: Expense[] = [];
 const MOCK_PAYROLLS: Payroll[] = [];
@@ -274,22 +289,15 @@ function getMockDataState(): Omit<AppData, 'loading'> {
 const DATA_KEY = 'educenter_pro_data_kv_v1';
 
 export default async function handler(request: any) {
-    // This function must be edge-compatible
-    if (request.headers["x-vercel-edge-functions-exclude"]) {
-        return new Response("skipped");
-    }
-
-    // Handle GET request to fetch data
     if (request.method === 'GET') {
         try {
             let data = await kv.get<Omit<AppData, 'loading'>>(DATA_KEY);
             
-            // If no data exists in KV, initialize with mock data, set it, and return it.
             if (!data) {
                 console.log("KV store is empty. Initializing with mock data.");
                 const mockData = getMockDataState();
                 await kv.set(DATA_KEY, mockData);
-                data = mockData; // Use the mock data for the response
+                data = mockData;
             }
 
             return new Response(JSON.stringify(data), {
@@ -311,7 +319,6 @@ export default async function handler(request: any) {
         }
     }
 
-    // Handle POST request to save data
     if (request.method === 'POST') {
         try {
             const newData: AppData = await request.json();
@@ -330,6 +337,5 @@ export default async function handler(request: any) {
         }
     }
 
-    // Handle other methods
     return new Response('Method Not Allowed', { status: 405 });
 }
