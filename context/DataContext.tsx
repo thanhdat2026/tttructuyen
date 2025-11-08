@@ -105,17 +105,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setState(prev => ({ ...prev, loading: true }));
       setError(null);
       try {
-        let data = await api.loadInitialData();
+        // The API now handles initialization, so we just load once.
+        const data = await api.loadInitialData();
 
-        // If data is null, it's the first run. Initialize with mock data and fetch again.
-        if (data === null) {
-          console.log("First run detected. Initializing database with mock data...");
-          await api.resetToMockData();
-          data = await api.loadInitialData(); // Re-fetch the data
-          if (data === null) {
-            // This should not happen if reset was successful
-            throw new Error("Không thể tải dữ liệu sau khi khởi tạo.");
-          }
+        if (!data) {
+            // This should not happen with the new API logic, but it's a good safeguard.
+            throw new Error("Không thể tải dữ liệu khởi tạo từ máy chủ.");
         }
         
         setState({ ...data, loading: false });

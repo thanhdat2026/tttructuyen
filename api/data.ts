@@ -1,5 +1,6 @@
 import { kv } from '@vercel/kv';
 import { AppData } from '../services/api';
+import { getMockDataState } from '../services/mockData';
 
 // This is the key under which the entire application state will be stored in Vercel KV.
 const DATA_KEY = 'educenter_pro_data_kv';
@@ -8,14 +9,16 @@ export default async function handler(request: Request) {
     // Handle GET request to fetch data
     if (request.method === 'GET') {
         try {
-            const data = await kv.get<Omit<AppData, 'loading'>>(DATA_KEY);
-            // If no data exists in KV, return null. The client will handle initialization.
+            let data = await kv.get<Omit<AppData, 'loading'>>(DATA_KEY);
+            
+            // If no data exists in KV, initialize with mock data, set it, and return it.
             if (!data) {
-                return new Response(JSON.stringify(null), {
-                    headers: { 'Content-Type': 'application/json' },
-                    status: 200,
-                });
+                console.log("KV store is empty. Initializing with mock data.");
+                const mockData = getMockDataState();
+                await kv.set(DATA_KEY, mockData);
+                data = mockData; // Use the mock data for the response
             }
+
             return new Response(JSON.stringify(data), {
                 headers: { 'Content-Type': 'application/json' },
                 status: 200,
