@@ -1,6 +1,7 @@
 import React, { createContext, useState, ReactNode, useEffect, useCallback } from 'react';
-import { Student, Teacher, Staff, Class, AttendanceRecord, ProgressReport, Income, Expense, CenterSettings, Announcement, Transaction, UserRole, AppData } from '../types';
+import { Student, Teacher, Staff, Class, AttendanceRecord, ProgressReport, Income, Expense, CenterSettings, Announcement, Transaction, UserRole } from '../types';
 import * as api from '../services/api';
+import { AppData } from '../services/api';
 import { MOCK_SETTINGS } from '../services/mockData';
 
 
@@ -88,7 +89,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (err: any) {
         console.error("Không thể tải dữ liệu từ máy chủ:", err);
         setError(`Không thể tải dữ liệu từ máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại. Lỗi: ${err.message || 'Không rõ'}`);
-        // FIX: Replaced direct state update with functional update to preserve existing state properties.
         setState(prev => ({ ...prev, loading: false }));
     }
   }, []);
@@ -103,7 +103,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } catch (err: any) {
         console.error("Lỗi tải dữ liệu ban đầu:", err);
         setError(`Không thể tải dữ liệu từ máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại. Lỗi: ${err.message || 'Không rõ'}.`);
-        // FIX: Replaced direct state update with functional update to preserve existing state properties.
         setState(prev => ({ ...prev, loading: false }));
       } finally {
         setIsInitialLoad(false);

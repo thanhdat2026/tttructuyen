@@ -1,4 +1,5 @@
-import { Student, Teacher, Staff, Class, AttendanceRecord, Invoice, ProgressReport, Income, Expense, CenterSettings, UserRole, SalaryType, Announcement, Transaction, PersonStatus, FeeType, AttendanceStatus, TransactionType, Payroll, AppData } from 'types';
+import { Student, Teacher, Staff, Class, AttendanceRecord, Invoice, ProgressReport, Income, Expense, CenterSettings, UserRole, SalaryType, Announcement, Transaction, PersonStatus, FeeType, AttendanceStatus, TransactionType, Payroll } from '../types';
+import { AppData } from './api';
 
 export const MOCK_STUDENTS: Student[] = [
     {
