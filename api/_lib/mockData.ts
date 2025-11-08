@@ -1,4 +1,4 @@
-import { Student, Teacher, Staff, Class, AttendanceRecord, Invoice, ProgressReport, Income, Expense, CenterSettings, AppData, Transaction, Payroll, Announcement } from '../../types.js';
+import type { AppData, CenterSettings, Student, Teacher, Staff, Class, AttendanceRecord, Invoice, ProgressReport, Income, Expense, Transaction, Payroll, Announcement } from '../../types.js';
 
 export const MOCK_STUDENTS: Student[] = [];
 export const MOCK_TEACHERS: Teacher[] = [];
