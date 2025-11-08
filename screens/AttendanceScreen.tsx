@@ -164,15 +164,15 @@ export const AttendanceScreen: React.FC = () => {
 
     if (!cls) return <div className="p-6">Lớp học không tồn tại.</div>;
     
-    const StatusButton: React.FC<{current: AttendanceStatus, target: AttendanceStatus, onClick: () => void, label: string, color: string, icon: React.ReactNode}> = ({current, target, onClick, label, color, icon}) => (
+    // FIX: Specify a more precise type for the icon prop to resolve TypeScript error with React.cloneElement.
+    const StatusButton: React.FC<{current: AttendanceStatus, target: AttendanceStatus, onClick: () => void, label: string, color: string, icon: React.ReactElement<React.SVGProps<SVGSVGElement>>}> = ({current, target, onClick, label, color, icon}) => (
         <button
             onClick={onClick}
             title={label}
             disabled={!canTakeAttendance}
             className={`px-3 py-2 rounded-md transition-all duration-200 flex items-center justify-center gap-1.5 font-semibold text-sm flex-1 ${current === target ? `${color} text-white shadow-md` : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'} disabled:opacity-50 disabled:cursor-not-allowed`}
         >
-            {/* FIX: Provide a more specific type for the icon element's props to resolve the TypeScript error. */}
-            {React.cloneElement(icon as React.ReactElement<{ width?: number | string; height?: number | string; }>, {width: 18, height: 18})}
+            {React.cloneElement(icon, {width: 18, height: 18})}
             <span className="hidden sm:inline">{label}</span>
         </button>
     );

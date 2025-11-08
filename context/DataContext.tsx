@@ -167,8 +167,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     updateUserPassword: createSilentFunc(api.updateUserPassword),
     clearCollections: createRefreshingFunc(api.clearCollections),
     deleteAttendanceByMonth: createRefreshingFunc(api.deleteAttendanceByMonth),
-    // FIX: `createRefreshingFunc` expects a function that takes an argument, but `api.clearAllTransactions` does not.
-    // Implement it inline, similar to `resetToMockData`.
     clearAllTransactions: async () => {
       await api.clearAllTransactions();
       await refreshData();
