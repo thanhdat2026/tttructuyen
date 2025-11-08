@@ -1,5 +1,5 @@
 import { kv } from '@vercel/kv';
-import { Student, Teacher, Staff, Class, AttendanceRecord, Invoice, ProgressReport, Income, Expense, CenterSettings, UserRole, SalaryType, Announcement, Transaction, PersonStatus, FeeType, AttendanceStatus, TransactionType, Payroll, AppData } from '../types';
+import { Student, Teacher, Staff, Class, AttendanceRecord, Invoice, ProgressReport, Income, Expense, CenterSettings, UserRole, SalaryType, Announcement, Transaction, PersonStatus, FeeType, Payroll, AppData } from '../types';
 
 // INLINED MOCK DATA TO FIX VERCEL BUILD ISSUE
 const MOCK_STUDENTS: Student[] = [
