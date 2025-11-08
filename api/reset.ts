@@ -1,5 +1,210 @@
 import { kv } from '@vercel/kv';
-import { Student, Teacher, Staff, Class, AttendanceRecord, Invoice, ProgressReport, Income, Expense, CenterSettings, UserRole, SalaryType, Announcement, Transaction, PersonStatus, FeeType, Payroll, AppData } from '../types';
+
+// INLINED TYPES TO FIX VERCEL BUILD ISSUE
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  TEACHER = 'TEACHER',
+  MANAGER = 'MANAGER',
+  ACCOUNTANT = 'ACCOUNTANT',
+  PARENT = 'PARENT',
+  VIEWER = 'VIEWER',
+}
+export enum PersonStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+}
+export enum AttendanceStatus {
+  PRESENT = 'PRESENT',
+  ABSENT = 'ABSENT',
+  LATE = 'LATE',
+  UNMARKED = 'UNMARKED',
+}
+export enum FeeType {
+  PER_SESSION = 'PER_SESSION',
+  MONTHLY = 'MONTHLY',
+  PER_COURSE = 'PER_COURSE',
+}
+export enum SalaryType {
+  PER_SESSION = 'PER_SESSION',
+  MONTHLY = 'MONTHLY',
+}
+export interface BasePerson {
+  id: string;
+  name: string;
+  email?: string;
+  phone: string;
+  address: string;
+  status: PersonStatus;
+  createdAt: string;
+  password?: string;
+  gender?: 'Nam' | 'Nữ' | 'Khác';
+}
+export interface Student extends BasePerson {
+  dob: string;
+  parentName: string;
+  email: string;
+  balance: number;
+}
+export interface Teacher extends BasePerson {
+  dob: string;
+  qualification: string;
+  subject: string;
+  role: UserRole.TEACHER;
+  salaryType: SalaryType;
+  rate: number;
+}
+export interface Staff extends BasePerson {
+  dob: string;
+  position: string;
+  role: UserRole.MANAGER | UserRole.ACCOUNTANT;
+}
+export interface ClassFee {
+  type: FeeType;
+  amount: number;
+}
+export interface ClassSchedule {
+  dayOfWeek: 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
+  startTime: string;
+  endTime: string;
+}
+export interface Class {
+  id: string;
+  name: string;
+  teacherIds: string[];
+  subject: string;
+  schedule: ClassSchedule[];
+  studentIds: string[];
+  fee: ClassFee;
+}
+export interface AttendanceRecord {
+  id: string;
+  classId: string;
+  studentId: string;
+  date: string;
+  status: AttendanceStatus;
+}
+export interface Invoice {
+  id: string;
+  studentId: string;
+  studentName: string;
+  month: string;
+  amount: number;
+  details: string;
+  status: 'PAID' | 'UNPAID' | 'CANCELLED';
+  generatedDate: string;
+  paidDate: string | null;
+}
+export enum TransactionType {
+    INVOICE = 'INVOICE',
+    PAYMENT = 'PAYMENT',
+    ADJUSTMENT_CREDIT = 'ADJUSTMENT_CREDIT',
+    ADJUSTMENT_DEBIT = 'ADJUSTMENT_DEBIT',
+}
+export interface Transaction {
+    id: string;
+    studentId: string;
+    date: string;
+    type: TransactionType;
+    description: string;
+    amount: number;
+    relatedInvoiceId?: string;
+}
+export interface ProgressReport {
+  id: string;
+  classId: string;
+  studentId: string;
+  date: string;
+  score: number;
+  comments: string;
+  createdBy: string;
+}
+export enum IncomeCategory {
+  SALE = 'SALE',
+  EVENT = 'EVENT',
+  OTHER = 'OTHER',
+}
+export interface Income {
+  id: string;
+  description: string;
+  amount: number;
+  category: IncomeCategory;
+  date: string;
+}
+export enum ExpenseCategory {
+  SALARY = 'SALARY',
+  RENT = 'RENT',
+  UTILITIES = 'UTILITIES',
+  MARKETING = 'MARKETING',
+  SUPPLIES = 'SUPPLIES',
+  OTHER = 'OTHER',
+}
+export interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  category: ExpenseCategory;
+  date: string;
+}
+export interface CenterSettings {
+  name: string;
+  address?: string;
+  phone?: string;
+  logoUrl: string;
+  themeColor: string;
+  sidebarColor?: string;
+  theme: 'light' | 'dark';
+  onboardingStepsCompleted: string[];
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankAccountHolder?: string;
+  bankBin?: string;
+  qrCodeUrl?: string;
+  adminPassword?: string;
+  viewerAccountActive?: boolean;
+  loginHeaderContent?: string;
+}
+export interface Payroll {
+  id: string;
+  teacherId: string;
+  teacherName: string;
+  month: string;
+  sessionsTaught: number;
+  rate: number;
+  baseSalary: number;
+  totalSalary: number;
+  calculationDate: string;
+}
+export interface Announcement {
+    id: string;
+    title: string;
+    content: string;
+    createdAt: string;
+    createdBy: string;
+    classId?: string;
+}
+export interface SearchResult {
+  id: string;
+  name: string;
+  type: 'student' | 'teacher' | 'class';
+  path: string;
+  context?: string;
+}
+export interface AppData {
+  students: Student[];
+  teachers: Teacher[];
+  staff: Staff[];
+  classes: Class[];
+  attendance: AttendanceRecord[];
+  invoices: Invoice[];
+  progressReports: ProgressReport[];
+  transactions: Transaction[];
+  income: Income[];
+  expenses: Expense[];
+  settings: CenterSettings;
+  payrolls: Payroll[];
+  announcements: Announcement[];
+}
+// END INLINED TYPES
 
 // INLINED MOCK DATA TO FIX VERCEL BUILD ISSUE
 const MOCK_STUDENTS: Student[] = [
