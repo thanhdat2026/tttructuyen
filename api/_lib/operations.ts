@@ -1,4 +1,3 @@
-
 // FIX: Changed the import from a wholesale 'import type' to a mixed import.
 // This allows enums like PersonStatus, FeeType, etc., to be used as values at runtime,
 // while interfaces like AppData, Student, etc., are still imported as types.

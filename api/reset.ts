@@ -3,7 +3,11 @@ import { getMockDataState } from './_lib/mockData.js';
 
 const DATA_KEY = 'educenter_pro_data_kv_v1';
 
-export default async function handler(request: any) {    
+export const config = {
+  runtime: 'edge',
+};
+
+export default async function handler(request: Request) {    
     if (request.method === 'POST') {
         try {
             const mockData = getMockDataState();

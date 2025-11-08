@@ -5,7 +5,7 @@ import { applyOperation } from './_lib/operations.js';
 
 const DATA_KEY = 'educenter_pro_data_kv_v1';
 const LOCK_KEY = 'educenter_pro_data_kv_v1_lock';
-const LOCK_TTL_SECONDS = 10; // Lock expires after 10 seconds
+const LOCK_TTL_SECONDS = 10;
 
 async function acquireLock(): Promise<boolean> {
   const result = await kv.set(LOCK_KEY, 'locked', { nx: true, ex: LOCK_TTL_SECONDS });
@@ -16,31 +16,30 @@ async function releaseLock(): Promise<void> {
   await kv.del(LOCK_KEY);
 }
 
-export default async function handler(request: any) {
+export const config = {
+  runtime: 'edge',
+};
+
+export default async function handler(request: Request) {
     if (request.method === 'GET') {
         try {
-            const data = await kv.get<Omit<AppData, 'loading'>>(DATA_KEY);
+            let data = await kv.get<Omit<AppData, 'loading'>>(DATA_KEY);
             
-            if (data) {
-                return new Response(JSON.stringify(data), {
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Cache-Control': 'no-cache, no-store, must-revalidate'
-                    },
-                    status: 200,
-                });
-            } else {
-                console.log("KV store is empty. Returning initial empty state.");
-                const initialData = getMockDataState();
-                return new Response(JSON.stringify(initialData), {
-                    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store, must-revalidate' },
-                    status: 200,
-                });
+            if (!data) {
+                console.log("KV store is empty. Seeding with initial data.");
+                data = getMockDataState();
+                await kv.set(DATA_KEY, data);
             }
+            return new Response(JSON.stringify(data), {
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate'
+                },
+                status: 200,
+            });
         } catch (error) {
             console.error('Vercel KV GET Error:', error);
             const errorMessage = error instanceof Error ? error.message : 'Unknown KV error';
-            
             if (errorMessage.includes("Missing required environment variable")) {
                 return new Response('Lỗi Cấu hình: Vui lòng kết nối Vercel KV database với project của bạn trong trang cài đặt Vercel.', { status: 500 });
             }
@@ -55,8 +54,18 @@ export default async function handler(request: any) {
         while (attempts < maxAttempts) {
             if (await acquireLock()) {
                 try {
-                    const data = await kv.get<Omit<AppData, 'loading'>>(DATA_KEY) ?? getMockDataState();
                     const operation = await request.json();
+                    
+                    if (operation.op === 'restoreData') {
+                        // Special case for restore: just set the payload as the new data
+                        await kv.set(DATA_KEY, operation.payload);
+                        return new Response(JSON.stringify(operation.payload), {
+                            headers: { 'Content-Type': 'application/json' },
+                            status: 200,
+                        });
+                    }
+
+                    const data = await kv.get<Omit<AppData, 'loading'>>(DATA_KEY) ?? getMockDataState();
                     const newData = applyOperation(data, operation);
                     await kv.set(DATA_KEY, newData);
                     
@@ -66,7 +75,7 @@ export default async function handler(request: any) {
                     });
                 } catch (error) {
                     const errorMessage = error instanceof Error ? error.message : 'Unknown operation error';
-                    return new Response(`Operation failed: ${errorMessage}`, { status: 400 }); // Use 400 for client-side errors from operations
+                    return new Response(`Operation failed: ${errorMessage}`, { status: 400 });
                 } finally {
                     await releaseLock();
                 }

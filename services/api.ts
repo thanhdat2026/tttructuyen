@@ -13,7 +13,7 @@ export async function loadInitialData(): Promise<Omit<AppData, 'loading'>> {
     return response.json();
 }
 
-async function patchData(operation: { op: string, payload?: any }): Promise<AppData> {
+async function patchData(operation: { op: string, payload?: any }): Promise<Omit<AppData, 'loading'>> {
     const response = await fetch('/api/data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -81,16 +81,8 @@ export async function backupData(): Promise<Omit<AppData, 'loading'>> {
     return loadInitialData();
 }
 
-export async function restoreData(data: Omit<AppData, 'loading'>): Promise<void> {
-    const response = await fetch('/api/data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ op: 'restoreData', payload: data }), // Use the patch endpoint for consistency
-    });
-     if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'API request failed');
-    }
+export async function restoreData(data: Omit<AppData, 'loading'>): Promise<Omit<AppData, 'loading'>> {
+    return patchData({ op: 'restoreData', payload: data });
 }
 
 export const resetToMockData = async (): Promise<void> => {
