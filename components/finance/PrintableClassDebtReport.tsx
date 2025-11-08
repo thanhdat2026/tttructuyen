@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import { forwardRef } from 'react';
 import { Student, CenterSettings } from '../../types';
 
 interface PrintableClassDebtReportProps {

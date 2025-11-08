@@ -1,21 +1,10 @@
-
-
 import React, { useMemo, useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useData } from '../hooks/useDataContext';
-import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
-import { Table, SortConfig, Column } from '../components/common/Table';
-import { Button } from '../components/common/Button';
-import { Modal } from '../components/common/Modal';
 import { Card } from '../components/common/Card';
 import { ICONS } from '../constants';
-import { Invoice, Income, Expense, IncomeCategory, ExpenseCategory, UserRole } from '../types';
-import { CurrencyInput } from '../components/common/CurrencyInput';
-import { ConfirmationModal } from '../components/common/ConfirmationModal';
-import { Pagination } from '../components/common/Pagination';
-import { ListItemCard } from '../components/common/ListItemCard';
-import { TuitionFeeNotice } from '../components/finance/TuitionFeeNotice';
+import { UserRole } from '../types';
 import { UnpaidStudentsReport } from '../components/finance/UnpaidStudentsReport';
 import { TeacherPayrollTab } from '../components/finance/TeacherPayrollTab';
 import { PayrollTab } from '../components/finance/PayrollTab';
@@ -55,13 +44,6 @@ const getPeriodDates = (period: Period): { start: string, end: string } => {
         start: startDate.toISOString().split('T')[0],
         end: endDate.toISOString().split('T')[0],
     };
-};
-
-const ITEMS_PER_PAGE = 10;
-
-type FilterState = {
-    query: string;
-    classId: string;
 };
 
 const OverviewTab: React.FC<{period: Period}> = ({period}) => {

@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
-import { ICONS, ROUTES } from '../constants';
+import { ICONS } from '../constants';
 import { Class, UserRole, FeeType, ClassSchedule, Teacher, Student, PersonStatus } from '../types';
 import { CurrencyInput } from '../components/common/CurrencyInput';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';

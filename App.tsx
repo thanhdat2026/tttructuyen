@@ -126,7 +126,7 @@ const ParentLayout: React.FC = () => {
 };
 
 const AppRoutes: React.FC = () => {
-    const { isAuthenticated, role, isAuthLoading } = useAuth();
+    const { isAuthenticated, role } = useAuth();
     const { state, isInitialLoad, error } = useData();
 
     useEffect(() => {

@@ -6,7 +6,7 @@ import { useToast } from '../hooks/useToast';
 import { Table, SortConfig } from '../components/common/Table';
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
-import { Student, ProgressReport, AttendanceRecord, PersonStatus, UserRole, AttendanceStatus, Announcement, Class } from '../types';
+import { Student, ProgressReport, AttendanceRecord, PersonStatus, UserRole, AttendanceStatus } from '../types';
 import { ICONS, ROUTES } from '../constants';
 import { ListItemCard } from '../components/common/ListItemCard';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
