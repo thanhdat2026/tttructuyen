@@ -16,6 +16,28 @@ async function releaseLock(): Promise<void> {
   await kv.del(LOCK_KEY);
 }
 
+// Helper function to safely merge data against a default structure
+function safeMergeWithDefault(sourceData: Partial<Omit<AppData, 'loading'>> | null, defaultState: Omit<AppData, 'loading'>): Omit<AppData, 'loading'> {
+    const finalData: Omit<AppData, 'loading'> = { ...defaultState };
+
+    if (sourceData) {
+        for (const key of Object.keys(defaultState) as (keyof typeof defaultState)[]) {
+            if (key === 'settings') {
+                if (typeof sourceData.settings === 'object' && sourceData.settings !== null) {
+                    finalData.settings = { ...defaultState.settings, ...sourceData.settings };
+                }
+            } else if (Array.isArray(finalData[key])) {
+                // Only overwrite if the source data for this key is a valid array
+                if (Array.isArray(sourceData[key])) {
+                    (finalData as any)[key] = sourceData[key];
+                }
+            }
+        }
+    }
+    return finalData;
+}
+
+
 export const config = {
   runtime: 'edge',
 };
@@ -25,24 +47,12 @@ export default async function handler(request: Request) {
         try {
             const dataFromKV = await kv.get<Partial<Omit<AppData, 'loading'>>>(DATA_KEY);
             const defaultState = getMockDataState();
-            let data: Omit<AppData, 'loading'>;
+            
+            const data = safeMergeWithDefault(dataFromKV, defaultState);
 
             if (!dataFromKV) {
-                console.log("KV store is empty. Seeding with initial data.");
-                data = defaultState;
-                await kv.set(DATA_KEY, data);
-            } else {
-                // Hợp nhất dữ liệu đã truy xuất với trạng thái mặc định để đảm bảo tất cả các khóa đều có mặt.
-                // Điều này làm cho ứng dụng tương thích với các cấu trúc dữ liệu cũ hơn.
-                data = {
-                    ...defaultState,
-                    ...dataFromKV,
-                    // Hợp nhất sâu các cài đặt để tránh mất cài đặt cũ khi thêm cài đặt mới
-                    settings: {
-                        ...defaultState.settings,
-                        ...(dataFromKV.settings || {}),
-                    },
-                };
+                 console.log("KV store is empty. Seeding with initial data.");
+                 await kv.set(DATA_KEY, data);
             }
             
             return new Response(JSON.stringify(data), {
@@ -70,22 +80,12 @@ export default async function handler(request: Request) {
             if (await acquireLock()) {
                 try {
                     const operation = await request.json();
+                    const defaultState = getMockDataState();
                     
                     if (operation.op === 'restoreData') {
-                        const defaultState = getMockDataState();
-                        const restoredDataFromFile = operation.payload;
-
-                        // Hợp nhất dữ liệu đã khôi phục với các giá trị mặc định để đảm bảo schema được cập nhật.
-                        // Điều này ngăn chặn việc mất các trường dữ liệu có thể không tồn tại trong một tệp sao lưu cũ.
-                        const finalRestoredData = {
-                            ...defaultState,
-                            ...restoredDataFromFile,
-                            settings: {
-                                ...defaultState.settings,
-                                ...(restoredDataFromFile.settings || {}),
-                            },
-                        };
-
+                        const restoredDataFromFile = operation.payload as Partial<Omit<AppData, 'loading'>>;
+                        const finalRestoredData = safeMergeWithDefault(restoredDataFromFile, defaultState);
+                        
                         await kv.set(DATA_KEY, finalRestoredData);
                         return new Response(JSON.stringify(finalRestoredData), {
                             headers: { 'Content-Type': 'application/json' },
@@ -93,8 +93,10 @@ export default async function handler(request: Request) {
                         });
                     }
 
-                    const data = await kv.get<Omit<AppData, 'loading'>>(DATA_KEY) ?? getMockDataState();
-                    const newData = applyOperation(data, operation);
+                    const dataFromKV = await kv.get<Omit<AppData, 'loading'>>(DATA_KEY) ?? defaultState;
+                    const currentData = safeMergeWithDefault(dataFromKV, defaultState);
+
+                    const newData = applyOperation(currentData, operation);
                     await kv.set(DATA_KEY, newData);
                     
                     return new Response(JSON.stringify(newData), {
@@ -103,7 +105,7 @@ export default async function handler(request: Request) {
                     });
                 } catch (error) {
                     const errorMessage = error instanceof Error ? error.message : 'Unknown operation error';
-                    return new Response(`Operation failed: ${errorMessage}`, { status: 400 });
+                    return new Response(`Thao tác thất bại: ${errorMessage}`, { status: 400 });
                 } finally {
                     await releaseLock();
                 }
@@ -112,7 +114,7 @@ export default async function handler(request: Request) {
             await new Promise(resolve => setTimeout(resolve, 250 * attempts));
         }
 
-        return new Response('Server is busy, please try again. Could not acquire data lock.', { status: 503 });
+        return new Response('Máy chủ đang bận, vui lòng thử lại. Không thể khóa dữ liệu.', { status: 503 });
     }
 
     return new Response('Method Not Allowed', { status: 405 });

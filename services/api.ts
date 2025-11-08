@@ -21,7 +21,7 @@ async function patchData(operation: { op: string, payload?: any }): Promise<Omit
     });
     if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText || 'API request failed');
+        throw new Error(errorText || 'Yêu cầu API thất bại');
     }
     return response.json();
 }
