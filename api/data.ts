@@ -9,12 +9,13 @@ export default async function handler(request: Request) {
     // Handle GET request to fetch data
     if (request.method === 'GET') {
         try {
-            let data = await kv.get<Omit<AppData, 'loading'>>(DATA_KEY);
-            // If no data exists in KV (e.g., first run), initialize it with mock data.
+            const data = await kv.get<Omit<AppData, 'loading'>>(DATA_KEY);
+            // If no data exists in KV, return null. The client will handle initialization.
             if (!data) {
-                console.log('No data found in Vercel KV, initializing with mock data.');
-                data = getMockDataState();
-                await kv.set(DATA_KEY, data);
+                return new Response(JSON.stringify(null), {
+                    headers: { 'Content-Type': 'application/json' },
+                    status: 200,
+                });
             }
             return new Response(JSON.stringify(data), {
                 headers: { 'Content-Type': 'application/json' },

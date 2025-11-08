@@ -20,14 +20,18 @@ export interface AppData {
 
 // --- Data Store Management (Online via Vercel KV) ---
 
-async function getData(): Promise<AppData> {
+async function getData(): Promise<AppData | null> {
     const response = await fetch('/api/data');
     if (!response.ok) {
         const errorText = await response.text();
         console.error("API call to /api/data failed:", response.status, errorText);
         throw new Error(errorText || 'Không thể tải dữ liệu từ máy chủ.');
     }
-    return response.json();
+    const text = await response.text();
+    if (text === 'null') {
+        return null;
+    }
+    return JSON.parse(text);
 }
 
 async function setData(data: AppData) {
@@ -45,7 +49,7 @@ async function setData(data: AppData) {
 
 // --- API Functions ---
 
-export async function loadInitialData(): Promise<AppData> {
+export async function loadInitialData(): Promise<AppData | null> {
     return getData();
 }
 
@@ -53,6 +57,7 @@ const generateUniqueId = (prefix: string) => `${prefix}-${Date.now()}-${Math.ran
 
 async function addDoc<T extends { id: string }>(collectionName: keyof Omit<AppData, 'settings'>, newItem: T): Promise<T> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     const collection = appData[collectionName] as unknown as T[];
     if (collection.some(item => item.id === newItem.id)) {
         throw new Error(`Một mục với ID ${newItem.id} đã tồn tại trong ${collectionName}.`);
@@ -65,6 +70,7 @@ async function addDoc<T extends { id: string }>(collectionName: keyof Omit<AppDa
 
 async function updateDoc<T extends { id: string }>(collectionName: keyof Omit<AppData, 'settings'>, docId: string, data: T): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     const collection = appData[collectionName] as any[];
     
     if (!collection.some((item: any) => item.id === docId)) {
@@ -77,6 +83,7 @@ async function updateDoc<T extends { id: string }>(collectionName: keyof Omit<Ap
 
 async function deleteDoc(collectionName: keyof Omit<AppData, 'settings'>, docId: string): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     const collection = appData[collectionName] as any[];
     appData[collectionName] = collection.filter((item: any) => item.id !== docId) as any;
     await setData(appData);
@@ -86,6 +93,7 @@ async function deleteDoc(collectionName: keyof Omit<AppData, 'settings'>, docId:
 // --- Students ---
 export async function addStudent({ student, classIds }: { student: Student, classIds: string[] }): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     if (appData.students.some(s => s.id === student.id)) {
         throw new Error(`Học viên với mã '${student.id}' đã tồn tại.`);
     }
@@ -102,6 +110,7 @@ export async function addStudent({ student, classIds }: { student: Student, clas
 
 export async function updateStudent({ originalId, updatedStudent, classIds }: { originalId: string, updatedStudent: Student, classIds: string[] }): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     const newId = updatedStudent.id;
 
     if (originalId !== newId) {
@@ -135,6 +144,7 @@ export async function updateStudent({ originalId, updatedStudent, classIds }: { 
 
 export async function deleteStudent(studentId: string): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     appData.students = appData.students.filter(s => s.id !== studentId);
     appData.classes = appData.classes.map(c => ({ ...c, studentIds: c.studentIds.filter(id => id !== studentId) }));
     appData.attendance = appData.attendance.filter(a => a.studentId !== studentId);
@@ -164,6 +174,7 @@ export async function addAnnouncement(data: Omit<Announcement, 'id'>): Promise<A
 
 export async function updateTeacher({ originalId, updatedTeacher }: { originalId: string, updatedTeacher: Teacher }): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     if (originalId !== updatedTeacher.id) {
         if(appData.teachers.some(t => t.id === updatedTeacher.id)) throw new Error("Mã giáo viên đã tồn tại.");
         appData.classes = appData.classes.map(c => ({...c, teacherIds: c.teacherIds.map(tid => tid === originalId ? updatedTeacher.id : tid)}));
@@ -175,6 +186,7 @@ export async function updateTeacher({ originalId, updatedTeacher }: { originalId
 
 export async function deleteTeacher(teacherId: string): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     appData.teachers = appData.teachers.filter(t => t.id !== teacherId);
     appData.classes = appData.classes.map(c => ({...c, teacherIds: c.teacherIds.filter(id => id !== teacherId)}));
     appData.payrolls = appData.payrolls.filter(p => p.teacherId !== teacherId);
@@ -183,6 +195,7 @@ export async function deleteTeacher(teacherId: string): Promise<void> {
 
 export async function updateStaff({ originalId, updatedStaff }: { originalId: string, updatedStaff: Staff }): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
      if (originalId !== updatedStaff.id && appData.staff.some(s => s.id === updatedStaff.id)) {
         throw new Error("Mã nhân viên đã tồn tại.");
     }
@@ -194,6 +207,7 @@ export const deleteStaff = (staffId: string) => deleteDoc('staff', staffId);
 
 export async function updateClass({ originalId, updatedClass }: { originalId: string, updatedClass: Class }): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
      if (originalId !== updatedClass.id && appData.classes.some(c => c.id === updatedClass.id)) {
         throw new Error("Mã lớp đã tồn tại.");
     }
@@ -203,6 +217,7 @@ export async function updateClass({ originalId, updatedClass }: { originalId: st
 
 export async function deleteClass(classId: string): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     appData.classes = appData.classes.filter(c => c.id !== classId);
     appData.attendance = appData.attendance.filter(a => a.classId !== classId);
     appData.progressReports = appData.progressReports.filter(pr => pr.classId !== classId);
@@ -219,12 +234,14 @@ export const deleteAnnouncement = (id: string) => deleteDoc('announcements', id)
 // --- Settings ---
 export async function updateSettings(settings: CenterSettings): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     appData.settings = settings;
     await setData(appData);
 }
 
 export async function completeOnboardingStep(step: string): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     if (!appData.settings.onboardingStepsCompleted.includes(step)) {
         appData.settings.onboardingStepsCompleted.push(step);
     }
@@ -234,6 +251,7 @@ export async function completeOnboardingStep(step: string): Promise<void> {
 // --- Complex Operations ---
 export async function updateAttendance(records: AttendanceRecord[]): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
 
     const recordsByClassDate = new Map<string, AttendanceRecord[]>();
     records.forEach(r => {
@@ -265,6 +283,7 @@ export async function updateAttendance(records: AttendanceRecord[]): Promise<voi
 
 export async function generateInvoices({ month, year }: { month: number, year: number }): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     const monthStr = `${year}-${String(month).padStart(2, '0')}`;
     const activeStudents = appData.students.filter(s => s.status === PersonStatus.ACTIVE);
 
@@ -331,6 +350,7 @@ export async function generateInvoices({ month, year }: { month: number, year: n
 
 export async function cancelInvoice(invoiceId: string): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     const invoice = appData.invoices.find(inv => inv.id === invoiceId);
     if (!invoice || invoice.status === 'CANCELLED') return;
     if (invoice.status === 'PAID') throw new Error("Không thể hủy hóa đơn đã thanh toán.");
@@ -349,6 +369,7 @@ export async function cancelInvoice(invoiceId: string): Promise<void> {
 
 export async function addAdjustment(payload: { studentId: string; amount: number; date: string; description: string; type: 'CREDIT' | 'DEBIT' }): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     const finalAmount = payload.type === 'CREDIT' ? payload.amount : -payload.amount;
 
     appData.transactions.push({
@@ -364,6 +385,7 @@ export async function addAdjustment(payload: { studentId: string; amount: number
 
 export async function updateTransaction(transaction: Transaction): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     const oldTransaction = appData.transactions.find(t => t.id === transaction.id);
     if (!oldTransaction) throw new Error("Giao dịch không tồn tại.");
 
@@ -377,6 +399,7 @@ export async function updateTransaction(transaction: Transaction): Promise<void>
 
 export async function deleteTransaction(transactionId: string): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     const transaction = appData.transactions.find(t => t.id === transactionId);
     if (!transaction) throw new Error("Giao dịch không tồn tại.");
 
@@ -389,6 +412,7 @@ export async function deleteTransaction(transactionId: string): Promise<void> {
 
 export const updateInvoiceStatus = async ({ invoiceId, status }: { invoiceId: string, status: 'PAID' | 'UNPAID' | 'CANCELLED' }) => {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     const invoice = appData.invoices.find(inv => inv.id === invoiceId);
     if (invoice) {
         invoice.status = status;
@@ -399,6 +423,7 @@ export const updateInvoiceStatus = async ({ invoiceId, status }: { invoiceId: st
 
 export async function generatePayrolls({ month, year }: { month: number, year: number }): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     const monthStr = `${year}-${String(month).padStart(2, '0')}`;
 
     for(const teacher of appData.teachers.filter(t => t.status === PersonStatus.ACTIVE)) {
@@ -434,8 +459,14 @@ export async function generatePayrolls({ month, year }: { month: number, year: n
 }
 
 // --- Data Management ---
-export const backupData = async (): Promise<AppData> => getData();
+export async function backupData(): Promise<AppData> {
+    const data = await getData();
+    if (!data) throw new Error("No data to back up.");
+    return data;
+}
+
 export const restoreData = async (data: AppData): Promise<void> => setData(data);
+
 export const resetToMockData = async (): Promise<void> => {
     const response = await fetch('/api/reset', { method: 'POST' });
     if (!response.ok) {
@@ -445,12 +476,14 @@ export const resetToMockData = async (): Promise<void> => {
 
 export const deleteAttendanceForDate = async ({ classId, date }: { classId: string, date: string }) => {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     appData.attendance = appData.attendance.filter(a => !(a.classId === classId && a.date === date));
     await setData(appData);
 }
 
 export const updateUserPassword = async ({ userId, role, newPassword }: { userId: string, role: UserRole, newPassword: string }) => {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     let userList: (Student | Teacher | Staff)[];
     switch (role) {
         case UserRole.PARENT: userList = appData.students; break;
@@ -469,6 +502,7 @@ export const updateUserPassword = async ({ userId, role, newPassword }: { userId
 
 export const clearCollections = async (collectionKeys: ('students' | 'teachers' | 'staff' | 'classes')[]) => {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     for (const key of collectionKeys) { (appData[key] as any) = []; }
     if (collectionKeys.includes('students')) {
         appData.attendance = []; appData.invoices = []; appData.progressReports = []; appData.transactions = [];
@@ -484,6 +518,7 @@ export const clearCollections = async (collectionKeys: ('students' | 'teachers' 
 
 export const deleteAttendanceByMonth = async ({ month, year }: { month: number, year: number }) => {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     const monthStr = `${year}-${String(month).padStart(2, '0')}`;
     appData.attendance = appData.attendance.filter(a => !a.date.startsWith(monthStr));
     await setData(appData);
@@ -491,6 +526,7 @@ export const deleteAttendanceByMonth = async ({ month, year }: { month: number, 
 
 export async function clearAllTransactions(): Promise<void> {
     const appData = await getData();
+    if (!appData) throw new Error("Database not initialized");
     appData.students = appData.students.map(student => ({
         ...student,
         balance: 0,

@@ -81,12 +81,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const refreshData = useCallback(async () => {
-    // This function can be used for both initial load and subsequent refreshes.
+    // This function is now mainly for manual refreshes.
     setState(prev => ({ ...prev, loading: true }));
     setError(null);
     try {
         const data = await api.loadInitialData();
-        setState({ ...data, loading: false });
+        if (data) {
+            setState({ ...data, loading: false });
+        } else {
+            // This can happen if data is deleted from the server after initial load.
+            throw new Error("Không tìm thấy dữ liệu trên máy chủ. Dữ liệu có thể đã bị xóa.");
+        }
     } catch (err: any) {
         console.error("Không thể tải dữ liệu:", err);
         setError(`Không thể tải dữ liệu từ máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại. Lỗi: ${err.message || 'Không rõ'}.`);
@@ -95,13 +100,36 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   useEffect(() => {
-    // This effect runs only once for the initial data load.
+    // This effect handles the entire initial data loading logic.
     const initialLoad = async () => {
-        await refreshData();
+      setState(prev => ({ ...prev, loading: true }));
+      setError(null);
+      try {
+        let data = await api.loadInitialData();
+
+        // If data is null, it's the first run. Initialize with mock data and fetch again.
+        if (data === null) {
+          console.log("First run detected. Initializing database with mock data...");
+          await api.resetToMockData();
+          data = await api.loadInitialData(); // Re-fetch the data
+          if (data === null) {
+            // This should not happen if reset was successful
+            throw new Error("Không thể tải dữ liệu sau khi khởi tạo.");
+          }
+        }
+        
+        setState({ ...data, loading: false });
+      } catch (err: any) {
+        console.error("Lỗi tải dữ liệu ban đầu:", err);
+        setError(`Không thể tải dữ liệu từ máy chủ. Vui lòng kiểm tra kết nối mạng và thử lại. Lỗi: ${err.message || 'Không rõ'}.`);
+        setState(prev => ({ ...prev, loading: false }));
+      } finally {
         setIsInitialLoad(false);
+      }
     };
+
     initialLoad();
-  }, [refreshData]);
+  }, []); // Run only once on component mount
 
   // Helper for functions that are complex and should trigger a full data refresh
   const createRefreshingFunc = <T,>(apiFunc: (payload: T) => Promise<any>) => async (payload: T) => {
