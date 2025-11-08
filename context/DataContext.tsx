@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { Student, Teacher, Staff, Class, AttendanceRecord, ProgressReport, Income, Expense, CenterSettings, Announcement, Transaction, UserRole, AppData } from '../types';
 import * as api from '../services/api';
@@ -28,7 +29,9 @@ const initialState: AppState = {
 interface DataContextType {
     state: AppState;
     error: string | null;
+    isSubmitting: boolean;
     isInitialOffline: boolean;
+    setError: (error: string | null) => void;
     refreshData: () => Promise<void>;
     addStudent: (payload: { student: Student, classIds: string[] }) => Promise<void>;
     updateStudent: (payload: { originalId: string, updatedStudent: Student, classIds: string[] }) => Promise<void>;
@@ -58,7 +61,6 @@ interface DataContextType {
     updateExpense: (item: Expense) => Promise<void>;
     deleteExpense: (itemId: string) => Promise<void>;
     updateSettings: (settings: CenterSettings) => Promise<void>;
-    completeOnboardingStep: (step: string) => Promise<void>;
     backupData: () => Promise<Omit<AppData, 'loading'>>;
     restoreData: (data: Omit<AppData, 'loading'>) => Promise<void>;
     resetToMockData: () => Promise<void>;
@@ -77,6 +79,7 @@ export const DataContext = createContext<DataContextType | undefined>(undefined)
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AppState>(initialState);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isInitialOffline, setIsInitialOffline] = useState(false);
 
   const refreshData = useCallback(async () => {
@@ -98,64 +101,83 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     refreshData();
   }, [refreshData]); 
 
-  const createRefreshingFunc = <T,>(apiFunc: (payload: T) => Promise<any>) => async (payload: T) => {
-    await apiFunc(payload);
-    await refreshData();
-  };
-  
-  const createSilentFunc = <T,>(apiFunc: (payload: T) => Promise<any>) => async (payload: T) => {
-    await apiFunc(payload);
+  const createMutation = <T,>(apiFunc: (payload: T) => Promise<any>) => async (payload: T) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setError(null);
+    try {
+        const newState = await apiFunc(payload);
+        setState({ ...newState, loading: false });
+    } catch (err: any) {
+         setError(`Thay đổi của bạn chưa được lưu. Vui lòng kiểm tra kết nối mạng và thử lại. Lỗi: ${err.message}`);
+         throw err; // Re-throw for components that need to catch it
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   const value: DataContextType = {
     state,
     error,
+    isSubmitting,
     isInitialOffline,
+    setError,
     refreshData,
-    addStudent: createRefreshingFunc(api.addStudent),
-    updateStudent: createRefreshingFunc(api.updateStudent),
-    deleteStudent: createRefreshingFunc(api.deleteStudent),
-    addTeacher: createRefreshingFunc(api.addTeacher),
-    updateTeacher: createRefreshingFunc(api.updateTeacher),
-    deleteTeacher: createRefreshingFunc(api.deleteTeacher),
-    addStaff: createRefreshingFunc(api.addStaff),
-    updateStaff: createRefreshingFunc(api.updateStaff),
-    deleteStaff: createRefreshingFunc(api.deleteStaff),
-    addClass: createRefreshingFunc(api.addClass as any),
-    updateClass: createRefreshingFunc(api.updateClass),
-    deleteClass: createRefreshingFunc(api.deleteClass),
-    addProgressReport: createRefreshingFunc(api.addProgressReport as any),
-    addIncome: createRefreshingFunc(api.addIncome as any),
-    updateIncome: createRefreshingFunc(api.updateIncome),
-    deleteIncome: createRefreshingFunc(api.deleteIncome),
-    addExpense: createRefreshingFunc(api.addExpense as any),
-    updateExpense: createRefreshingFunc(api.updateExpense),
-    deleteExpense: createRefreshingFunc(api.deleteExpense),
-    addAnnouncement: createRefreshingFunc(api.addAnnouncement as any),
-    deleteAnnouncement: createRefreshingFunc(api.deleteAnnouncement),
-    updateSettings: createRefreshingFunc(api.updateSettings),
-    updateAttendance: createRefreshingFunc(api.updateAttendance),
-    generateInvoices: createRefreshingFunc(api.generateInvoices),
-    cancelInvoice: createRefreshingFunc(api.cancelInvoice),
-    addAdjustment: createRefreshingFunc(api.addAdjustment),
-    updateTransaction: createRefreshingFunc(api.updateTransaction),
-    deleteTransaction: createRefreshingFunc(api.deleteTransaction),
-    updateInvoiceStatus: createRefreshingFunc(api.updateInvoiceStatus),
-    generatePayrolls: createRefreshingFunc(api.generatePayrolls),
-    completeOnboardingStep: createRefreshingFunc(api.completeOnboardingStep),
+    addStudent: createMutation(api.addStudent),
+    updateStudent: createMutation(api.updateStudent),
+    deleteStudent: createMutation(api.deleteStudent),
+    addTeacher: createMutation(api.addTeacher),
+    updateTeacher: createMutation(api.updateTeacher),
+    deleteTeacher: createMutation(api.deleteTeacher),
+    addStaff: createMutation(api.addStaff),
+    updateStaff: createMutation(api.updateStaff),
+    deleteStaff: createMutation(api.deleteStaff),
+    addClass: createMutation(api.addClass),
+    updateClass: createMutation(api.updateClass),
+    deleteClass: createMutation(api.deleteClass),
+    addProgressReport: createMutation(api.addProgressReport),
+    addIncome: createMutation(api.addIncome),
+    updateIncome: createMutation(api.updateIncome),
+    deleteIncome: createMutation(api.deleteIncome),
+    addExpense: createMutation(api.addExpense),
+    updateExpense: createMutation(api.updateExpense),
+    deleteExpense: createMutation(api.deleteExpense),
+    addAnnouncement: createMutation(api.addAnnouncement),
+    deleteAnnouncement: createMutation(api.deleteAnnouncement),
+    updateSettings: createMutation(api.updateSettings),
+    updateAttendance: createMutation(api.updateAttendance),
+    generateInvoices: createMutation(api.generateInvoices),
+    cancelInvoice: createMutation(api.cancelInvoice),
+    addAdjustment: createMutation(api.addAdjustment),
+    updateTransaction: createMutation(api.updateTransaction),
+    deleteTransaction: createMutation(api.deleteTransaction),
+    updateInvoiceStatus: createMutation(api.updateInvoiceStatus),
+    generatePayrolls: createMutation(api.generatePayrolls),
     backupData: api.backupData,
-    restoreData: createRefreshingFunc(api.restoreData as any),
+    restoreData: createMutation(api.restoreData as any),
     resetToMockData: async () => {
         await api.resetToMockData();
         await refreshData();
     },
-    deleteAttendanceForDate: createRefreshingFunc(api.deleteAttendanceForDate),
-    updateUserPassword: createSilentFunc(api.updateUserPassword),
-    clearCollections: createRefreshingFunc(api.clearCollections),
-    deleteAttendanceByMonth: createRefreshingFunc(api.deleteAttendanceByMonth),
+    deleteAttendanceForDate: createMutation(api.deleteAttendanceForDate),
+    updateUserPassword: createMutation(api.updateUserPassword),
+    clearCollections: createMutation(api.clearCollections),
+    deleteAttendanceByMonth: createMutation(api.deleteAttendanceByMonth),
+    // FIX: `createMutation` expects a payload, but `clearAllTransactions` does not take one.
+    // Implement this as a separate async function to handle the API call without a payload.
     clearAllTransactions: async () => {
-      await api.clearAllTransactions();
-      await refreshData();
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+        setError(null);
+        try {
+            const newState = await api.clearAllTransactions();
+            setState({ ...newState, loading: false });
+        } catch (err: any) {
+            setError(`Thay đổi của bạn chưa được lưu. Vui lòng kiểm tra kết nối mạng và thử lại. Lỗi: ${err.message}`);
+            throw err;
+        } finally {
+            setIsSubmitting(false);
+        }
     },
   };
 
