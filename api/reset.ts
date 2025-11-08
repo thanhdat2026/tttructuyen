@@ -272,9 +272,9 @@ function getMockDataState(): Omit<AppData, 'loading'> {
 
 const DATA_KEY = 'educenter_pro_data_kv_v1';
 
-export default async function handler(request: Request) {
+export default async function handler(request: any) {
     // This function must be edge-compatible
-    if ((request.headers as any)["x-vercel-edge-functions-exclude"]) {
+    if (request.headers["x-vercel-edge-functions-exclude"]) {
         return new Response("skipped");
     }
     
