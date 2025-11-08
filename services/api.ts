@@ -23,7 +23,9 @@ export interface AppData {
 async function getData(): Promise<AppData> {
     const response = await fetch('/api/data');
     if (!response.ok) {
-        throw new Error('Không thể tải dữ liệu từ máy chủ.');
+        const errorText = await response.text();
+        console.error("API call to /api/data failed:", response.status, errorText);
+        throw new Error(errorText || 'Không thể tải dữ liệu từ máy chủ.');
     }
     return response.json();
 }

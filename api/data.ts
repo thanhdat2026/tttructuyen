@@ -22,7 +22,14 @@ export default async function handler(request: Request) {
             });
         } catch (error) {
             console.error('Vercel KV GET Error:', error);
-            return new Response('Failed to retrieve data from Vercel KV.', { status: 500 });
+            const errorMessage = error instanceof Error ? error.message : 'Unknown KV error';
+            
+            // The @vercel/kv SDK throws an error containing this text if credentials are not set
+            if (errorMessage.includes("Missing required environment variable")) {
+                return new Response('Lỗi Cấu hình: Vui lòng kết nối Vercel KV database với project của bạn trong trang cài đặt Vercel.', { status: 500 });
+            }
+
+            return new Response(`Lỗi Máy chủ: Không thể lấy dữ liệu từ Vercel KV. Chi tiết: ${errorMessage}`, { status: 500 });
         }
     }
 
@@ -38,7 +45,11 @@ export default async function handler(request: Request) {
             return new Response(JSON.stringify({ message: 'Data saved successfully' }), { status: 200 });
         } catch (error) {
             console.error('Vercel KV SET Error:', error);
-            return new Response('Failed to save data to Vercel KV.', { status: 500 });
+            const errorMessage = error instanceof Error ? error.message : 'Unknown KV error';
+            if (errorMessage.includes("Missing required environment variable")) {
+                return new Response('Lỗi Cấu hình: Vui lòng kết nối Vercel KV database với project của bạn.', { status: 500 });
+            }
+            return new Response(`Lỗi Máy chủ: Không thể lưu dữ liệu vào Vercel KV. Chi tiết: ${errorMessage}`, { status: 500 });
         }
     }
 
