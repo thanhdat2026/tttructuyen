@@ -1,5 +1,4 @@
 import { kv } from '@vercel/kv';
-import { getMockDataState } from '../services/mockData';
 import { AppData } from '../services/api';
 
 // This is the key under which the entire application state will be stored in Vercel KV.
