@@ -132,9 +132,10 @@ export const SettingsScreen: React.FC = () => {
     const [accessToken, setAccessToken] = useState<string | null>(null);
     const [isGisInitialized, setIsGisInitialized] = useState(false);
     const [isBackupLoading, setIsBackupLoading] = useState(false);
-    const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+    const [isManageBackupModalOpen, setManageBackupModalOpen] = useState(false);
     const [driveFiles, setDriveFiles] = useState<{ id: string, name: string }[]>([]);
     const [isFetchingFiles, setIsFetchingFiles] = useState(false);
+    const [fileToDelete, setFileToDelete] = useState<{ id: string, name: string } | null>(null);
 
 
     const isViewer = role === UserRole.VIEWER;
@@ -148,6 +149,10 @@ export const SettingsScreen: React.FC = () => {
 
     // Initialize Google Identity Services
     useEffect(() => {
+        if (window.google?.accounts) {
+             setIsGisInitialized(true);
+             return;
+        }
         const script = document.createElement('script');
         script.src = 'https://accounts.google.com/gsi/client';
         script.async = true;
@@ -310,12 +315,12 @@ export const SettingsScreen: React.FC = () => {
         reader.readAsText(file);
     };
 
-    const handleOpenRestoreFromDrive = async () => {
+    const handleOpenManageBackups = async () => {
         if (!accessToken) {
             toast.error("Chưa kết nối Google Drive.");
             return;
         }
-        setIsRestoreModalOpen(true);
+        setManageBackupModalOpen(true);
         setIsFetchingFiles(true);
         setDriveFiles([]);
         try {
@@ -343,10 +348,35 @@ export const SettingsScreen: React.FC = () => {
             if (!response.ok) throw new Error("Không thể tải nội dung tệp.");
             const data = await response.json();
             setRestoreConfirm({ open: true, data });
-            setIsRestoreModalOpen(false); // Close restore list modal
+            setManageBackupModalOpen(false); // Close restore list modal
         } catch (error) {
             toast.error("Lỗi khi phục hồi từ Drive.");
             console.error(error);
+        }
+    };
+
+    const handleConfirmDeleteDriveFile = async () => {
+        if (!fileToDelete || !accessToken) return;
+
+        toast.info(`Đang xóa tệp "${fileToDelete.name}"...`);
+        try {
+            const response = await fetch(`https://www.googleapis.com/drive/v3/files/${fileToDelete.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${accessToken}` },
+            });
+
+            if (response.ok) {
+                toast.success('Đã xóa tệp sao lưu thành công!');
+                // Update UI immediately
+                setDriveFiles(prevFiles => prevFiles.filter(f => f.id !== fileToDelete.id));
+            } else {
+                throw new Error(await response.text());
+            }
+        } catch (error) {
+            console.error("Drive Delete Error:", error);
+            toast.error('Xóa tệp thất bại.');
+        } finally {
+            setFileToDelete(null); // Close the confirmation modal
         }
     };
 
@@ -558,8 +588,8 @@ export const SettingsScreen: React.FC = () => {
                                 <Button onClick={handleBackupToDrive} isLoading={isBackupLoading} disabled={isViewer}>
                                     {ICONS.backup} Sao lưu lên Drive
                                 </Button>
-                                <Button onClick={handleOpenRestoreFromDrive} variant="secondary" disabled={isViewer}>
-                                    {ICONS.restore} Phục hồi từ Drive
+                                <Button onClick={handleOpenManageBackups} variant="secondary" disabled={isViewer}>
+                                    {ICONS.settings} Quản lý Sao lưu
                                 </Button>
                                 <Button onClick={handleSignOutClick} variant="danger" disabled={isViewer}>
                                     {ICONS.close} Ngắt kết nối
@@ -653,21 +683,56 @@ export const SettingsScreen: React.FC = () => {
                 </div>
             </div>
 
-            <Modal isOpen={isRestoreModalOpen} onClose={() => setIsRestoreModalOpen(false)} title="Phục hồi từ Google Drive">
+            <Modal isOpen={isManageBackupModalOpen} onClose={() => setManageBackupModalOpen(false)} title="Quản lý Sao lưu trên Google Drive">
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                     {isFetchingFiles && <div className="text-center p-8">{ICONS.loading} Đang tải...</div>}
                     {!isFetchingFiles && driveFiles.length === 0 && <div className="text-center p-8 text-gray-500">Không tìm thấy tệp sao lưu nào.</div>}
                     {!isFetchingFiles && driveFiles.map(file => (
-                        <button
+                       <div
                             key={file.id}
-                            onClick={() => handleSelectDriveFileForRestore(file.id)}
-                            className="w-full text-left p-3 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 transition-colors"
+                            className="w-full text-left p-3 rounded-md bg-slate-100 dark:bg-slate-700 flex justify-between items-center"
                         >
-                            <span className="font-semibold">{file.name}</span>
-                        </button>
+                            <span className="font-semibold truncate pr-4">{file.name}</span>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => handleSelectDriveFileForRestore(file.id)}
+                                    title="Phục hồi từ tệp này"
+                                >
+                                    {ICONS.restore}
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="danger"
+                                    onClick={() => setFileToDelete(file)}
+                                    title="Xóa tệp này"
+                                >
+                                    {ICONS.delete}
+                                </Button>
+                            </div>
+                        </div>
                     ))}
                 </div>
             </Modal>
+            
+            <ConfirmationModal
+                isOpen={!!fileToDelete}
+                onClose={() => setFileToDelete(null)}
+                onConfirm={handleConfirmDeleteDriveFile}
+                title="Xác nhận Xóa Tệp Sao lưu"
+                message={
+                    <p>
+                        Bạn có chắc chắn muốn xóa vĩnh viễn tệp sao lưu
+                        <br />
+                        <strong className="break-all">{fileToDelete?.name}</strong>
+                        <br />
+                        khỏi Google Drive không? Hành động này không thể hoàn tác.
+                    </p>
+                }
+                confirmButtonText="Xác nhận Xóa"
+                confirmButtonVariant="danger"
+            />
 
             <ConfirmationModal
                 isOpen={restoreConfirm.open}
