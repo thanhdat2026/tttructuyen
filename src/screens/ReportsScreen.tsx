@@ -395,7 +395,7 @@ export const ReportsScreen: React.FC = () => {
     const TabButton: React.FC<{ tabId: ReportTab; children: React.ReactNode }> = ({ tabId, children }) => (
         <button
             onClick={() => setActiveTab(tabId)}
-            className={`whitespace-nowrap px-3 sm:px-4 py-2 font-semibold text-sm rounded-md transition-colors flex-shrink-0 ${activeTab === tabId ? 'bg-primary text-white shadow' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+            className={`whitespace-nowrap px-3 sm:px-4 py-2 font-semibold text-sm rounded-md transition-colors ${activeTab === tabId ? 'bg-primary text-white shadow' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
         >
             {children}
         </button>
@@ -403,27 +403,25 @@ export const ReportsScreen: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <h1 className="text-3xl font-bold">Báo cáo & Phân tích</h1>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                    <label className="font-semibold hidden sm:block">Lọc:</label>
-                    <select value={classFilter} onChange={e => setClassFilter(e.target.value)} className="form-select p-2 w-full sm:w-auto">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <label className="font-semibold">Lọc:</label>
+                    <select value={classFilter} onChange={e => setClassFilter(e.target.value)} className="form-select p-2">
                         <option value="all">Tất cả các lớp</option>
                         {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                        <select value={selectedMonth} onChange={e => setSelectedMonth(parseInt(e.target.value))} className="form-select p-2 flex-1 sm:w-auto">
-                            {months.map(m => <option key={m} value={m}>Tháng {m}</option>)}
-                        </select>
-                        <select value={selectedYear} onChange={e => setSelectedYear(parseInt(e.target.value))} className="form-select p-2 flex-1 sm:w-auto">
-                            {years.map(y => <option key={y} value={y}>Năm {y}</option>)}
-                        </select>
-                    </div>
+                    <select value={selectedMonth} onChange={e => setSelectedMonth(parseInt(e.target.value))} className="form-select p-2">
+                        {months.map(m => <option key={m} value={m}>Tháng {m}</option>)}
+                    </select>
+                    <select value={selectedYear} onChange={e => setSelectedYear(parseInt(e.target.value))} className="form-select p-2">
+                        {years.map(y => <option key={y} value={y}>Năm {y}</option>)}
+                    </select>
                 </div>
             </div>
             
             <div className="border-b border-gray-200 dark:border-gray-700">
-                <nav className="flex flex-nowrap overflow-x-auto scrollbar-hide items-center gap-2 pb-2" aria-label="Tabs">
+                <nav className="flex flex-wrap items-center gap-2 pb-2" aria-label="Tabs">
                     <TabButton tabId="overview">Tổng quan Tài chính</TabButton>
                     <TabButton tabId="attendance">Báo cáo Chuyên cần</TabButton>
                     <TabButton tabId="transactions">Lịch sử Giao dịch</TabButton>

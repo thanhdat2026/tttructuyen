@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useData } from '../hooks/useDataContext';
@@ -118,7 +119,7 @@ export const FinanceScreen: React.FC = () => {
         return (
             <button
                 onClick={() => setActiveTab(tabId)}
-                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0 ${activeTab === tabId ? 'bg-primary text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${activeTab === tabId ? 'bg-primary text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
             >
                 {children}
             </button>
@@ -131,7 +132,7 @@ export const FinanceScreen: React.FC = () => {
         <div className="space-y-6">
             <h1 className="text-3xl font-bold">Quản lý Tài chính</h1>
 
-            <div className="flex flex-nowrap overflow-x-auto scrollbar-hide items-center gap-2 border-b dark:border-gray-700 pb-2">
+            <div className="flex flex-wrap items-center gap-2 border-b dark:border-gray-700 pb-2">
                 <TabButton tabId="overview" hidden={!canManageFullFinance}>Tổng quan</TabButton>
                 <TabButton tabId="invoices" hidden={!canManageFullFinance}>Hóa đơn</TabButton>
                 <TabButton tabId="debt_report" hidden={!canManageFullFinance}>Công nợ</TabButton>

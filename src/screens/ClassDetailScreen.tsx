@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useData } from '../hooks/useDataContext';
@@ -389,7 +388,7 @@ export const ClassDetailScreen: React.FC = () => {
     const TabButton: React.FC<{ tabId: ClassDetailTab; children: React.ReactNode }> = ({ tabId, children }) => (
         <button
             onClick={() => setActiveTab(tabId)}
-            className={`px-4 py-2 font-semibold transition-colors duration-200 border-b-2 whitespace-nowrap flex-shrink-0 ${activeTab === tabId ? 'border-primary text-primary' : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'}`}
+            className={`px-4 py-2 font-semibold transition-colors duration-200 border-b-2 whitespace-nowrap ${activeTab === tabId ? 'border-primary text-primary' : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'}`}
         >
             {children}
         </button>
@@ -398,25 +397,21 @@ export const ClassDetailScreen: React.FC = () => {
     return (
         <div className="space-y-6">
             <div className="card-base">
-                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                    <div className="flex-grow">
-                        <h1 className="text-2xl md:text-3xl font-bold">{cls.name}</h1>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-sm">
-                            <span className="bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full font-mono font-semibold">ID: {cls.id}</span>
-                            <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 px-3 py-1 rounded-full font-semibold">Môn: {cls.subject}</span>
-                            <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 px-3 py-1 rounded-full font-semibold">GV: {teacherNames}</span>
-                        </div>
-                        <div className="mt-3 text-sm text-gray-600 dark:text-gray-300 flex flex-wrap gap-x-4 gap-y-1">
-                            {(cls.schedule || []).map((s, i) => (
-                                <div key={i} className="font-semibold">{`${dayMap[s.dayOfWeek]}: ${s.startTime} - ${s.endTime}`}</div>
-                            ))}
-                        </div>
-                    </div>
+                <h1 className="text-3xl font-bold">{cls.name}</h1>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-sm">
+                    <span className="bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full font-mono font-semibold">ID: {cls.id}</span>
+                    <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 px-3 py-1 rounded-full font-semibold">Môn: {cls.subject}</span>
+                    <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 px-3 py-1 rounded-full font-semibold">GV: {teacherNames}</span>
+                </div>
+                 <div className="mt-4 text-sm text-gray-600 dark:text-gray-300 flex flex-wrap gap-x-4 gap-y-1">
+                    {(cls.schedule || []).map((s, i) => (
+                        <div key={i} className="font-semibold">{`${dayMap[s.dayOfWeek]}: ${s.startTime} - ${s.endTime}`}</div>
+                    ))}
                 </div>
             </div>
             
             <div className="border-b border-gray-200 dark:border-gray-700">
-                <nav className="-mb-px flex space-x-2 overflow-x-auto scrollbar-hide pb-1" aria-label="Tabs">
+                <nav className="-mb-px flex space-x-2 overflow-x-auto" aria-label="Tabs">
                     <TabButton tabId="students">Học viên ({classStudents.length})</TabButton>
                     <TabButton tabId="attendance">Điểm danh</TabButton>
                     <TabButton tabId="reports">Báo cáo ({classProgressReports.length})</TabButton>

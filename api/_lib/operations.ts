@@ -1,10 +1,8 @@
-
 import type {
     AppData,
     AttendanceRecord,
     Payroll,
-    Transaction,
-    Expense
+    Transaction
 } from '../../types.js';
 
 import {
@@ -13,8 +11,7 @@ import {
     AttendanceStatus,
     SalaryType,
     UserRole,
-    TransactionType,
-    ExpenseCategory
+    TransactionType
 } from '../../types.js';
 
 
@@ -174,7 +171,10 @@ export function applyOperation(
             const { month, year } = payload;
             const monthStr = `${year}-${String(month).padStart(2, '0')}`;
             
+            // 1. Find all students to invoice.
+            // Includes ACTIVE students AND any INACTIVE students who have attendance in this month.
             const studentsToInvoiceIds = new Set(data.students.filter(s => s.status === PersonStatus.ACTIVE).map(s => s.id));
+            
             data.attendance.forEach(a => {
                 if (a.date.startsWith(monthStr)) {
                     studentsToInvoiceIds.add(a.studentId);
@@ -188,9 +188,23 @@ export function applyOperation(
                 let totalAmount = 0;
                 let details = '';
                 
+                // Logic mới: Tìm tất cả các lớp liên quan đến học sinh trong tháng này
+                // Bao gồm: Lớp đang học VÀ Lớp đã nghỉ nhưng có điểm danh trong tháng
                 const relevantClassIds = new Set<string>();
-                data.classes.forEach(c => { if (c.studentIds.includes(student.id)) relevantClassIds.add(c.id); });
-                data.attendance.forEach(a => { if (a.studentId === student.id && a.date.startsWith(monthStr)) relevantClassIds.add(a.classId); });
+
+                // a. Các lớp đang có tên trong danh sách
+                data.classes.forEach(c => {
+                    if (c.studentIds.includes(student.id)) {
+                        relevantClassIds.add(c.id);
+                    }
+                });
+
+                // b. Các lớp có dữ liệu điểm danh trong tháng (dù đã bị xóa tên khỏi lớp)
+                data.attendance.forEach(a => {
+                    if (a.studentId === student.id && a.date.startsWith(monthStr)) {
+                        relevantClassIds.add(a.classId);
+                    }
+                });
 
                 for (const classId of relevantClassIds) {
                     const cls = data.classes.find(c => c.id === classId);
@@ -198,6 +212,8 @@ export function applyOperation(
 
                     let classFee = 0;
                     const isEnrolled = cls.studentIds.includes(student.id);
+                    
+                    // Calculate attendance for this class in this month
                     const attendedSessions = data.attendance.filter(a => 
                         a.studentId === student.id && 
                         a.classId === cls.id && 
@@ -206,7 +222,13 @@ export function applyOperation(
                     ).length;
 
                     if (cls.fee.type === FeeType.MONTHLY || cls.fee.type === FeeType.PER_COURSE) {
+                        // Với học phí tháng: 
+                        // - Nếu học sinh ACTIVE và đang ENROLLED -> Tính full.
+                        // - Nếu học sinh INACTIVE hoặc !ENROLLED -> Chỉ tính nếu có đi học (attendedSessions > 0).
+                        
+                        // Logic prevent charging inactive students who didn't attend
                         const shouldCharge = (student.status === PersonStatus.ACTIVE && isEnrolled) || attendedSessions > 0;
+
                         if (shouldCharge) {
                             classFee = cls.fee.amount;
                             if (classFee > 0) {
@@ -305,16 +327,10 @@ export function applyOperation(
         case 'generatePayrolls': {
             const { month, year } = payload;
             const monthStr = `${year}-${String(month).padStart(2, '0')}`;
-            
-            for(const teacher of data.teachers) {
-                let baseSalary = 0, sessionsTaught = 0;
-                let shouldGenerate = false;
-
+            for(const teacher of data.teachers.filter(t => t.status === PersonStatus.ACTIVE)) {
+                let totalSalary = 0, sessionsTaught = 0;
                 if (teacher.salaryType === SalaryType.MONTHLY) {
-                    if (teacher.status === PersonStatus.ACTIVE) {
-                        baseSalary = teacher.rate;
-                        shouldGenerate = true;
-                    }
+                    totalSalary = teacher.rate;
                 } else {
                     const teacherClasses = data.classes.filter(c => c.teacherIds.includes(teacher.id));
                     const distinctSessions = new Set<string>();
@@ -324,79 +340,13 @@ export function applyOperation(
                         }
                     });
                     sessionsTaught = distinctSessions.size;
-                    baseSalary = sessionsTaught * teacher.rate;
-                    if (sessionsTaught > 0) {
-                        shouldGenerate = true;
-                    }
+                    totalSalary = sessionsTaught * teacher.rate;
                 }
-
-                if (shouldGenerate) {
-                    const payrollId = `PAY-${teacher.id}-${monthStr}`;
-                    
-                    // Find existing payroll to preserve manual adjustments
-                    const existingPayroll = data.payrolls.find(p => p.id === payrollId);
-                    const bonus = existingPayroll?.bonus || 0;
-                    const deduction = existingPayroll?.deduction || 0;
-                    const status = existingPayroll?.status || 'UNPAID';
-                    const paidDate = existingPayroll?.paidDate;
-
-                    const totalSalary = baseSalary + bonus - deduction;
-
-                    const newPayroll: Payroll = { 
-                        id: payrollId, 
-                        teacherId: teacher.id, 
-                        teacherName: teacher.name, 
-                        month: monthStr, 
-                        sessionsTaught, 
-                        rate: teacher.rate, 
-                        baseSalary,
-                        bonus,
-                        deduction,
-                        totalSalary, 
-                        status,
-                        paidDate,
-                        calculationDate: new Date().toISOString().split('T')[0] 
-                    };
-                    
-                    const existingIndex = data.payrolls.findIndex(p => p.id === payrollId);
-                    if (existingIndex !== -1) data.payrolls[existingIndex] = newPayroll;
-                    else data.payrolls.push(newPayroll);
-                }
-            }
-            break;
-        }
-        
-        case 'updatePayroll': {
-            const updated: Payroll = payload;
-            const idx = data.payrolls.findIndex(p => p.id === updated.id);
-            if (idx !== -1) {
-                const oldStatus = data.payrolls[idx].status;
-                data.payrolls[idx] = updated;
-
-                // Handle Expense automation
-                const expenseId = `EXP-${updated.id}`;
-                if (updated.status === 'PAID' && oldStatus !== 'PAID') {
-                    // Create or Update Expense
-                    const newExpense: Expense = {
-                        id: expenseId,
-                        description: `Thanh toán lương tháng ${updated.month} - ${updated.teacherName}`,
-                        amount: updated.totalSalary,
-                        category: ExpenseCategory.SALARY,
-                        date: updated.paidDate || new Date().toISOString().split('T')[0]
-                    };
-                    const expenseIdx = data.expenses.findIndex(e => e.id === expenseId);
-                    if (expenseIdx !== -1) data.expenses[expenseIdx] = newExpense;
-                    else data.expenses.push(newExpense);
-                } else if (updated.status === 'UNPAID' && oldStatus === 'PAID') {
-                    // Remove Expense
-                    data.expenses = data.expenses.filter(e => e.id !== expenseId);
-                } else if (updated.status === 'PAID' && oldStatus === 'PAID') {
-                    // Update existing expense amount if needed
-                    const expenseIdx = data.expenses.findIndex(e => e.id === expenseId);
-                    if (expenseIdx !== -1) {
-                        data.expenses[expenseIdx].amount = updated.totalSalary;
-                    }
-                }
+                const payrollId = `PAY-${teacher.id}-${monthStr}`;
+                const newPayroll: Payroll = { id: payrollId, teacherId: teacher.id, teacherName: teacher.name, month: monthStr, sessionsTaught, rate: teacher.rate, baseSalary: teacher.salaryType === SalaryType.MONTHLY ? teacher.rate : 0, totalSalary, calculationDate: new Date().toISOString().split('T')[0] };
+                const existingIndex = data.payrolls.findIndex(p => p.id === payrollId);
+                if (existingIndex !== -1) data.payrolls[existingIndex] = newPayroll;
+                else data.payrolls.push(newPayroll);
             }
             break;
         }
