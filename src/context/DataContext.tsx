@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { Student, Teacher, Staff, Class, AttendanceRecord, Invoice, ProgressReport, Income, Expense, CenterSettings, Payroll, Announcement, Transaction, UserRole } from '../types';
 import * as api from '../services/api';
@@ -81,6 +82,7 @@ interface DataContextType {
     updateUserPassword: (payload: { userId: string; role: UserRole; newPassword: string; }) => Promise<void>;
     clearCollections: (collectionKeys: ('students' | 'teachers' | 'staff' | 'classes')[]) => Promise<void>;
     deleteAttendanceByMonth: (payload: { month: number; year: number; }) => Promise<void>;
+    clearAllTransactions: () => Promise<void>;
 }
 
 
@@ -267,6 +269,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     },
     clearCollections: createRefreshingFunc(api.clearCollections),
     deleteAttendanceByMonth: createRefreshingFunc(api.deleteAttendanceByMonth),
+    clearAllTransactions: async () => {
+      await api.clearAllTransactions();
+      await refreshData();
+    },
   };
 
   return (

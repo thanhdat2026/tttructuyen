@@ -1,3 +1,4 @@
+
 export enum UserRole {
   ADMIN = 'ADMIN',
   TEACHER = 'TEACHER',
@@ -210,4 +211,20 @@ export interface SearchResult {
   type: 'student' | 'teacher' | 'class';
   path: string;
   context?: string; // e.g., "Vật lý" or "Phụ huynh: Trần Văn Bốn"
+}
+
+export interface AppData {
+  students: Student[];
+  teachers: Teacher[];
+  staff: Staff[];
+  classes: Class[];
+  attendance: AttendanceRecord[];
+  invoices: Invoice[];
+  progressReports: ProgressReport[];
+  transactions: Transaction[];
+  income: Income[];
+  expenses: Expense[];
+  settings: CenterSettings;
+  payrolls: Payroll[];
+  announcements: Announcement[];
 }

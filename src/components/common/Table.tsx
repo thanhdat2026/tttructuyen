@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export interface SortConfig<T> {
@@ -20,9 +21,10 @@ interface TableProps<T extends { id: string }> {
   onSort: (key: keyof T) => void;
   selectedIds?: string[];
   onSelectionChange?: (selectedIds: string[]) => void;
+  fullDataIds?: string[];
 }
 
-export function Table<T extends { id: string }>({ columns, data, actions, sortConfig, onSort, selectedIds, onSelectionChange }: TableProps<T>) {
+export function Table<T extends { id: string }>({ columns, data, actions, sortConfig, onSort, selectedIds, onSelectionChange, fullDataIds }: TableProps<T>) {
   if (!data || data.length === 0) {
     return (
       <div className="card-base text-center text-gray-500 dark:text-gray-400">
@@ -41,7 +43,8 @@ export function Table<T extends { id: string }>({ columns, data, actions, sortCo
   
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (onSelectionChange) {
-      const newSelectedIds = e.target.checked ? data.map(item => item.id) : [];
+      const allIds = fullDataIds || data.map(item => item.id);
+      const newSelectedIds = e.target.checked ? allIds : [];
       onSelectionChange(newSelectedIds);
     }
   };
@@ -55,7 +58,8 @@ export function Table<T extends { id: string }>({ columns, data, actions, sortCo
     }
   };
   
-  const isAllSelected = selectedIds && data.length > 0 && selectedIds.length === data.length;
+  const totalSelectableCount = fullDataIds ? fullDataIds.length : data.length;
+  const isAllSelected = selectedIds && totalSelectableCount > 0 && selectedIds.length === totalSelectableCount;
 
   return (
     <div className="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700">

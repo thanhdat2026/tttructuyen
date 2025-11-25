@@ -461,7 +461,8 @@ export const StudentDetailScreen: React.FC = () => {
         </button>
     );
 
-    const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+    const currentYear = new Date().getFullYear();
+    const years = Array.from({ length: 10 }, (_, i) => currentYear - i + 2);
     const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
     return (
@@ -523,11 +524,11 @@ export const StudentDetailScreen: React.FC = () => {
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
                             <span className="text-sm font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">Lọc dữ liệu điểm danh:</span>
                             <div className="flex gap-2 w-full sm:w-auto">
-                                <select value={filterMonth} onChange={e => setFilterMonth(Number(e.target.value))} className="form-select text-sm py-1.5 w-1/2 sm:w-auto">
-                                    <option value={0}>Tất cả các tháng</option>
+                                <select value={filterMonth} onChange={e => setFilterMonth(Number(e.target.value))} className="form-select text-sm py-2 w-1/2 sm:w-auto">
+                                    <option value={0}>Tất cả</option>
                                     {months.map(m => <option key={m} value={m}>Tháng {m}</option>)}
                                 </select>
-                                <select value={filterYear} onChange={e => setFilterYear(Number(e.target.value))} className="form-select text-sm py-1.5 w-1/2 sm:w-auto">
+                                <select value={filterYear} onChange={e => setFilterYear(Number(e.target.value))} className="form-select text-sm py-2 w-1/2 sm:w-auto">
                                     {years.map(y => <option key={y} value={y}>Năm {y}</option>)}
                                 </select>
                             </div>
