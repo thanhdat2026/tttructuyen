@@ -70,6 +70,11 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
             sortableItems.sort((a, b) => {
                 const aValue = a[sortConfig.key];
                 const bValue = b[sortConfig.key];
+                
+                if (aValue === bValue) return 0;
+                if (aValue === undefined || aValue === null) return 1;
+                if (bValue === undefined || bValue === null) return -1;
+
                 if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
                 if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
                 return 0;
@@ -91,6 +96,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
     const columns: Column<Payroll>[] = [
         { header: 'Tháng', accessor: 'month', sortable: true },
         { header: 'Tên Giáo viên', accessor: 'teacherName', sortable: true },
+        { header: 'Số buổi dạy', accessor: 'sessionsTaught', sortable: true },
         { header: 'Lương Cơ bản', accessor: (item) => `${item.baseSalary.toLocaleString('vi-VN')} ₫`, sortable: true, sortKey: 'baseSalary' },
         { header: 'Thực lĩnh', accessor: (item) => <span className="font-bold text-primary">{item.totalSalary.toLocaleString('vi-VN')} ₫</span>, sortable: true, sortKey: 'totalSalary' },
         { 
@@ -135,8 +141,8 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
                         key={item.id}
                         title={`${item.teacherName} - ${item.month}`}
                         details={[
-                            { label: "Thực lĩnh", value: `${item.totalSalary.toLocaleString('vi-VN')} ₫` },
-                            { label: "Trạng thái", value: item.status === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán' },
+                            { label: "Số buổi", value: item.sessionsTaught > 0 ? item.sessionsTaught : 'Lương cứng' },
+                            { label: "Tổng lương", value: `${item.totalSalary.toLocaleString('vi-VN')} ₫` },
                         ]}
                         actions={
                             <Button size="sm" variant="secondary" onClick={() => handleViewDetails(item)}>
