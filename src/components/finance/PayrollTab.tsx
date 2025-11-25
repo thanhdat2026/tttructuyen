@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect } from 'react';
 import { useData } from '../../hooks/useDataContext';
 import { Table, SortConfig, Column } from '../common/Table';
@@ -77,9 +76,9 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
                 if (aValue === undefined || aValue === null) return 1;
                 if (bValue === undefined || bValue === null) return -1;
 
-                // Use non-null assertion (!) to tell TypeScript we know these are defined now
-                if (aValue! < bValue!) return sortConfig.direction === 'ascending' ? -1 : 1;
-                if (aValue! > bValue!) return sortConfig.direction === 'ascending' ? 1 : -1;
+                // Cast to any to prevent "possibly undefined" errors in strict mode
+                if ((aValue as any) < (bValue as any)) return sortConfig.direction === 'ascending' ? -1 : 1;
+                if ((aValue as any) > (bValue as any)) return sortConfig.direction === 'ascending' ? 1 : -1;
                 return 0;
             });
         }
