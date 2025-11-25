@@ -175,15 +175,47 @@ export function applyOperation(
             for (const student of activeStudents) {
                 let totalAmount = 0;
                 let details = '';
-                const studentClasses = data.classes.filter(c => c.studentIds.includes(student.id));
+                
+                // Logic mới: Tìm tất cả các lớp liên quan đến học sinh trong tháng này
+                // Bao gồm: Lớp đang học VÀ Lớp đã nghỉ nhưng có điểm danh trong tháng
+                const relevantClassIds = new Set<string>();
 
-                for (const cls of studentClasses) {
+                // 1. Các lớp đang có tên trong danh sách
+                data.classes.forEach(c => {
+                    if (c.studentIds.includes(student.id)) {
+                        relevantClassIds.add(c.id);
+                    }
+                });
+
+                // 2. Các lớp có dữ liệu điểm danh trong tháng (dù đã bị xóa tên khỏi lớp)
+                data.attendance.forEach(a => {
+                    if (a.studentId === student.id && a.date.startsWith(monthStr)) {
+                        relevantClassIds.add(a.classId);
+                    }
+                });
+
+                for (const classId of relevantClassIds) {
+                    const cls = data.classes.find(c => c.id === classId);
+                    if (!cls) continue;
+
                     let classFee = 0;
+                    const isEnrolled = cls.studentIds.includes(student.id);
+
                     if (cls.fee.type === FeeType.MONTHLY || cls.fee.type === FeeType.PER_COURSE) {
+                        // Với học phí tháng: Nếu có tên HOẶC có đi học ít nhất 1 buổi thì tính full
+                        // (Hoặc có thể tùy chỉnh logic pro-rate ở đây nếu muốn)
                         classFee = cls.fee.amount;
-                        if (classFee > 0) details += `- Lớp ${cls.name}: ${classFee.toLocaleString('vi-VN')} ₫\n`;
+                        if (classFee > 0) {
+                            details += `- Lớp ${cls.name}: ${classFee.toLocaleString('vi-VN')} ₫${!isEnrolled ? ' (Đã chuyển/nghỉ)' : ''}\n`;
+                        }
                     } else if (cls.fee.type === FeeType.PER_SESSION) {
-                        const attendedSessions = data.attendance.filter(a => a.studentId === student.id && a.classId === cls.id && a.date.startsWith(monthStr) && (a.status === AttendanceStatus.PRESENT || a.status === AttendanceStatus.LATE)).length;
+                        const attendedSessions = data.attendance.filter(a => 
+                            a.studentId === student.id && 
+                            a.classId === cls.id && 
+                            a.date.startsWith(monthStr) && 
+                            (a.status === AttendanceStatus.PRESENT || a.status === AttendanceStatus.LATE)
+                        ).length;
+                        
                         if (attendedSessions > 0) {
                             classFee = attendedSessions * cls.fee.amount;
                             details += `- Lớp ${cls.name}: ${attendedSessions} buổi x ${cls.fee.amount.toLocaleString('vi-VN')} ₫ = ${classFee.toLocaleString('vi-VN')} ₫\n`;

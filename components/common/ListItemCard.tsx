@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface ListItemCardProps {
@@ -22,7 +23,7 @@ export const ListItemCard: React.FC<ListItemCardProps> = ({ title, details, stat
   
   return (
     <div 
-      className={`card-base p-4 space-y-3 transition-colors duration-200 ${onSelect ? 'cursor-pointer' : ''} ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20 border-primary' : ''}`}
+      className={`bg-white dark:bg-gray-800 rounded-xl p-4 space-y-3 transition-all duration-200 shadow-sm border border-gray-100 dark:border-gray-700 ${onSelect ? 'cursor-pointer active:scale-[0.98]' : ''} ${isSelected ? 'ring-2 ring-primary bg-indigo-50/50 dark:bg-indigo-900/20' : ''}`}
       onClick={onSelect ? handleCardClick : undefined}
     >
       <div className="flex justify-between items-start gap-4">
@@ -33,30 +34,32 @@ export const ListItemCard: React.FC<ListItemCardProps> = ({ title, details, stat
               checked={isSelected}
               onChange={onSelect}
               onClick={(e) => e.stopPropagation()} // Stop propagation to the card's onClick
-              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mt-1.5 shrink-0"
+              className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary mt-1 shrink-0"
             />
           )}
-          <div className="flex-1 text-lg font-semibold">{title}</div>
+          <div className="flex-1">
+             <div className="text-base font-bold text-gray-900 dark:text-white leading-tight">{title}</div>
+          </div>
         </div>
         
         {status && (
-          <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${status.colorClasses} whitespace-nowrap`}>
+          <span className={`px-2.5 py-1 text-[10px] uppercase tracking-wider font-bold rounded-full shadow-sm ${status.colorClasses} whitespace-nowrap`}>
             {status.text}
           </span>
         )}
       </div>
       
-      <div className={`grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm ${onSelect ? 'pl-7' : ''}`}>
+      <div className={`grid grid-cols-2 gap-x-4 gap-y-2 text-sm ${onSelect ? 'pl-8' : ''}`}>
         {details.map((detail, index) => (
-          <div key={index} className="truncate">
-            <p className="text-gray-500 dark:text-gray-400 text-xs">{detail.label}</p>
-            <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{detail.value}</p>
+          <div key={index} className="overflow-hidden">
+            <p className="text-gray-500 dark:text-gray-400 text-xs mb-0.5">{detail.label}</p>
+            <div className="font-medium text-gray-800 dark:text-gray-200 truncate">{detail.value}</div>
           </div>
         ))}
       </div>
 
       {actions && (
-        <div className="flex justify-end items-center gap-2 border-t dark:border-gray-700 pt-3">
+        <div className="flex justify-end items-center gap-3 border-t border-gray-100 dark:border-gray-700 pt-3 mt-2">
           {actions}
         </div>
       )}

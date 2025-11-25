@@ -1,3 +1,4 @@
+
 import React, { useMemo, useEffect, useState } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -11,6 +12,7 @@ import { ToastContainer } from './components/common/Toast';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { ParentHeader } from './components/layout/ParentHeader';
+import { BottomNav } from './components/layout/BottomNav'; // Import BottomNav
 
 // Screens
 import { DashboardScreen } from './screens/DashboardScreen';
@@ -91,9 +93,10 @@ const AppLayout: React.FC = () => {
     return (
         <div className="flex h-screen w-full bg-background-light dark:bg-background-dark">
             <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden relative">
                 <Header pageTitle={pageTitle} onMenuClick={() => setIsSidebarOpen(true)} />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">
+                {/* Added pb-20 for mobile to account for BottomNav */}
+                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
                     {error && (
                         <div className="bg-red-100 border-l-4 border-red-500 text-red-800 p-4 mb-6 rounded-md relative shadow-md" role="alert">
                             <p className="font-bold">Thao tác thất bại</p>
@@ -105,6 +108,7 @@ const AppLayout: React.FC = () => {
                     )}
                     <Outlet />
                 </main>
+                <BottomNav onMenuClick={() => setIsSidebarOpen(true)} />
             </div>
         </div>
     );
@@ -115,7 +119,7 @@ const ParentLayout: React.FC = () => {
     return (
         <div className="flex flex-col min-h-screen">
             <ParentHeader />
-            <main className="flex-1 container mx-auto px-4 py-6">
+            <main className="flex-1 container mx-auto px-4 py-6 pb-24 md:pb-6">
                  {error && (
                     <div className="bg-red-100 border-l-4 border-red-500 text-red-800 p-4 mb-6 rounded-md relative shadow-md" role="alert">
                         <p className="font-bold">Thao tác thất bại</p>
