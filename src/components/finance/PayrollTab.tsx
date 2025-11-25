@@ -72,11 +72,14 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
                 const bValue = b[sortConfig.key];
                 
                 if (aValue === bValue) return 0;
+                
+                // Handle undefined/null values
                 if (aValue === undefined || aValue === null) return 1;
                 if (bValue === undefined || bValue === null) return -1;
 
-                if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
-                if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
+                // We asserted they are defined above, so we use ! to suppress the "possibly undefined" error
+                if (aValue! < bValue!) return sortConfig.direction === 'ascending' ? -1 : 1;
+                if (aValue! > bValue!) return sortConfig.direction === 'ascending' ? 1 : -1;
                 return 0;
             });
         }
