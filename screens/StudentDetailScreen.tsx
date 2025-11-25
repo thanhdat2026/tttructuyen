@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useData } from '../hooks/useDataContext';
@@ -101,18 +102,36 @@ const AdjustmentForm: React.FC<{
     );
 };
 
-const AttendanceSummaryWidget: React.FC<{ studentId: string, enrolledClasses: Class[], onViewDetails: (classId: string, className: string) => void }> = ({ studentId, enrolledClasses, onViewDetails }) => {
+const AttendanceSummaryWidget: React.FC<{ 
+    studentId: string; 
+    enrolledClasses: Class[];
+    filterMonth: number;
+    filterYear: number;
+}> = ({ studentId, enrolledClasses, filterMonth, filterYear }) => {
     const { state } = useData();
-    const studentAttendance = state.attendance.filter(a => a.studentId === studentId);
+    
+    // Filter attendance records based on student ID and selected month/year
+    const filteredAttendance = useMemo(() => {
+        return state.attendance.filter(a => {
+            if (a.studentId !== studentId) return false;
+            if (filterMonth === 0) return true; // Show all if month is 0 (All)
+            
+            const recordDate = new Date(a.date);
+            return recordDate.getMonth() + 1 === filterMonth && recordDate.getFullYear() === filterYear;
+        });
+    }, [state.attendance, studentId, filterMonth, filterYear]);
 
     const summary = useMemo(() => {
         return enrolledClasses.map(cls => {
-            const classAttendance = studentAttendance.filter(a => a.classId === cls.id);
+            const classAttendance = filteredAttendance.filter(a => a.classId === cls.id);
             const present = classAttendance.filter(a => a.status === AttendanceStatus.PRESENT).length;
             const absent = classAttendance.filter(a => a.status === AttendanceStatus.ABSENT).length;
             const late = classAttendance.filter(a => a.status === AttendanceStatus.LATE).length;
             const total = classAttendance.length;
             const percentage = total > 0 ? (((present + late) / total) * 100).toFixed(0) : 'N/A';
+            
+            // Only show classes that have attendance data for the filtered period, or are currently enrolled
+            const hasData = total > 0;
             
             return {
                 classId: cls.id,
@@ -120,25 +139,29 @@ const AttendanceSummaryWidget: React.FC<{ studentId: string, enrolledClasses: Cl
                 present,
                 absent,
                 late,
-                percentage
+                percentage,
+                hasData
             };
-        });
-    }, [studentAttendance, enrolledClasses]);
+        }).filter(s => s.hasData || filterMonth === 0); // In monthly view, hide classes with no data to reduce clutter? 
+        // Actually, let's show all related classes but with 0s if no data for that month,
+        // unless it's an old class with NO data for this month.
+        // Let's keep it simple: show all related classes.
+    }, [filteredAttendance, enrolledClasses, filterMonth]);
 
     if (summary.length === 0) {
-        return null;
+        return (
+            <div className="card-base text-center text-gray-500 py-8">
+                Không có dữ liệu điểm danh cho giai đoạn này.
+            </div>
+        );
     }
 
     return (
         <div className="card-base">
-            <h2 className="text-xl font-semibold mb-4">Thống kê Chuyên cần</h2>
+            <h2 className="text-xl font-semibold mb-4">Thống kê Chuyên cần {filterMonth === 0 ? '(Tất cả)' : `(Tháng ${filterMonth}/${filterYear})`}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {summary.map(s => (
-                    <div key={s.classId} 
-                         className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                         onClick={() => onViewDetails(s.classId, s.className)}
-                         title="Nhấn để xem chi tiết"
-                    >
+                    <div key={s.classId} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                         <h3 className="font-semibold text-primary">{s.className}</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mt-2 text-center">
                             <div>
@@ -181,13 +204,34 @@ export const StudentDetailScreen: React.FC = () => {
     const [attendanceLogModal, setAttendanceLogModal] = useState<{ isOpen: boolean; classId: string | null; className: string | null }>({ isOpen: false, classId: null, className: null });
     const [deleteStudentConfirmOpen, setDeleteStudentConfirmOpen] = useState(false);
 
+    // Filter State
+    const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1);
+    const [filterYear, setFilterYear] = useState(new Date().getFullYear());
 
     const canManage = role !== UserRole.VIEWER;
     const student = useMemo(() => students.find(s => s.id === id), [students, id]);
     
-    const enrolledClasses = useMemo(() => 
-        classes.filter(c => (c.studentIds || []).includes(id!)), 
-    [classes, id]);
+    // Updated logic to include both currently enrolled classes AND classes with attendance history
+    const relatedClasses = useMemo(() => {
+        if (!id) return [];
+        const relatedClassIds = new Set<string>();
+
+        // 1. Currently enrolled classes
+        classes.forEach(c => {
+            if (c.studentIds.includes(id)) {
+                relatedClassIds.add(c.id);
+            }
+        });
+
+        // 2. Classes with attendance records
+        attendance.forEach(a => {
+            if (a.studentId === id) {
+                relatedClassIds.add(a.classId);
+            }
+        });
+
+        return classes.filter(c => relatedClassIds.has(c.id));
+    }, [classes, attendance, id]);
     
     const studentProgressReports = useMemo(() => 
         progressReports.filter(pr => pr.studentId === id),
@@ -273,9 +317,14 @@ export const StudentDetailScreen: React.FC = () => {
     const attendanceLogForModal = useMemo(() => {
         if (!attendanceLogModal.classId || !student) return [];
         return attendance
-            .filter(a => a.studentId === student.id && a.classId === attendanceLogModal.classId)
+            .filter(a => {
+                if (a.studentId !== student.id || a.classId !== attendanceLogModal.classId) return false;
+                if (filterMonth === 0) return true;
+                const recordDate = new Date(a.date);
+                return recordDate.getMonth() + 1 === filterMonth && recordDate.getFullYear() === filterYear;
+            })
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    }, [attendance, student, attendanceLogModal.classId]);
+    }, [attendance, student, attendanceLogModal.classId, filterMonth, filterYear]);
 
     const handleAttendanceChange = async (recordToUpdate: AttendanceRecord, newStatus: AttendanceStatus) => {
         if (recordToUpdate.status === newStatus) return;
@@ -408,6 +457,9 @@ export const StudentDetailScreen: React.FC = () => {
         </button>
     );
 
+    const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+    const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
     return (
         <>
             <div className="space-y-6">
@@ -464,21 +516,49 @@ export const StudentDetailScreen: React.FC = () => {
                             </div>
                         </div>
 
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
+                            <span className="text-sm font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">Lọc dữ liệu điểm danh:</span>
+                            <div className="flex gap-2 w-full sm:w-auto">
+                                <select value={filterMonth} onChange={e => setFilterMonth(Number(e.target.value))} className="form-select text-sm py-1.5 w-1/2 sm:w-auto">
+                                    <option value={0}>Tất cả các tháng</option>
+                                    {months.map(m => <option key={m} value={m}>Tháng {m}</option>)}
+                                </select>
+                                <select value={filterYear} onChange={e => setFilterYear(Number(e.target.value))} className="form-select text-sm py-1.5 w-1/2 sm:w-auto">
+                                    {years.map(y => <option key={y} value={y}>Năm {y}</option>)}
+                                </select>
+                            </div>
+                        </div>
+
                         <div className="card-base">
-                            <h2 className="text-xl font-semibold mb-4">Các lớp đang theo học</h2>
+                            <h2 className="text-xl font-semibold mb-4">Các lớp tham gia</h2>
                             <div className="space-y-2">
-                                {enrolledClasses.map(c => (
-                                    <Link key={c.id} to={`/class/${c.id}`} className="block p-3 bg-gray-50 dark:bg-gray-700 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600">
-                                        <p className="font-semibold text-primary">{c.name}</p>
-                                        <p className="text-sm text-gray-500">{c.subject}</p>
-                                    </Link>
-                                ))}
+                                {relatedClasses.map(c => {
+                                    const isCurrentlyEnrolled = c.studentIds.includes(student.id);
+                                    return (
+                                        <div key={c.id} className={`flex justify-between items-center p-3 rounded-md border ${isCurrentlyEnrolled ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700' : 'bg-gray-50 dark:bg-gray-700/30 border-dashed border-gray-300 dark:border-gray-600'}`}>
+                                            <Link to={`/class/${c.id}`} className="block hover:underline flex-grow">
+                                                <p className={`font-semibold ${isCurrentlyEnrolled ? 'text-primary' : 'text-gray-600 dark:text-gray-400'}`}>
+                                                    {c.name} {!isCurrentlyEnrolled && <span className="text-xs font-normal italic ml-2">(Lịch sử / Đã nghỉ)</span>}
+                                                </p>
+                                                <p className="text-sm text-gray-500">{c.subject}</p>
+                                            </Link>
+                                            <button 
+                                                onClick={() => setAttendanceLogModal({ isOpen: true, classId: c.id, className: c.name })}
+                                                className="ml-4 text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 underline whitespace-nowrap"
+                                            >
+                                                Xem điểm danh
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                                {relatedClasses.length === 0 && <p className="text-gray-500">Chưa tham gia lớp học nào.</p>}
                             </div>
                         </div>
                         <AttendanceSummaryWidget 
                             studentId={student.id} 
-                            enrolledClasses={enrolledClasses}
-                            onViewDetails={(classId, className) => setAttendanceLogModal({ isOpen: true, classId, className })}
+                            enrolledClasses={relatedClasses}
+                            filterMonth={filterMonth}
+                            filterYear={filterYear}
                         />
                     </div>
                 )}
@@ -551,71 +631,71 @@ export const StudentDetailScreen: React.FC = () => {
                          </div>
                     </div>
                 )}
-            </div>
 
-            <Modal isOpen={transactionModal.open} onClose={() => setTransactionModal({ open: false })} title={transactionModal.item ? 'Sửa Giao dịch' : 'Thêm Giao dịch Mới'}>
-                <AdjustmentForm
-                    transactionToEdit={transactionModal.item}
-                    onSubmit={handleSaveTransaction}
-                    onCancel={() => setTransactionModal({ open: false })}
+                <Modal isOpen={transactionModal.open} onClose={() => setTransactionModal({ open: false })} title={transactionModal.item ? 'Sửa Giao dịch' : 'Thêm Giao dịch Mới'}>
+                    <AdjustmentForm
+                        transactionToEdit={transactionModal.item}
+                        onSubmit={handleSaveTransaction}
+                        onCancel={() => setTransactionModal({ open: false })}
+                    />
+                </Modal>
+                <ConfirmationModal
+                    isOpen={deleteConfirm.open}
+                    onClose={() => setDeleteConfirm({ open: false })}
+                    onConfirm={handleDeleteTransaction}
+                    title="Xác nhận Xóa Giao dịch"
+                    message={<p>Bạn có chắc muốn xóa giao dịch "<strong>{deleteConfirm.item?.description}</strong>"? Hành động này sẽ hoàn lại số tiền vào số dư của học viên.</p>}
                 />
-            </Modal>
-            <ConfirmationModal
-                isOpen={deleteConfirm.open}
-                onClose={() => setDeleteConfirm({ open: false })}
-                onConfirm={handleDeleteTransaction}
-                title="Xác nhận Xóa Giao dịch"
-                message={<p>Bạn có chắc muốn xóa giao dịch "<strong>{deleteConfirm.item?.description}</strong>"? Hành động này sẽ hoàn lại số tiền vào số dư của học viên.</p>}
-            />
-             <PaymentModal
-                isOpen={paymentModalOpen}
-                onClose={() => setPaymentModalOpen(false)}
-                student={student}
-            />
-            <Modal 
-                isOpen={attendanceLogModal.isOpen} 
-                onClose={() => setAttendanceLogModal({ isOpen: false, classId: null, className: null })}
-                title={`Lịch sử điểm danh: ${student.name} - ${attendanceLogModal.className}`}
-            >
-                <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-                    {attendanceLogForModal.length > 0 ? (
-                        attendanceLogForModal.map(record => (
-                            <div key={record.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-md">
-                                <p className="font-semibold">{record.date}</p>
-                                {canManage ? (
-                                    <select
-                                        value={record.status}
-                                        onChange={(e) => handleAttendanceChange(record, e.target.value as AttendanceStatus)}
-                                        className="form-select py-1 px-2 text-sm w-32"
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        <option value={AttendanceStatus.PRESENT}>Có mặt</option>
-                                        <option value={AttendanceStatus.ABSENT}>Vắng</option>
-                                        <option value={AttendanceStatus.LATE}>Trễ</option>
-                                    </select>
-                                ) : (
-                                    getStatusBadge(record.status)
-                                )}
-                            </div>
-                        ))
-                    ) : (
-                        <p className="text-center py-4 text-gray-500">Chưa có dữ liệu điểm danh cho lớp này.</p>
-                    )}
-                </div>
-            </Modal>
-             <ConfirmationModal
-                isOpen={deleteStudentConfirmOpen}
-                onClose={() => setDeleteStudentConfirmOpen(false)}
-                onConfirm={handleDelete}
-                title="Xác nhận Xóa Học viên"
-                message={
-                    <p>
-                        Bạn có chắc chắn muốn xoá học viên <strong>{student?.name}</strong>?
-                        <br /><br />
-                        <span className="font-bold text-red-500">CẢNH BÁO:</span> Toàn bộ dữ liệu học phí, điểm danh và báo cáo của học viên này cũng sẽ bị XOÁ VĨNH VIỄN.
-                    </p>
-                }
-            />
+                 <PaymentModal
+                    isOpen={paymentModalOpen}
+                    onClose={() => setPaymentModalOpen(false)}
+                    student={student}
+                />
+                <Modal 
+                    isOpen={attendanceLogModal.isOpen} 
+                    onClose={() => setAttendanceLogModal({ isOpen: false, classId: null, className: null })}
+                    title={`Lịch sử điểm danh: ${attendanceLogModal.className} ${filterMonth === 0 ? '(Tất cả)' : `(Tháng ${filterMonth}/${filterYear})`}`}
+                >
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                        {attendanceLogForModal.length > 0 ? (
+                            attendanceLogForModal.map(record => (
+                                <div key={record.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-md">
+                                    <p className="font-semibold">{record.date}</p>
+                                    {canManage ? (
+                                        <select
+                                            value={record.status}
+                                            onChange={(e) => handleAttendanceChange(record, e.target.value as AttendanceStatus)}
+                                            className="form-select py-1 px-2 text-sm w-32"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <option value={AttendanceStatus.PRESENT}>Có mặt</option>
+                                            <option value={AttendanceStatus.ABSENT}>Vắng</option>
+                                            <option value={AttendanceStatus.LATE}>Trễ</option>
+                                        </select>
+                                    ) : (
+                                        getStatusBadge(record.status)
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-center py-4 text-gray-500">Chưa có dữ liệu điểm danh phù hợp.</p>
+                        )}
+                    </div>
+                </Modal>
+                 <ConfirmationModal
+                    isOpen={deleteStudentConfirmOpen}
+                    onClose={() => setDeleteStudentConfirmOpen(false)}
+                    onConfirm={handleDelete}
+                    title="Xác nhận Xóa Học viên"
+                    message={
+                        <p>
+                            Bạn có chắc chắn muốn xoá học viên <strong>{student?.name}</strong>?
+                            <br /><br />
+                            <span className="font-bold text-red-500">CẢNH BÁO:</span> Toàn bộ dữ liệu học phí, điểm danh và báo cáo của học viên này cũng sẽ bị XOÁ VĨNH VIỄN.
+                        </p>
+                    }
+                />
+            </div>
         </>
     );
 };

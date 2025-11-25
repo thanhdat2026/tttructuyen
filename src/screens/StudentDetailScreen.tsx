@@ -1,13 +1,14 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useData } from '../hooks/useDataContext';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
 import { Table, SortConfig } from '../components/common/Table';
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
-import { ICONS } from '../constants';
-import { Transaction, ProgressReport, PersonStatus, TransactionType, Class, AttendanceStatus, UserRole } from '../types';
+import { ICONS, ROUTES } from '../constants';
+import { Transaction, ProgressReport, PersonStatus, TransactionType, Class, AttendanceStatus, UserRole, AttendanceRecord } from '../types';
 import { CurrencyInput } from '../components/common/CurrencyInput';
 import { ListItemCard } from '../components/common/ListItemCard';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
@@ -101,41 +102,71 @@ const AdjustmentForm: React.FC<{
     );
 };
 
-const AttendanceSummaryWidget: React.FC<{ studentId: string, enrolledClasses: Class[] }> = ({ studentId, enrolledClasses }) => {
+const AttendanceSummaryWidget: React.FC<{ 
+    studentId: string; 
+    enrolledClasses: Class[];
+    filterMonth: number;
+    filterYear: number;
+}> = ({ studentId, enrolledClasses, filterMonth, filterYear }) => {
     const { state } = useData();
-    const studentAttendance = state.attendance.filter(a => a.studentId === studentId);
+    
+    // Filter attendance records based on student ID and selected month/year
+    const filteredAttendance = useMemo(() => {
+        return state.attendance.filter(a => {
+            if (a.studentId !== studentId) return false;
+            if (filterMonth === 0) return true; // Show all if month is 0 (All)
+            
+            const recordDate = new Date(a.date);
+            return recordDate.getMonth() + 1 === filterMonth && recordDate.getFullYear() === filterYear;
+        });
+    }, [state.attendance, studentId, filterMonth, filterYear]);
 
     const summary = useMemo(() => {
         return enrolledClasses.map(cls => {
-            const classAttendance = studentAttendance.filter(a => a.classId === cls.id);
+            const classAttendance = filteredAttendance.filter(a => a.classId === cls.id);
             const present = classAttendance.filter(a => a.status === AttendanceStatus.PRESENT).length;
             const absent = classAttendance.filter(a => a.status === AttendanceStatus.ABSENT).length;
             const late = classAttendance.filter(a => a.status === AttendanceStatus.LATE).length;
             const total = classAttendance.length;
             const percentage = total > 0 ? (((present + late) / total) * 100).toFixed(0) : 'N/A';
             
+            const isEnrolled = cls.studentIds.includes(studentId);
+            // Show class if: 
+            // 1. Currently enrolled (always show to see 0 attendance if new)
+            // 2. OR has data for the selected month (historical class)
+            const shouldShow = isEnrolled || total > 0 || filterMonth === 0;
+            
             return {
                 classId: cls.id,
                 className: cls.name,
+                isEnrolled,
                 present,
                 absent,
                 late,
-                percentage
+                percentage,
+                shouldShow
             };
-        });
-    }, [studentAttendance, enrolledClasses]);
+        }).filter(s => s.shouldShow);
+    }, [filteredAttendance, enrolledClasses, filterMonth, studentId]);
 
     if (summary.length === 0) {
-        return null;
+        return (
+            <div className="card-base text-center text-gray-500 py-8">
+                Không có dữ liệu điểm danh cho giai đoạn này.
+            </div>
+        );
     }
 
     return (
         <div className="card-base">
-            <h2 className="text-xl font-semibold mb-4">Thống kê Chuyên cần</h2>
+            <h2 className="text-xl font-semibold mb-4">Thống kê Chuyên cần {filterMonth === 0 ? '(Tất cả)' : `(Tháng ${filterMonth}/${filterYear})`}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {summary.map(s => (
                     <div key={s.classId} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <h3 className="font-semibold text-primary">{s.className}</h3>
+                        <h3 className="font-semibold text-primary">
+                            {s.className}
+                            {!s.isEnrolled && <span className="text-xs text-gray-500 font-normal ml-2">(Lớp cũ)</span>}
+                        </h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mt-2 text-center">
                             <div>
                                 <p className="font-bold text-lg text-green-600">{s.present}</p>
@@ -164,22 +195,47 @@ const AttendanceSummaryWidget: React.FC<{ studentId: string, enrolledClasses: Cl
 
 export const StudentDetailScreen: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const { state, addAdjustment, updateTransaction, deleteTransaction } = useData();
+    const { state, addAdjustment, updateTransaction, deleteTransaction, updateAttendance, deleteStudent } = useData();
     const { toast } = useToast();
     const { role } = useAuth();
-    const { students, classes, progressReports, transactions } = state;
+    const navigate = useNavigate();
+    const { students, classes, progressReports, transactions, attendance } = state;
     
     const [activeTab, setActiveTab] = useState('overview');
     const [transactionModal, setTransactionModal] = useState<{ open: boolean, item?: Transaction }>({ open: false });
     const [paymentModalOpen, setPaymentModalOpen] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean, item?: Transaction }>({ open: false });
+    const [attendanceLogModal, setAttendanceLogModal] = useState<{ isOpen: boolean; classId: string | null; className: string | null }>({ isOpen: false, classId: null, className: null });
+    const [deleteStudentConfirmOpen, setDeleteStudentConfirmOpen] = useState(false);
+
+    // Filter State
+    const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1);
+    const [filterYear, setFilterYear] = useState(new Date().getFullYear());
 
     const canManage = role !== UserRole.VIEWER;
     const student = useMemo(() => students.find(s => s.id === id), [students, id]);
     
-    const enrolledClasses = useMemo(() => 
-        classes.filter(c => (c.studentIds || []).includes(id!)), 
-    [classes, id]);
+    // Updated logic to include both currently enrolled classes AND classes with attendance history
+    const relatedClasses = useMemo(() => {
+        if (!id) return [];
+        const relatedClassIds = new Set<string>();
+
+        // 1. Currently enrolled classes
+        classes.forEach(c => {
+            if (c.studentIds.includes(id)) {
+                relatedClassIds.add(c.id);
+            }
+        });
+
+        // 2. Classes with attendance records
+        attendance.forEach(a => {
+            if (a.studentId === id) {
+                relatedClassIds.add(a.classId);
+            }
+        });
+
+        return classes.filter(c => relatedClassIds.has(c.id));
+    }, [classes, attendance, id]);
     
     const studentProgressReports = useMemo(() => 
         progressReports.filter(pr => pr.studentId === id),
@@ -195,7 +251,11 @@ export const StudentDetailScreen: React.FC = () => {
         if (!studentTransactions) return [];
         let runningBalance = 0;
         return [...studentTransactions]
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+            .sort((a, b) => {
+                const dateComparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+                if (dateComparison !== 0) return dateComparison;
+                return a.id.localeCompare(b.id);
+            })
             .map(t => {
                 runningBalance += t.amount;
                 return { ...t, endingBalance: runningBalance };
@@ -206,16 +266,17 @@ export const StudentDetailScreen: React.FC = () => {
         let sortableItems = [...transactionsWithEndingBalance];
         if (transactionSortConfig) {
             sortableItems.sort((a, b) => {
-                const aValue = a[transactionSortConfig.key];
-                const bValue = b[transactionSortConfig.key];
-
-                if(transactionSortConfig.key === 'date') {
+                if (transactionSortConfig.key === 'date') {
                     const aDate = new Date(a.date).getTime();
                     const bDate = new Date(b.date).getTime();
                     if (aDate < bDate) return transactionSortConfig.direction === 'ascending' ? -1 : 1;
                     if (aDate > bDate) return transactionSortConfig.direction === 'ascending' ? 1 : -1;
-                    return 0;
+                    // If dates are also the same, use ID as a tie-breaker for stable sort
+                    return transactionSortConfig.direction === 'ascending' ? a.id.localeCompare(b.id) : b.id.localeCompare(a.id);
                 }
+                
+                const aValue = a[transactionSortConfig.key];
+                const bValue = b[transactionSortConfig.key];
                 
                 if (aValue == null || bValue == null) return 0;
 
@@ -256,6 +317,53 @@ export const StudentDetailScreen: React.FC = () => {
         }
         return sortableItems;
     }, [studentProgressReports, reportSortConfig]);
+    
+    const attendanceLogForModal = useMemo(() => {
+        if (!attendanceLogModal.classId || !student) return [];
+        return attendance
+            .filter(a => {
+                if (a.studentId !== student.id || a.classId !== attendanceLogModal.classId) return false;
+                if (filterMonth === 0) return true;
+                const recordDate = new Date(a.date);
+                return recordDate.getMonth() + 1 === filterMonth && recordDate.getFullYear() === filterYear;
+            })
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [attendance, student, attendanceLogModal.classId, filterMonth, filterYear]);
+
+    const handleAttendanceChange = async (recordToUpdate: AttendanceRecord, newStatus: AttendanceStatus) => {
+        if (recordToUpdate.status === newStatus) return;
+    
+        const allRecordsForDay = attendance.filter(
+            a => a.classId === recordToUpdate.classId && a.date === recordToUpdate.date && a.studentId !== recordToUpdate.studentId
+        );
+    
+        const updatedRecord: AttendanceRecord = {
+            ...recordToUpdate,
+            status: newStatus,
+        };
+    
+        const newRecordsForDay = [...allRecordsForDay, updatedRecord];
+    
+        try {
+            await updateAttendance(newRecordsForDay);
+            toast.success(`Đã cập nhật điểm danh ngày ${recordToUpdate.date}.`);
+        } catch (error) {
+            toast.error('Lỗi khi cập nhật điểm danh.');
+        }
+    };
+
+    const getStatusBadge = (status: AttendanceStatus) => {
+        switch (status) {
+            case AttendanceStatus.PRESENT:
+                return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Có mặt</span>;
+            case AttendanceStatus.ABSENT:
+                return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Vắng</span>;
+            case AttendanceStatus.LATE:
+                return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">Trễ</span>;
+            default:
+                return <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">Chưa điểm danh</span>;
+        }
+    };
 
 
     if (!student) {
@@ -301,6 +409,21 @@ export const StudentDetailScreen: React.FC = () => {
         }
     };
 
+    const handleEdit = () => {
+        navigate(ROUTES.STUDENTS, { state: { editStudentId: student.id, returnTo: `/student/${student.id}` } });
+    };
+
+    const handleDelete = async () => {
+        try {
+            await deleteStudent(student.id);
+            toast.success(`Đã xoá học viên ${student.name}`);
+            navigate(ROUTES.STUDENTS, { replace: true });
+        } catch (error) {
+            toast.error('Lỗi khi xoá học viên.');
+        }
+        setDeleteStudentConfirmOpen(false);
+    };
+
     const isEditable = (type: TransactionType) => type !== TransactionType.INVOICE;
 
     const transactionColumns = [
@@ -338,17 +461,26 @@ export const StudentDetailScreen: React.FC = () => {
         </button>
     );
 
+    const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+    const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
     return (
         <>
             <div className="space-y-6">
                  <div className="card-base">
-                    <div className="flex justify-between items-start">
-                         <div>
+                    <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                         <div className="flex-grow">
                             <h1 className="text-3xl font-bold">{student.name}</h1>
                             <span className={`mt-1 px-2 inline-flex text-sm leading-5 font-semibold rounded-full ${student.status === PersonStatus.ACTIVE ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                 {student.status === PersonStatus.ACTIVE ? 'Đang hoạt động' : 'Tạm nghỉ'}
                             </span>
                         </div>
+                        {canManage && (
+                            <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+                                <Button variant="secondary" onClick={handleEdit} className="flex-1 sm:flex-none">{ICONS.edit} Sửa</Button>
+                                <Button variant="danger" onClick={() => setDeleteStudentConfirmOpen(true)} className="flex-1 sm:flex-none">{ICONS.delete} Xóa</Button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -388,18 +520,50 @@ export const StudentDetailScreen: React.FC = () => {
                             </div>
                         </div>
 
-                        <div className="card-base">
-                            <h2 className="text-xl font-semibold mb-4">Các lớp đang theo học</h2>
-                            <div className="space-y-2">
-                                {enrolledClasses.map(c => (
-                                    <Link key={c.id} to={`/class/${c.id}`} className="block p-3 bg-gray-50 dark:bg-gray-700 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600">
-                                        <p className="font-semibold text-primary">{c.name}</p>
-                                        <p className="text-sm text-gray-500">{c.subject}</p>
-                                    </Link>
-                                ))}
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
+                            <span className="text-sm font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">Lọc dữ liệu điểm danh:</span>
+                            <div className="flex gap-2 w-full sm:w-auto">
+                                <select value={filterMonth} onChange={e => setFilterMonth(Number(e.target.value))} className="form-select text-sm py-1.5 w-1/2 sm:w-auto">
+                                    <option value={0}>Tất cả các tháng</option>
+                                    {months.map(m => <option key={m} value={m}>Tháng {m}</option>)}
+                                </select>
+                                <select value={filterYear} onChange={e => setFilterYear(Number(e.target.value))} className="form-select text-sm py-1.5 w-1/2 sm:w-auto">
+                                    {years.map(y => <option key={y} value={y}>Năm {y}</option>)}
+                                </select>
                             </div>
                         </div>
-                        <AttendanceSummaryWidget studentId={student.id} enrolledClasses={enrolledClasses} />
+
+                        <div className="card-base">
+                            <h2 className="text-xl font-semibold mb-4">Các lớp tham gia</h2>
+                            <div className="space-y-2">
+                                {relatedClasses.map(c => {
+                                    const isCurrentlyEnrolled = c.studentIds.includes(student.id);
+                                    return (
+                                        <div key={c.id} className={`flex justify-between items-center p-3 rounded-md border ${isCurrentlyEnrolled ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700' : 'bg-gray-50 dark:bg-gray-700/30 border-dashed border-gray-300 dark:border-gray-600'}`}>
+                                            <Link to={`/class/${c.id}`} className="block hover:underline flex-grow">
+                                                <p className={`font-semibold ${isCurrentlyEnrolled ? 'text-primary' : 'text-gray-600 dark:text-gray-400'}`}>
+                                                    {c.name} {!isCurrentlyEnrolled && <span className="text-xs font-normal italic ml-2">(Lịch sử / Đã nghỉ)</span>}
+                                                </p>
+                                                <p className="text-sm text-gray-500">{c.subject}</p>
+                                            </Link>
+                                            <button 
+                                                onClick={() => setAttendanceLogModal({ isOpen: true, classId: c.id, className: c.name })}
+                                                className="ml-4 text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 underline whitespace-nowrap"
+                                            >
+                                                Xem điểm danh
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                                {relatedClasses.length === 0 && <p className="text-gray-500">Chưa tham gia lớp học nào.</p>}
+                            </div>
+                        </div>
+                        <AttendanceSummaryWidget 
+                            studentId={student.id} 
+                            enrolledClasses={relatedClasses}
+                            filterMonth={filterMonth}
+                            filterYear={filterYear}
+                        />
                     </div>
                 )}
                 
@@ -472,7 +636,6 @@ export const StudentDetailScreen: React.FC = () => {
                     </div>
                 )}
 
-
                 <Modal isOpen={transactionModal.open} onClose={() => setTransactionModal({ open: false })} title={transactionModal.item ? 'Sửa Giao dịch' : 'Thêm Giao dịch Mới'}>
                     <AdjustmentForm
                         transactionToEdit={transactionModal.item}
@@ -491,6 +654,50 @@ export const StudentDetailScreen: React.FC = () => {
                     isOpen={paymentModalOpen}
                     onClose={() => setPaymentModalOpen(false)}
                     student={student}
+                />
+                <Modal 
+                    isOpen={attendanceLogModal.isOpen} 
+                    onClose={() => setAttendanceLogModal({ isOpen: false, classId: null, className: null })}
+                    title={`Lịch sử điểm danh: ${attendanceLogModal.className} ${filterMonth === 0 ? '(Tất cả)' : `(Tháng ${filterMonth}/${filterYear})`}`}
+                >
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                        {attendanceLogForModal.length > 0 ? (
+                            attendanceLogForModal.map(record => (
+                                <div key={record.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-md">
+                                    <p className="font-semibold">{record.date}</p>
+                                    {canManage ? (
+                                        <select
+                                            value={record.status}
+                                            onChange={(e) => handleAttendanceChange(record, e.target.value as AttendanceStatus)}
+                                            className="form-select py-1 px-2 text-sm w-32"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <option value={AttendanceStatus.PRESENT}>Có mặt</option>
+                                            <option value={AttendanceStatus.ABSENT}>Vắng</option>
+                                            <option value={AttendanceStatus.LATE}>Trễ</option>
+                                        </select>
+                                    ) : (
+                                        getStatusBadge(record.status)
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-center py-4 text-gray-500">Chưa có dữ liệu điểm danh phù hợp.</p>
+                        )}
+                    </div>
+                </Modal>
+                 <ConfirmationModal
+                    isOpen={deleteStudentConfirmOpen}
+                    onClose={() => setDeleteStudentConfirmOpen(false)}
+                    onConfirm={handleDelete}
+                    title="Xác nhận Xóa Học viên"
+                    message={
+                        <p>
+                            Bạn có chắc chắn muốn xoá học viên <strong>{student?.name}</strong>?
+                            <br /><br />
+                            <span className="font-bold text-red-500">CẢNH BÁO:</span> Toàn bộ dữ liệu học phí, điểm danh và báo cáo của học viên này cũng sẽ bị XOÁ VĨNH VIỄN.
+                        </p>
+                    }
                 />
             </div>
         </>

@@ -170,9 +170,21 @@ export function applyOperation(
         case 'generateInvoices': {
             const { month, year } = payload;
             const monthStr = `${year}-${String(month).padStart(2, '0')}`;
-            const activeStudents = data.students.filter(s => s.status === PersonStatus.ACTIVE);
+            
+            // 1. Find all students to invoice.
+            // Includes ACTIVE students AND any INACTIVE students who have attendance in this month.
+            const studentsToInvoiceIds = new Set(data.students.filter(s => s.status === PersonStatus.ACTIVE).map(s => s.id));
+            
+            data.attendance.forEach(a => {
+                if (a.date.startsWith(monthStr)) {
+                    studentsToInvoiceIds.add(a.studentId);
+                }
+            });
 
-            for (const student of activeStudents) {
+            for (const studentId of studentsToInvoiceIds) {
+                const student = data.students.find(s => s.id === studentId);
+                if (!student) continue;
+
                 let totalAmount = 0;
                 let details = '';
                 
@@ -180,14 +192,14 @@ export function applyOperation(
                 // Bao gồm: Lớp đang học VÀ Lớp đã nghỉ nhưng có điểm danh trong tháng
                 const relevantClassIds = new Set<string>();
 
-                // 1. Các lớp đang có tên trong danh sách
+                // a. Các lớp đang có tên trong danh sách
                 data.classes.forEach(c => {
                     if (c.studentIds.includes(student.id)) {
                         relevantClassIds.add(c.id);
                     }
                 });
 
-                // 2. Các lớp có dữ liệu điểm danh trong tháng (dù đã bị xóa tên khỏi lớp)
+                // b. Các lớp có dữ liệu điểm danh trong tháng (dù đã bị xóa tên khỏi lớp)
                 data.attendance.forEach(a => {
                     if (a.studentId === student.id && a.date.startsWith(monthStr)) {
                         relevantClassIds.add(a.classId);
@@ -200,22 +212,30 @@ export function applyOperation(
 
                     let classFee = 0;
                     const isEnrolled = cls.studentIds.includes(student.id);
+                    
+                    // Calculate attendance for this class in this month
+                    const attendedSessions = data.attendance.filter(a => 
+                        a.studentId === student.id && 
+                        a.classId === cls.id && 
+                        a.date.startsWith(monthStr) && 
+                        (a.status === AttendanceStatus.PRESENT || a.status === AttendanceStatus.LATE)
+                    ).length;
 
                     if (cls.fee.type === FeeType.MONTHLY || cls.fee.type === FeeType.PER_COURSE) {
-                        // Với học phí tháng: Nếu có tên HOẶC có đi học ít nhất 1 buổi thì tính full
-                        // (Hoặc có thể tùy chỉnh logic pro-rate ở đây nếu muốn)
-                        classFee = cls.fee.amount;
-                        if (classFee > 0) {
-                            details += `- Lớp ${cls.name}: ${classFee.toLocaleString('vi-VN')} ₫${!isEnrolled ? ' (Đã chuyển/nghỉ)' : ''}\n`;
+                        // Với học phí tháng: 
+                        // - Nếu học sinh ACTIVE và đang ENROLLED -> Tính full.
+                        // - Nếu học sinh INACTIVE hoặc !ENROLLED -> Chỉ tính nếu có đi học (attendedSessions > 0).
+                        
+                        // Logic prevent charging inactive students who didn't attend
+                        const shouldCharge = (student.status === PersonStatus.ACTIVE && isEnrolled) || attendedSessions > 0;
+
+                        if (shouldCharge) {
+                            classFee = cls.fee.amount;
+                            if (classFee > 0) {
+                                details += `- Lớp ${cls.name}: ${classFee.toLocaleString('vi-VN')} ₫${!isEnrolled ? ' (Đã chuyển/nghỉ)' : ''}\n`;
+                            }
                         }
                     } else if (cls.fee.type === FeeType.PER_SESSION) {
-                        const attendedSessions = data.attendance.filter(a => 
-                            a.studentId === student.id && 
-                            a.classId === cls.id && 
-                            a.date.startsWith(monthStr) && 
-                            (a.status === AttendanceStatus.PRESENT || a.status === AttendanceStatus.LATE)
-                        ).length;
-                        
                         if (attendedSessions > 0) {
                             classFee = attendedSessions * cls.fee.amount;
                             details += `- Lớp ${cls.name}: ${attendedSessions} buổi x ${cls.fee.amount.toLocaleString('vi-VN')} ₫ = ${classFee.toLocaleString('vi-VN')} ₫\n`;
