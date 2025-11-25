@@ -72,7 +72,6 @@ interface DataContextType {
     updateExpense: (item: Expense) => Promise<void>;
     deleteExpense: (itemId: string) => Promise<void>;
     updateSettings: (settings: CenterSettings) => Promise<void>;
-    completeOnboardingStep: (step: string) => Promise<void>;
     backupData: () => Promise<Omit<AppState, 'loading'>>;
     restoreData: (data: Omit<AppState, 'loading'>) => Promise<void>;
     resetToMockData: () => Promise<void>;
@@ -255,7 +254,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     deleteTransaction: createRefreshingFunc(api.deleteTransaction),
     updateInvoiceStatus: createRefreshingFunc(api.updateInvoiceStatus),
     generatePayrolls: createRefreshingFunc(api.generatePayrolls),
-    completeOnboardingStep: createRefreshingFunc(api.completeOnboardingStep),
     backupData: api.backupData,
     restoreData: createRefreshingFunc(api.restoreData as any),
     resetToMockData: async () => {
@@ -269,9 +267,10 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     },
     clearCollections: createRefreshingFunc(api.clearCollections),
     deleteAttendanceByMonth: createRefreshingFunc(api.deleteAttendanceByMonth),
+    // FIX: clearAllTransactions does not take a payload
     clearAllTransactions: async () => {
-      await api.clearAllTransactions();
-      await refreshData();
+        await api.clearAllTransactions();
+        await refreshData();
     },
   };
 
