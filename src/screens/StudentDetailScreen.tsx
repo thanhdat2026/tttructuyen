@@ -455,7 +455,7 @@ export const StudentDetailScreen: React.FC = () => {
     const TabButton: React.FC<{ tabId: string; children: React.ReactNode }> = ({ tabId, children }) => (
         <button
             onClick={() => setActiveTab(tabId)}
-            className={`px-4 py-2 font-semibold transition-colors duration-200 border-b-2 whitespace-nowrap ${activeTab === tabId ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'}`}
+            className={`px-4 py-2 font-semibold transition-colors duration-200 border-b-2 whitespace-nowrap flex-shrink-0 ${activeTab === tabId ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'}`}
         >
             {children}
         </button>
@@ -471,7 +471,7 @@ export const StudentDetailScreen: React.FC = () => {
                  <div className="card-base">
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                          <div className="flex-grow">
-                            <h1 className="text-3xl font-bold">{student.name}</h1>
+                            <h1 className="text-2xl md:text-3xl font-bold">{student.name}</h1>
                             <span className={`mt-1 px-2 inline-flex text-sm leading-5 font-semibold rounded-full ${student.status === PersonStatus.ACTIVE ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                                 {student.status === PersonStatus.ACTIVE ? 'Đang hoạt động' : 'Tạm nghỉ'}
                             </span>
@@ -486,7 +486,7 @@ export const StudentDetailScreen: React.FC = () => {
                 </div>
 
                 <div className="border-b border-gray-200 dark:border-gray-700">
-                    <nav className="-mb-px flex space-x-2 overflow-x-auto" aria-label="Tabs">
+                    <nav className="-mb-px flex space-x-2 overflow-x-auto scrollbar-hide pb-1" aria-label="Tabs">
                         <TabButton tabId="overview">Tổng quan</TabButton>
                         <TabButton tabId="transactions">Lịch sử Giao dịch ({studentTransactions.length})</TabButton>
                         <TabButton tabId="reports">Báo cáo Học tập ({studentProgressReports.length})</TabButton>

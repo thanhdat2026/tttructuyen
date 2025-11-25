@@ -65,6 +65,7 @@ interface DataContextType {
     deleteTransaction: (transactionId: string) => Promise<void>;
     updateInvoiceStatus: (payload: { invoiceId: string, status: 'PAID' | 'UNPAID' | 'CANCELLED' }) => Promise<void>;
     generatePayrolls: (payload: { month: number, year: number }) => Promise<void>;
+    updatePayroll: (payroll: Payroll) => Promise<void>;
     addIncome: (data: Omit<Income, 'id'>) => Promise<void>;
     updateIncome: (item: Income) => Promise<void>;
     deleteIncome: (itemId: string) => Promise<void>;
@@ -167,83 +168,71 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     },
     deleteStudent: createRefreshingFunc(api.deleteStudent),
     addTeacher: async (data) => {
-        const newTeacher = await api.addTeacher(data);
-        setState(prev => ({...prev, teachers: [...prev.teachers, newTeacher]}));
+        const newState = await api.addTeacher(data);
+        setState({ ...newState, loading: false });
     },
     updateTeacher: async (payload) => {
-        await api.updateTeacher(payload);
-        if (payload.originalId !== payload.updatedTeacher.id) {
-            await refreshData();
-        } else {
-            setState(prev => ({...prev, teachers: prev.teachers.map(t => t.id === payload.originalId ? payload.updatedTeacher : t)}));
-        }
+        const newState = await api.updateTeacher(payload);
+        setState({ ...newState, loading: false });
     },
     deleteTeacher: createRefreshingFunc(api.deleteTeacher),
     addStaff: async (data) => {
-        const newStaff = await api.addStaff(data);
-        setState(prev => ({...prev, staff: [...prev.staff, newStaff]}));
+        const newState = await api.addStaff(data);
+        setState({ ...newState, loading: false });
     },
     updateStaff: async (payload) => {
-        await api.updateStaff(payload);
-        if (payload.originalId !== payload.updatedStaff.id) {
-            await refreshData();
-        } else {
-            setState(prev => ({...prev, staff: prev.staff.map(s => s.id === payload.originalId ? payload.updatedStaff : s)}));
-        }
+        const newState = await api.updateStaff(payload);
+        setState({ ...newState, loading: false });
     },
     deleteStaff: createRefreshingFunc(api.deleteStaff),
     addClass: async (data) => {
-        const newClass = await api.addClass(data);
-        setState(prev => ({...prev, classes: [...prev.classes, newClass]}));
+        const newState = await api.addClass(data);
+        setState({ ...newState, loading: false });
     },
     updateClass: async (payload) => {
-        await api.updateClass(payload);
-        if (payload.originalId !== payload.updatedClass.id) {
-            await refreshData();
-        } else {
-            setState(prev => ({...prev, classes: prev.classes.map(c => c.id === payload.originalId ? payload.updatedClass : c)}));
-        }
+        const newState = await api.updateClass(payload);
+        setState({ ...newState, loading: false });
     },
     deleteClass: createRefreshingFunc(api.deleteClass),
     addProgressReport: async (data) => {
-        const newReport = await api.addProgressReport(data);
-        setState(prev => ({ ...prev, progressReports: [...prev.progressReports, newReport]}));
+        const newState = await api.addProgressReport(data);
+        setState({ ...newState, loading: false });
     },
     addIncome: async (data) => {
-        const newItem = await api.addIncome(data);
-        setState(prev => ({ ...prev, income: [...prev.income, newItem]}));
+        const newState = await api.addIncome(data);
+        setState({ ...newState, loading: false });
     },
     updateIncome: async (item) => {
-        await api.updateIncome(item);
-        setState(prev => ({...prev, income: prev.income.map(i => i.id === item.id ? item : i)}));
+        const newState = await api.updateIncome(item);
+        setState({ ...newState, loading: false });
     },
     deleteIncome: async (itemId) => {
-        await api.deleteIncome(itemId);
-        setState(prev => ({...prev, income: prev.income.filter(i => i.id !== itemId)}));
+        const newState = await api.deleteIncome(itemId);
+        setState({ ...newState, loading: false });
     },
     addExpense: async (data) => {
-        const newItem = await api.addExpense(data);
-        setState(prev => ({ ...prev, expenses: [...prev.expenses, newItem]}));
+        const newState = await api.addExpense(data);
+        setState({ ...newState, loading: false });
     },
     updateExpense: async (item) => {
-        await api.updateExpense(item);
-        setState(prev => ({...prev, expenses: prev.expenses.map(i => i.id === item.id ? item : i)}));
+        const newState = await api.updateExpense(item);
+        setState({ ...newState, loading: false });
     },
     deleteExpense: async (itemId) => {
-        await api.deleteExpense(itemId);
-        setState(prev => ({...prev, expenses: prev.expenses.filter(i => i.id !== itemId)}));
+        const newState = await api.deleteExpense(itemId);
+        setState({ ...newState, loading: false });
     },
     addAnnouncement: async (data) => {
-        const newAnnouncement = await api.addAnnouncement(data);
-        setState(prev => ({...prev, announcements: [newAnnouncement, ...prev.announcements]}));
+        const newState = await api.addAnnouncement(data);
+        setState({ ...newState, loading: false });
     },
     deleteAnnouncement: async (id) => {
-        await api.deleteAnnouncement(id);
-        setState(prev => ({...prev, announcements: prev.announcements.filter(a => a.id !== id)}));
+        const newState = await api.deleteAnnouncement(id);
+        setState({ ...newState, loading: false });
     },
     updateSettings: async (settings) => {
-        await api.updateSettings(settings);
-        setState(prev => ({...prev, settings}));
+        const newState = await api.updateSettings(settings);
+        setState({ ...newState, loading: false });
     },
     // Keep full refresh for complex/bulk operations
     updateAttendance: createRefreshingFunc(api.updateAttendance),
@@ -254,6 +243,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     deleteTransaction: createRefreshingFunc(api.deleteTransaction),
     updateInvoiceStatus: createRefreshingFunc(api.updateInvoiceStatus),
     generatePayrolls: createRefreshingFunc(api.generatePayrolls),
+    updatePayroll: createRefreshingFunc(api.updatePayroll),
     backupData: api.backupData,
     restoreData: createRefreshingFunc(api.restoreData as any),
     resetToMockData: async () => {
@@ -267,7 +257,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     },
     clearCollections: createRefreshingFunc(api.clearCollections),
     deleteAttendanceByMonth: createRefreshingFunc(api.deleteAttendanceByMonth),
-    // FIX: clearAllTransactions does not take a payload
     clearAllTransactions: async () => {
         await api.clearAllTransactions();
         await refreshData();
