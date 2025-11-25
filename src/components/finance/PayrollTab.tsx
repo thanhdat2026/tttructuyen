@@ -73,14 +73,13 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
                 
                 if (aValue === bValue) return 0;
                 
-                // Handle undefined/null values
+                // Handle undefined/null values explicitly
                 if (aValue === undefined || aValue === null) return 1;
                 if (bValue === undefined || bValue === null) return -1;
 
-                // Force cast to any to ensure comparison works for string | number and bypass TS 'possibly undefined' error
-                // We have already checked for undefined/null above.
-                if ((aValue as any) < (bValue as any)) return sortConfig.direction === 'ascending' ? -1 : 1;
-                if ((aValue as any) > (bValue as any)) return sortConfig.direction === 'ascending' ? 1 : -1;
+                // Use non-null assertion (!) to tell TypeScript we know these are defined now
+                if (aValue! < bValue!) return sortConfig.direction === 'ascending' ? -1 : 1;
+                if (aValue! > bValue!) return sortConfig.direction === 'ascending' ? 1 : -1;
                 return 0;
             });
         }
