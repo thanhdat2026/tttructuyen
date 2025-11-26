@@ -8,11 +8,7 @@ import { ListItemCard } from '../common/ListItemCard';
 import { Button } from '../common/Button';
 import { PayslipModal } from './PayslipModal';
 
-interface TeacherPayrollTabProps {
-    period: 'this_month' | 'last_month' | 'this_year';
-}
-
-export const TeacherPayrollTab: React.FC<TeacherPayrollTabProps> = ({ period }) => {
+export const TeacherPayrollTab: React.FC = () => {
     const { state } = useData();
     const { user, role } = useAuth();
     const [selectedPayroll, setSelectedPayroll] = useState<Payroll | null>(null);
@@ -27,7 +23,7 @@ export const TeacherPayrollTab: React.FC<TeacherPayrollTabProps> = ({ period }) 
         
         return state.payrolls
             .filter(p => {
-                const [pYear, pMonth] = p.month.split('-').map(Number);
+                const [pYear] = p.month.split('-').map(Number);
                 return p.teacherId === (user as Teacher).id && pYear === selectedYear;
             })
             .sort((a, b) => b.month.localeCompare(a.month));

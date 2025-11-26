@@ -1,5 +1,4 @@
 
-
 import React, { useMemo, useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useData } from '../hooks/useDataContext';
@@ -142,7 +141,7 @@ export const FinanceScreen: React.FC = () => {
                 <TabButton tabId="my_payroll" hidden={role !== UserRole.TEACHER}>Bảng lương của tôi</TabButton>
             </div>
             
-            {(activeTab === 'overview' || activeTab === 'payroll' || activeTab === 'my_payroll') && (
+            {(activeTab === 'overview' || activeTab === 'payroll') && (
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700">
                     <label className="font-semibold whitespace-nowrap">Xem dữ liệu cho kỳ:</label>
                     <select value={period} onChange={e => setPeriod(e.target.value as Period)} className="form-select">
@@ -160,7 +159,7 @@ export const FinanceScreen: React.FC = () => {
                 {activeTab === 'income' && canManageFullFinance && <IncomeTab />}
                 {activeTab === 'expenses' && canManageFullFinance && <ExpenseTab />}
                 {activeTab === 'payroll' && canManageFullFinance && <PayrollTab period={period} />}
-                {activeTab === 'my_payroll' && role === UserRole.TEACHER && <TeacherPayrollTab period={period} />}
+                {activeTab === 'my_payroll' && role === UserRole.TEACHER && <TeacherPayrollTab />}
             </div>
         </div>
     );
