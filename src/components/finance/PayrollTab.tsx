@@ -14,32 +14,35 @@ interface PayrollTabProps {
     period: 'this_month' | 'last_month' | 'this_year';
 }
 
-const getPeriodMonths = (period: 'this_month' | 'last_month' | 'this_year'): string[] => {
-    const now = new Date();
-    const months = [];
-    switch (period) {
-        case 'this_month':
-            months.push(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
-            break;
-        case 'last_month':
-            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            months.push(`${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`);
-            break;
-        case 'this_year':
-            for (let i = 0; i < 12; i++) {
-                months.push(`${now.getFullYear()}-${String(i + 1).padStart(2, '0')}`);
-            }
-            break;
-    }
-    return months;
-};
-
 export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
     const { state } = useData();
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<SortConfig<Payroll> | null>({ key: 'month', direction: 'descending' });
     const [selectedPayroll, setSelectedPayroll] = useState<Payroll | null>(null);
+
+    // Enhanced filters
+    const [selectedMonth, setSelectedMonth] = useState(0); // 0 = All months
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+    const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+    const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+    // Sync local filters with the generic period prop initially
+    useEffect(() => {
+        const now = new Date();
+        if (period === 'this_month') {
+            setSelectedMonth(now.getMonth() + 1);
+            setSelectedYear(now.getFullYear());
+        } else if (period === 'last_month') {
+            const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            setSelectedMonth(last.getMonth() + 1);
+            setSelectedYear(last.getFullYear());
+        } else {
+            setSelectedMonth(0); // All months
+            setSelectedYear(now.getFullYear());
+        }
+    }, [period]);
 
     const handleSort = (key: keyof Payroll) => {
         let direction: 'ascending' | 'descending' = 'ascending';
@@ -49,18 +52,26 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
         setSortConfig({ key, direction });
     };
 
-    const periodMonths = useMemo(() => new Set(getPeriodMonths(period)), [period]);
-
     const filteredPayrolls = useMemo(() => {
-        let payrolls = state.payrolls.filter(p => periodMonths.has(p.month));
+        let payrolls = state.payrolls;
+
+        // Filter by Year
+        payrolls = payrolls.filter(p => p.month.startsWith(String(selectedYear)));
+
+        // Filter by Month (if selected)
+        if (selectedMonth !== 0) {
+            const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
+            payrolls = payrolls.filter(p => p.month === monthStr);
+        }
         
+        // Filter by Search Query
         if (searchQuery) {
             const lowerQuery = searchQuery.toLowerCase();
             payrolls = payrolls.filter(p => p.teacherName.toLowerCase().includes(lowerQuery));
         }
 
         return payrolls;
-    }, [state.payrolls, periodMonths, searchQuery]);
+    }, [state.payrolls, selectedYear, selectedMonth, searchQuery]);
 
     const sortedPayrolls = useMemo(() => {
         let sortableItems = [...filteredPayrolls];
@@ -85,7 +96,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
     const totalPages = Math.ceil(sortedPayrolls.length / ITEMS_PER_PAGE);
     const paginatedPayrolls = sortedPayrolls.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
     
-    useEffect(() => { setCurrentPage(1); }, [searchQuery, sortConfig, period]);
+    useEffect(() => { setCurrentPage(1); }, [searchQuery, sortConfig, selectedMonth, selectedYear]);
 
     const columns: Column<Payroll>[] = [
         { header: 'Tháng', accessor: 'month', sortable: true },
@@ -107,9 +118,27 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
 
     return (
         <div className="card-base">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                 <h2 className="text-xl font-bold">Bảng lương Giáo viên</h2>
+                <div className="flex items-center gap-2">
+                    <select 
+                        value={selectedMonth} 
+                        onChange={(e) => setSelectedMonth(Number(e.target.value))} 
+                        className="form-select py-1.5 w-auto"
+                    >
+                        <option value={0}>Tất cả các tháng</option>
+                        {months.map(m => <option key={m} value={m}>Tháng {m}</option>)}
+                    </select>
+                    <select 
+                        value={selectedYear} 
+                        onChange={(e) => setSelectedYear(Number(e.target.value))} 
+                        className="form-select py-1.5 w-auto"
+                    >
+                        {years.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                </div>
             </div>
+            
             <input 
                 type="text"
                 placeholder="Tìm theo tên giáo viên..."
@@ -130,26 +159,32 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
                 />
             </div>
             <div className="md:hidden space-y-4">
-                {paginatedPayrolls.map(item => (
-                    <ListItemCard
-                        key={item.id}
-                        title={
-                            <div className="flex flex-col">
-                                <span className="font-bold text-gray-900 dark:text-white">{item.teacherName}</span>
-                                <span className="text-xs text-gray-500">Tháng {item.month}</span>
-                            </div>
-                        }
-                        details={[
-                            { label: "Thực lĩnh", value: <span className="font-bold text-xl text-primary">{item.totalSalary.toLocaleString('vi-VN')} ₫</span> },
-                            { label: "Số buổi", value: item.sessionsTaught > 0 ? item.sessionsTaught : 'Lương cứng' },
-                        ]}
-                        status={{
-                            text: item.status === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán',
-                            colorClasses: item.status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }}
-                        actions={<Button className="w-full mt-2" size="sm" variant="secondary" onClick={() => setSelectedPayroll(item)}>Chi tiết / Sửa</Button>}
-                    />
-                ))}
+                {paginatedPayrolls.length > 0 ? (
+                    paginatedPayrolls.map(item => (
+                        <ListItemCard
+                            key={item.id}
+                            title={
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-gray-900 dark:text-white">{item.teacherName}</span>
+                                    <span className="text-xs text-gray-500">Tháng {item.month}</span>
+                                </div>
+                            }
+                            details={[
+                                { label: "Thực lĩnh", value: <span className="font-bold text-xl text-primary">{item.totalSalary.toLocaleString('vi-VN')} ₫</span> },
+                                { label: "Số buổi", value: item.sessionsTaught > 0 ? item.sessionsTaught : 'Lương cứng' },
+                            ]}
+                            status={{
+                                text: item.status === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán',
+                                colorClasses: item.status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                            }}
+                            actions={<Button className="w-full mt-2" size="sm" variant="secondary" onClick={() => setSelectedPayroll(item)}>Chi tiết / Sửa</Button>}
+                        />
+                    ))
+                ) : (
+                    <div className="text-center text-gray-500 py-8">
+                        Không tìm thấy dữ liệu lương phù hợp.
+                    </div>
+                )}
             </div>
 
             {paginatedPayrolls.length > 0 && <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} totalItems={sortedPayrolls.length} itemsPerPage={ITEMS_PER_PAGE} />}

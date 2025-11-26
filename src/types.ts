@@ -184,6 +184,12 @@ export interface CenterSettings {
   loginHeaderContent?: string;
 }
 
+export interface PayrollClassDetail {
+    classId: string;
+    className: string;
+    sessionsTaught: number;
+}
+
 export interface Payroll {
   id: string;
   teacherId: string;
@@ -192,12 +198,13 @@ export interface Payroll {
   sessionsTaught: number;
   rate: number;
   baseSalary: number;
-  bonus: number; // New
-  deduction: number; // New
+  bonus: number;
+  deduction: number;
   totalSalary: number;
-  status: 'PAID' | 'UNPAID'; // New
-  paidDate?: string; // New
+  status: 'PAID' | 'UNPAID';
+  paidDate?: string;
   calculationDate: string; // "YYYY-MM-DD"
+  classDetails: PayrollClassDetail[];
 }
 
 export interface Announcement {

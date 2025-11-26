@@ -28,7 +28,30 @@ export const PrintablePayslip = forwardRef<HTMLDivElement, PrintablePayslipProps
                 <p><span className="font-bold">Ngày lập:</span> {new Date(payroll.calculationDate).toLocaleDateString('vi-VN')}</p>
             </div>
 
-            {/* Table */}
+            {/* Class Details Section */}
+            {payroll.classDetails && payroll.classDetails.length > 0 && (
+                <div className="mb-6">
+                    <h3 className="text-sm font-bold border-b border-gray-300 pb-1 mb-2">Chi tiết giảng dạy</h3>
+                    <table className="w-full border-collapse text-sm">
+                        <thead>
+                            <tr className="bg-gray-50">
+                                <th className="border border-gray-300 px-2 py-1 text-left font-semibold">Lớp học</th>
+                                <th className="border border-gray-300 px-2 py-1 text-center font-semibold">Số buổi dạy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {payroll.classDetails.map((cls, index) => (
+                                <tr key={index}>
+                                    <td className="border border-gray-300 px-2 py-1">{cls.className}</td>
+                                    <td className="border border-gray-300 px-2 py-1 text-center">{cls.sessionsTaught}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {/* Salary Table */}
             <table className="w-full border-collapse border border-gray-400 text-sm mb-6">
                 <thead className="bg-gray-100">
                     <tr>
@@ -38,7 +61,7 @@ export const PrintablePayslip = forwardRef<HTMLDivElement, PrintablePayslipProps
                 </thead>
                 <tbody>
                     <tr>
-                        <td className="border border-gray-400 px-3 py-2">Lương Cơ bản / Dạy (Số buổi: {payroll.sessionsTaught})</td>
+                        <td className="border border-gray-400 px-3 py-2">Lương Cơ bản / Dạy (Tổng số buổi: {payroll.sessionsTaught})</td>
                         <td className="border border-gray-400 px-3 py-2 text-right">{formatCurrency(payroll.baseSalary)}</td>
                     </tr>
                     <tr>

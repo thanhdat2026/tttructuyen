@@ -3,7 +3,8 @@ import type {
     AppData,
     AttendanceRecord,
     Payroll,
-    Transaction
+    Transaction,
+    PayrollClassDetail
 } from '../../types.js';
 
 import {
@@ -333,32 +334,53 @@ export function applyOperation(
         case 'generatePayrolls': {
             const { month, year } = payload;
             const monthStr = `${year}-${String(month).padStart(2, '0')}`;
+            const calculationDate = new Date().toISOString().split('T')[0];
             
-            // Get all teachers, calculate payroll for everyone
+            // Optimization: Pre-calculate sessions per class for the month using a Map
+            const classSessionsMap = new Map<string, Set<string>>(); // classId -> Set of dates
+            
+            data.attendance.forEach(a => {
+                if (a.date.startsWith(monthStr)) {
+                    if (!classSessionsMap.has(a.classId)) {
+                        classSessionsMap.set(a.classId, new Set());
+                    }
+                    classSessionsMap.get(a.classId)!.add(a.date);
+                }
+            });
+
+            // Get all teachers
             const allTeachers = data.teachers;
             
             for(const teacher of allTeachers) {
-                let baseSalary = 0, sessionsTaught = 0;
-                const teacherClasses = data.classes.filter(c => c.teacherIds.includes(teacher.id));
+                let baseSalary = 0, totalSessionsTaught = 0;
                 
-                // Count unique sessions taught by this teacher in this month
-                const distinctSessions = new Set<string>();
-                data.attendance.forEach(a => {
-                    if (a.date.startsWith(monthStr) && teacherClasses.some(c => c.id === a.classId)) {
-                        distinctSessions.add(`${a.classId}-${a.date}`);
+                // Find classes assigned to this teacher
+                const teacherClasses = data.classes.filter(c => c.teacherIds.includes(teacher.id));
+                const classDetails: PayrollClassDetail[] = [];
+                
+                // Calculate sessions for each assigned class based on pre-calculated map
+                for (const cls of teacherClasses) {
+                    const sessions = classSessionsMap.get(cls.id)?.size || 0;
+                    
+                    if (sessions > 0) {
+                        classDetails.push({
+                            classId: cls.id,
+                            className: cls.name,
+                            sessionsTaught: sessions
+                        });
+                        totalSessionsTaught += sessions;
                     }
-                });
-                sessionsTaught = distinctSessions.size;
+                }
 
                 // If teacher is inactive and has no sessions, skip
-                if (teacher.status === PersonStatus.INACTIVE && sessionsTaught === 0) {
+                if (teacher.status === PersonStatus.INACTIVE && totalSessionsTaught === 0) {
                     continue;
                 }
 
                 if (teacher.salaryType === SalaryType.MONTHLY) {
                     baseSalary = teacher.rate;
                 } else {
-                    baseSalary = sessionsTaught * teacher.rate;
+                    baseSalary = totalSessionsTaught * teacher.rate;
                 }
                 
                 const payrollId = `PAY-${teacher.id}-${monthStr}`;
@@ -378,7 +400,7 @@ export function applyOperation(
                     teacherId: teacher.id, 
                     teacherName: teacher.name, 
                     month: monthStr, 
-                    sessionsTaught, 
+                    sessionsTaught: totalSessionsTaught, 
                     rate: teacher.rate, 
                     baseSalary: Math.round(baseSalary), 
                     bonus,
@@ -386,12 +408,22 @@ export function applyOperation(
                     totalSalary,
                     status,
                     paidDate,
-                    calculationDate: new Date().toISOString().split('T')[0] 
+                    calculationDate: calculationDate,
+                    classDetails
                 };
                 
                 const existingIndex = data.payrolls.findIndex(p => p.id === payrollId);
                 if (existingIndex !== -1) {
                     data.payrolls[existingIndex] = newPayroll;
+                    
+                    // IMPORTANT: If the payroll was already PAID, we must sync the expense amount
+                    if (status === 'PAID') {
+                        const expenseId = `EXP-${payrollId}`;
+                        const existingExpense = data.expenses.find(e => e.id === expenseId);
+                        if (existingExpense) {
+                            existingExpense.amount = totalSalary;
+                        }
+                    }
                 } else {
                     data.payrolls.push(newPayroll);
                 }

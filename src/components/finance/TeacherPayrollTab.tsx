@@ -12,42 +12,26 @@ interface TeacherPayrollTabProps {
     period: 'this_month' | 'last_month' | 'this_year';
 }
 
-const getPeriodDateRange = (period: 'this_month' | 'last_month' | 'this_year'): { startYear: number, endYear: number, startMonth: number, endMonth: number } => {
-    const now = new Date();
-    switch (period) {
-        case 'this_month':
-            return { startYear: now.getFullYear(), endYear: now.getFullYear(), startMonth: now.getMonth() + 1, endMonth: now.getMonth() + 1 };
-        case 'last_month':
-            const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            return { startYear: lastMonth.getFullYear(), endYear: lastMonth.getFullYear(), startMonth: lastMonth.getMonth() + 1, endMonth: lastMonth.getMonth() + 1 };
-        case 'this_year':
-            return { startYear: now.getFullYear(), endYear: now.getFullYear(), startMonth: 1, endMonth: 12 };
-    }
-};
-
 export const TeacherPayrollTab: React.FC<TeacherPayrollTabProps> = ({ period }) => {
     const { state } = useData();
     const { user, role } = useAuth();
     const [selectedPayroll, setSelectedPayroll] = useState<Payroll | null>(null);
+    
+    // Internal state for year selection, defaulting to current year
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+    const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
     const teacherPayrolls = useMemo(() => {
         if (!user || role !== UserRole.TEACHER) return [];
         
-        const { startYear, endYear, startMonth, endMonth } = getPeriodDateRange(period);
-
         return state.payrolls
             .filter(p => {
                 const [pYear, pMonth] = p.month.split('-').map(Number);
-                const payrollDate = new Date(pYear, pMonth - 1);
-                const startDate = new Date(startYear, startMonth - 1);
-                const endDate = new Date(endYear, endMonth - 1);
-
-                return p.teacherId === (user as Teacher).id &&
-                       payrollDate >= startDate &&
-                       payrollDate <= endDate;
+                return p.teacherId === (user as Teacher).id && pYear === selectedYear;
             })
             .sort((a, b) => b.month.localeCompare(a.month));
-    }, [state.payrolls, user, role, period]);
+    }, [state.payrolls, user, role, selectedYear]);
 
     const columns = [
         { header: 'Tháng', accessor: 'month' as keyof Payroll },
@@ -65,7 +49,20 @@ export const TeacherPayrollTab: React.FC<TeacherPayrollTabProps> = ({ period }) 
 
     return (
         <div className="card-base">
-            <h2 className="text-xl font-bold mb-4">Lịch sử Lương</h2>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <h2 className="text-xl font-bold">Lịch sử Lương của tôi</h2>
+                <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Chọn năm:</label>
+                    <select 
+                        value={selectedYear} 
+                        onChange={(e) => setSelectedYear(Number(e.target.value))} 
+                        className="form-select py-1 w-32"
+                    >
+                        {years.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                </div>
+            </div>
+
             <div className="hidden md:block">
                 <Table<Payroll>
                     columns={columns}
@@ -78,21 +75,27 @@ export const TeacherPayrollTab: React.FC<TeacherPayrollTabProps> = ({ period }) 
                 />
             </div>
              <div className="md:hidden space-y-4">
-                {teacherPayrolls.map(item => (
-                    <ListItemCard
-                        key={item.id}
-                        title={<span className="font-semibold text-lg">Tháng {item.month}</span>}
-                        details={[
-                            { label: "Thực lĩnh", value: <span className="font-bold text-xl text-primary">{item.totalSalary.toLocaleString('vi-VN')} ₫</span> },
-                            { label: "Số buổi", value: item.sessionsTaught > 0 ? item.sessionsTaught : 'Lương cứng' },
-                        ]}
-                        status={{
-                            text: item.status === 'PAID' ? 'Đã nhận' : 'Chưa nhận',
-                            colorClasses: item.status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }}
-                        actions={<Button className="w-full" variant="secondary" onClick={() => setSelectedPayroll(item)}>Xem Chi tiết</Button>}
-                    />
-                ))}
+                {teacherPayrolls.length > 0 ? (
+                    teacherPayrolls.map(item => (
+                        <ListItemCard
+                            key={item.id}
+                            title={<span className="font-semibold text-lg">Tháng {item.month}</span>}
+                            details={[
+                                { label: "Thực lĩnh", value: <span className="font-bold text-xl text-primary">{item.totalSalary.toLocaleString('vi-VN')} ₫</span> },
+                                { label: "Số buổi", value: item.sessionsTaught > 0 ? item.sessionsTaught : 'Lương cứng' },
+                            ]}
+                            status={{
+                                text: item.status === 'PAID' ? 'Đã nhận' : 'Chưa nhận',
+                                colorClasses: item.status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                            }}
+                            actions={<Button className="w-full" variant="secondary" onClick={() => setSelectedPayroll(item)}>Xem Chi tiết</Button>}
+                        />
+                    ))
+                ) : (
+                    <div className="text-center text-gray-500 py-8">
+                        Không có dữ liệu lương cho năm {selectedYear}.
+                    </div>
+                )}
             </div>
             
             <PayslipModal 

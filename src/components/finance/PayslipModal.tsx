@@ -88,6 +88,19 @@ export const PayslipModal: React.FC<PayslipModalProps> = ({ isOpen, onClose, pay
                         <span className="text-gray-500 dark:text-gray-400">Lương cơ bản {payroll.sessionsTaught > 0 ? `(${payroll.sessionsTaught} buổi)` : ''}:</span>
                         <span className="font-semibold">{payroll.baseSalary.toLocaleString('vi-VN')} ₫</span>
                     </div>
+                    {payroll.classDetails && payroll.classDetails.length > 0 && (
+                        <div className="mt-2 border-t border-gray-200 dark:border-gray-600 pt-2">
+                            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Chi tiết giảng dạy:</p>
+                            <div className="space-y-1">
+                                {payroll.classDetails.map((detail, idx) => (
+                                    <div key={idx} className="flex justify-between text-xs">
+                                        <span>{detail.className}</span>
+                                        <span>{detail.sessionsTaught} buổi</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     <div className="border-t border-gray-200 dark:border-gray-600 pt-2 flex justify-between items-center">
                         <span className="text-gray-500 dark:text-gray-400 font-medium">Thực lĩnh:</span>
                         <span className="font-bold text-xl text-primary">{totalSalary.toLocaleString('vi-VN')} ₫</span>
