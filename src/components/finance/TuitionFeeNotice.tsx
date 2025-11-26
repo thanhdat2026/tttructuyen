@@ -90,7 +90,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
     const { outstandingDebt, openingCredit, totalDue } = financialData;
 
     return (
-        <div ref={ref} className="bg-white p-4 text-black font-sans flex flex-col" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', boxSizing: 'border-box' }}>
+        <div ref={ref} className="bg-white p-4 text-black font-sans flex flex-col" style={{ width: '210mm', margin: '0 auto', boxSizing: 'border-box' }}>
             
             <div className="text-center mb-3">
                 <h1 className="text-2xl font-bold uppercase tracking-wide mb-1 whitespace-nowrap" style={{color: settings.themeColor}}>{settings.name}</h1>
@@ -153,7 +153,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 </div>
             </div>
 
-            <div className="border-t-2 border-dashed border-black mt-auto pt-2">
+            <div className="border-t-2 border-dashed border-black mt-8 pt-2">
                 <h4 className="font-bold text-sm uppercase tracking-widest text-black mb-2 text-center">THÔNG TIN CHUYỂN KHOẢN</h4>
                 
                 <div className="flex justify-between items-start gap-4 mt-2">
@@ -166,7 +166,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                         
                         <div>
                             <p className="text-[9px] text-black uppercase tracking-wider font-bold mb-1">NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC)</p>
-                            <div className="inline-block border border-black text-black font-mono font-bold text-base px-3 py-1">
+                            <div className="inline-block text-black font-mono font-bold text-base px-3 py-1">
                                 {`${normalizeInfoName(student.name)}HP${invoice.month.split('-')[1]}${invoice.month.split('-')[0].slice(-2)}`}
                             </div>
                         </div>
