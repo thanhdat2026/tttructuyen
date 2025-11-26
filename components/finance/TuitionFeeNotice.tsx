@@ -124,8 +124,8 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 <table className="w-full text-sm border-collapse border border-indigo-900">
                     <thead>
                         <tr>
-                            <th className="py-1 px-2 text-left font-bold uppercase text-xs tracking-wider border-b-2 border-indigo-900">Nội dung / Diễn giải</th>
-                            <th className="py-1 px-2 text-right font-bold uppercase text-xs tracking-wider w-40 border-b-2 border-indigo-900">Thành tiền</th>
+                            <th className="py-2 px-2 text-left font-bold uppercase text-xs tracking-wider border-b-2 border-indigo-900">Nội dung / Diễn giải</th>
+                            <th className="py-2 px-2 text-right font-bold uppercase text-xs tracking-wider w-40 border-b-2 border-indigo-900">Thành tiền</th>
                         </tr>
                     </thead>
                     <tbody>
