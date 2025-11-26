@@ -173,28 +173,30 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 </table>
                 
                 <div className="flex justify-end mt-2">
-                    <div className="bg-gray-900 text-white rounded-lg shadow-xl px-6 py-2 flex flex-col items-center min-w-[240px]">
-                        <span className="text-[9px] uppercase tracking-widest text-gray-400 mb-0.5">TỔNG THANH TOÁN</span>
-                        <span className="text-2xl font-bold tracking-tight leading-none">{formatCurrency(totalDue)}</span>
+                    <div className="bg-gray-900 text-white rounded-lg shadow-xl px-6 py-2 text-center min-w-[240px]">
+                        <span className="block text-[9px] uppercase tracking-widest text-gray-400 mb-0.5">TỔNG THANH TOÁN</span>
+                        <span className="block text-2xl font-bold tracking-tight leading-none">{formatCurrency(totalDue)}</span>
                     </div>
                 </div>
             </div>
 
             <div className="border-t border-dashed border-gray-300 my-1"></div>
 
-            <div className="text-center">
-                <h4 className="font-bold text-sm uppercase tracking-widest text-red-600 mb-2">THÔNG TIN CHUYỂN KHOẢN</h4>
+            <div className="mt-2">
+                <h4 className="font-bold text-sm uppercase tracking-widest text-red-600 mb-2 text-center">THÔNG TIN CHUYỂN KHOẢN</h4>
                 
-                <div className="text-red-600 mb-2">
-                    <p className="font-semibold text-base">{settings.bankName}</p>
-                    <p className="font-bold text-2xl tracking-wider font-mono my-0.5">{settings.bankAccountNumber}</p>
-                    <p className="font-semibold uppercase text-sm">{settings.bankAccountHolder}</p>
-                </div>
+                <div className="flex justify-between items-start">
+                    {/* Left: Bank Info */}
+                    <div className="text-left text-red-600">
+                        <p className="font-semibold text-base">{settings.bankName}</p>
+                        <p className="font-bold text-2xl tracking-wider font-mono my-0.5">{settings.bankAccountNumber}</p>
+                        <p className="font-semibold uppercase text-sm">{settings.bankAccountHolder}</p>
+                    </div>
 
-                <div className="bg-white rounded-2xl p-2 border border-gray-100 inline-block max-w-xl w-full">
-                    <div className="flex flex-col items-center">
+                    {/* Right: QR Code & Transfer Content */}
+                    <div className="text-center">
                         {qrCodeUrl && (
-                            <div className="relative group mb-1">
+                            <div className="relative group mb-1 inline-block">
                                 <div className="bg-white p-1.5 rounded-lg border border-gray-200 shadow-sm">
                                     <img 
                                         src={qrCodeUrl} 
@@ -214,16 +216,16 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                             </div>
                         )}
 
-                        <div className="text-center mt-2 w-full">
+                        <div className="mt-2">
                             <p className="text-[9px] text-gray-400 uppercase tracking-wider font-bold mb-1">NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC)</p>
-                            <div className="inline-block bg-yellow-50 border border-yellow-200 text-yellow-800 font-mono font-bold text-base px-4 py-1.5 rounded-lg w-full max-w-md">
+                            <div className="inline-block bg-yellow-50 border border-yellow-200 text-yellow-800 font-mono font-bold text-base px-4 py-1.5 rounded-lg">
                                 {`${normalizeInfoName(student.name)}HP${invoice.month.split('-')[1]}${invoice.month.split('-')[0].slice(-2)}`}
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <div className="mt-2 text-xs text-gray-400 italic">
+                
+                <div className="mt-2 text-xs text-gray-400 italic text-center">
                     Xin cảm ơn Quý phụ huynh! Mọi thắc mắc vui lòng liên hệ hotline trung tâm.
                 </div>
             </div>
