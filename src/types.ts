@@ -192,7 +192,11 @@ export interface Payroll {
   sessionsTaught: number;
   rate: number;
   baseSalary: number;
+  bonus: number; // New
+  deduction: number; // New
   totalSalary: number;
+  status: 'PAID' | 'UNPAID'; // New
+  paidDate?: string; // New
   calculationDate: string; // "YYYY-MM-DD"
 }
 

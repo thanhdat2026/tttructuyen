@@ -1,6 +1,6 @@
 
 import {
-    Student, Teacher, Staff, Class, AttendanceRecord, ProgressReport, Income, Expense, CenterSettings, Announcement, UserRole, Transaction, AppData, Payroll
+    Student, Teacher, Staff, Class, AttendanceRecord, ProgressReport, Income, Expense, CenterSettings, Announcement, UserRole, Transaction, AppData
 } from '../types';
 
 // --- Core API Functions ---
@@ -59,7 +59,7 @@ export const deleteTransaction = (transactionId: string) => patchData({ op: 'del
 export const clearAllTransactions = () => patchData({ op: 'clearAllTransactions' });
 
 export const generatePayrolls = (payload: { month: number, year: number }) => patchData({ op: 'generatePayrolls', payload });
-export const updatePayroll = (payload: Payroll) => patchData({ op: 'updatePayroll', payload });
+export const updatePayroll = (payload: { payrollId: string; bonus: number; deduction: number; status: 'PAID' | 'UNPAID' }) => patchData({ op: 'updatePayroll', payload });
 
 export const updateSettings = (payload: CenterSettings) => patchData({ op: 'updateSettings', payload });
 export const updateUserPassword = (payload: { userId: string; role: UserRole; newPassword: string; }) => patchData({ op: 'updateUserPassword', payload });

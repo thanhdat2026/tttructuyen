@@ -1,3 +1,4 @@
+
 import type {
     AppData,
     AttendanceRecord,
@@ -11,7 +12,8 @@ import {
     AttendanceStatus,
     SalaryType,
     UserRole,
-    TransactionType
+    TransactionType,
+    ExpenseCategory
 } from '../../types.js';
 
 
@@ -327,27 +329,102 @@ export function applyOperation(
         case 'generatePayrolls': {
             const { month, year } = payload;
             const monthStr = `${year}-${String(month).padStart(2, '0')}`;
-            for(const teacher of data.teachers.filter(t => t.status === PersonStatus.ACTIVE)) {
-                let totalSalary = 0, sessionsTaught = 0;
-                if (teacher.salaryType === SalaryType.MONTHLY) {
-                    totalSalary = teacher.rate;
-                } else {
-                    const teacherClasses = data.classes.filter(c => c.teacherIds.includes(teacher.id));
-                    const distinctSessions = new Set<string>();
-                    data.attendance.forEach(a => {
-                        if (a.date.startsWith(monthStr) && teacherClasses.some(c => c.id === a.classId)) {
-                            distinctSessions.add(`${a.classId}-${a.date}`);
-                        }
-                    });
-                    sessionsTaught = distinctSessions.size;
-                    totalSalary = sessionsTaught * teacher.rate;
+            
+            // Include inactive teachers who have taught in this period
+            const allTeachers = data.teachers;
+            
+            for(const teacher of allTeachers) {
+                // Skip if inactive and hasn't taught anything this month (optimization)
+                // But we need to check attendance first.
+                
+                let baseSalary = 0, sessionsTaught = 0;
+                const teacherClasses = data.classes.filter(c => c.teacherIds.includes(teacher.id));
+                
+                // Calculate Sessions Taught
+                const distinctSessions = new Set<string>();
+                data.attendance.forEach(a => {
+                    if (a.date.startsWith(monthStr) && teacherClasses.some(c => c.id === a.classId)) {
+                        distinctSessions.add(`${a.classId}-${a.date}`);
+                    }
+                });
+                sessionsTaught = distinctSessions.size;
+
+                if (teacher.status === PersonStatus.INACTIVE && sessionsTaught === 0) {
+                    continue;
                 }
+
+                if (teacher.salaryType === SalaryType.MONTHLY) {
+                    baseSalary = teacher.rate;
+                } else {
+                    baseSalary = sessionsTaught * teacher.rate;
+                }
+                
                 const payrollId = `PAY-${teacher.id}-${monthStr}`;
-                const newPayroll: Payroll = { id: payrollId, teacherId: teacher.id, teacherName: teacher.name, month: monthStr, sessionsTaught, rate: teacher.rate, baseSalary: teacher.salaryType === SalaryType.MONTHLY ? teacher.rate : 0, totalSalary, calculationDate: new Date().toISOString().split('T')[0] };
+                const existingPayroll = data.payrolls.find(p => p.id === payrollId);
+                
+                const bonus = existingPayroll ? existingPayroll.bonus : 0;
+                const deduction = existingPayroll ? existingPayroll.deduction : 0;
+                const status = existingPayroll ? existingPayroll.status : 'UNPAID';
+                const paidDate = existingPayroll ? existingPayroll.paidDate : undefined;
+                
+                const totalSalary = baseSalary + bonus - deduction;
+
+                const newPayroll: Payroll = { 
+                    id: payrollId, 
+                    teacherId: teacher.id, 
+                    teacherName: teacher.name, 
+                    month: monthStr, 
+                    sessionsTaught, 
+                    rate: teacher.rate, 
+                    baseSalary, 
+                    bonus,
+                    deduction,
+                    totalSalary,
+                    status,
+                    paidDate,
+                    calculationDate: new Date().toISOString().split('T')[0] 
+                };
+                
                 const existingIndex = data.payrolls.findIndex(p => p.id === payrollId);
                 if (existingIndex !== -1) data.payrolls[existingIndex] = newPayroll;
                 else data.payrolls.push(newPayroll);
             }
+            break;
+        }
+        case 'updatePayroll': {
+            const { payrollId, bonus, deduction, status } = payload;
+            const payroll = data.payrolls.find(p => p.id === payrollId);
+            if (!payroll) throw new Error("Bảng lương không tồn tại.");
+
+            const oldStatus = payroll.status;
+            
+            payroll.bonus = bonus;
+            payroll.deduction = deduction;
+            payroll.status = status;
+            payroll.totalSalary = payroll.baseSalary + bonus - deduction;
+            
+            if (status === 'PAID' && oldStatus !== 'PAID') {
+                payroll.paidDate = new Date().toISOString().split('T')[0];
+                // Auto create Expense
+                data.expenses.push({
+                    id: `EXP-${payrollId}`,
+                    description: `Lương T${payroll.month} - ${payroll.teacherName}`,
+                    amount: payroll.totalSalary,
+                    category: ExpenseCategory.SALARY,
+                    date: payroll.paidDate
+                });
+            } else if (status === 'UNPAID' && oldStatus === 'PAID') {
+                payroll.paidDate = undefined;
+                // Remove associated Expense
+                data.expenses = data.expenses.filter(e => e.id !== `EXP-${payrollId}`);
+            } else if (status === 'PAID' && oldStatus === 'PAID') {
+                // Update expense amount if changed
+                const expense = data.expenses.find(e => e.id === `EXP-${payrollId}`);
+                if (expense) {
+                    expense.amount = payroll.totalSalary;
+                }
+            }
+
             break;
         }
 

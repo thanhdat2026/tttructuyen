@@ -65,6 +65,7 @@ interface DataContextType {
     deleteTransaction: (transactionId: string) => Promise<void>;
     updateInvoiceStatus: (payload: { invoiceId: string, status: 'PAID' | 'UNPAID' | 'CANCELLED' }) => Promise<void>;
     generatePayrolls: (payload: { month: number, year: number }) => Promise<void>;
+    updatePayroll: (payload: { payrollId: string; bonus: number; deduction: number; status: 'PAID' | 'UNPAID' }) => Promise<void>;
     addIncome: (data: Omit<Income, 'id'>) => Promise<void>;
     updateIncome: (item: Income) => Promise<void>;
     deleteIncome: (itemId: string) => Promise<void>;
@@ -254,6 +255,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     deleteTransaction: createRefreshingFunc(api.deleteTransaction),
     updateInvoiceStatus: createRefreshingFunc(api.updateInvoiceStatus),
     generatePayrolls: createRefreshingFunc(api.generatePayrolls),
+    updatePayroll: createRefreshingFunc(api.updatePayroll),
     backupData: api.backupData,
     restoreData: createRefreshingFunc(api.restoreData as any),
     resetToMockData: async () => {
