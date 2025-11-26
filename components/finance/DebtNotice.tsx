@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Student, Transaction, CenterSettings } from '../../types';
 
@@ -47,36 +48,38 @@ export const DebtNotice: React.FC<DebtNoticeProps> = ({ student, transactions, s
     }, [settings, student.name, totalDue]);
 
     return (
-        <div className="bg-white p-2 text-gray-900 border border-gray-300 flex flex-col" style={{ fontFamily: "Arial, sans-serif" }}>
-            <header className="text-center pb-1 border-b border-gray-200">
-                <h1 className="text-sm font-bold" style={{ color: settings.themeColor }}>{settings.name}</h1>
-                <p className="text-[8px] text-gray-500">{settings.address} - ĐT: {settings.phone}</p>
+        <div className="bg-white p-2 text-gray-900 border border-gray-300 flex flex-col text-[10px]" style={{ fontFamily: "Arial, sans-serif", maxWidth: '300px', margin: '0 auto' }}>
+            <header className="text-center pb-2 border-b border-dashed border-gray-400">
+                <h1 className="text-sm font-bold uppercase" style={{ color: settings.themeColor }}>{settings.name}</h1>
+                <p>{settings.address}</p>
+                <p>ĐT: {settings.phone}</p>
             </header>
 
-            <div className="text-center my-1">
-                <h2 className="text-base font-bold uppercase tracking-wide">Thông Báo Học Phí</h2>
-                <p className="text-gray-600 text-[10px]">Ngày lập: {new Date().toLocaleDateString('vi-VN')}</p>
+            <div className="text-center my-2">
+                <h2 className="text-sm font-bold uppercase">THÔNG BÁO HỌC PHÍ</h2>
+                <p className="text-gray-600 italic">Ngày: {new Date().toLocaleDateString('vi-VN')}</p>
             </div>
 
-            <section className="bg-gray-50 p-1.5 rounded border border-gray-200 mb-2 text-xs">
+            <div className="mb-2">
                 <p><span className="font-bold">Học viên:</span> {student.name}</p>
-            </section>
+                <p><span className="font-bold">Mã HV:</span> {student.id}</p>
+            </div>
 
-            <div className="flex-grow overflow-y-auto relative" style={{ maxHeight: '150px' }}>
-                <table className="w-full text-left text-[9px]">
-                    <thead className="bg-gray-100 sticky top-0">
-                        <tr className="font-bold">
-                            <th className="py-1 px-1.5 w-1/4">Ngày</th>
-                            <th className="py-1 px-1.5 w-1/2">Diễn giải</th>
-                            <th className="py-1 px-1.5 text-right">Số tiền</th>
+            <div className="flex-grow border-t border-b border-gray-200 py-2 mb-2">
+                <table className="w-full text-left">
+                    <thead>
+                        <tr className="font-bold border-b border-gray-200">
+                            <th className="pb-1 w-20">Ngày</th>
+                            <th className="pb-1">ND</th>
+                            <th className="pb-1 text-right">Tiền</th>
                         </tr>
                     </thead>
                     <tbody>
                         {recentTransactions.map(t => (
-                            <tr key={t.id} className="border-b border-gray-100">
-                                <td className="py-1 px-1.5">{t.date}</td>
-                                <td className="py-1 px-1.5">{t.description}</td>
-                                <td className={`py-1 px-1.5 text-right ${t.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            <tr key={t.id}>
+                                <td className="py-1 align-top">{new Date(t.date).toLocaleDateString('vi-VN', {day: '2-digit', month:'2-digit'})}</td>
+                                <td className="py-1 align-top">{t.description.substring(0, 20)}{t.description.length > 20 ? '...' : ''}</td>
+                                <td className={`py-1 align-top text-right font-semibold ${t.amount >= 0 ? 'text-green-600' : 'text-black'}`}>
                                     {formatCurrency(t.amount)}
                                 </td>
                             </tr>
@@ -85,28 +88,31 @@ export const DebtNotice: React.FC<DebtNoticeProps> = ({ student, transactions, s
                 </table>
             </div>
             
-            <div className="w-full border-t-2 border-b-2 p-2 flex justify-between items-center mt-2" style={{ borderColor: settings.themeColor, backgroundColor: `${settings.themeColor}10` }}>
-                <span className="text-xs font-bold uppercase" style={{ color: settings.themeColor }}>Tổng Thanh Toán</span>
-                <span className="text-xl font-bold" style={{ color: settings.themeColor }}>{formatCurrency(totalDue)}</span>
+            <div className="flex justify-between items-center my-2 py-2 border-t border-b border-gray-800">
+                <span className="font-bold uppercase text-xs">Cần thanh toán</span>
+                <span className="font-bold text-lg">{formatCurrency(totalDue)}</span>
             </div>
 
-            <section className="pt-1 mt-1 text-[9px] flex justify-between items-start gap-2">
-                 <div>
-                    <p className="font-bold">Thông tin thanh toán:</p>
-                    <p>{settings.bankName} - {settings.bankAccountNumber}</p>
-                    <p>{settings.bankAccountHolder}</p>
-                     <div className="mt-2 p-2 bg-yellow-100 border-l-4 border-yellow-400">
-                        <p className="text-xs font-bold uppercase text-yellow-800">Nội dung CK (Bắt buộc)</p>
-                        <p className="text-base text-red-600 font-mono font-bold break-all">{`${normalizeInfoName(student.name)}ThanhToanHP`}</p>
-                    </div>
+            <div className="mt-1">
+                 <p className="font-bold underline mb-1">Thanh toán qua ngân hàng:</p>
+                 <p>{settings.bankName} - {settings.bankAccountNumber}</p>
+                 <p>Chủ TK: {settings.bankAccountHolder}</p>
+                 <div className="mt-1">
+                    <span className="font-bold">Nội dung CK: </span>
+                    <span className="font-mono font-bold">{`${normalizeInfoName(student.name)}ThanhToanHP`}</span>
                 </div>
-                {qrCodeUrl && (
-                    <div className="text-center flex-shrink-0">
-                        <img src={qrCodeUrl} alt="QR Code" className="w-24 h-24" />
-                        <p className="text-[9px] font-semibold">Quét mã để thanh toán</p>
-                    </div>
-                )}
-            </section>
+            </div>
+            
+            {qrCodeUrl && (
+                <div className="text-center mt-3 pt-2 border-t border-dashed border-gray-400">
+                    <img src={qrCodeUrl} alt="QR Code" className="w-24 h-24 mx-auto" />
+                    <p className="mt-1 font-semibold">Quét mã thanh toán</p>
+                </div>
+            )}
+            
+            <div className="text-center mt-4 italic text-[9px]">
+                Cảm ơn Quý phụ huynh!
+            </div>
         </div>
     );
 };

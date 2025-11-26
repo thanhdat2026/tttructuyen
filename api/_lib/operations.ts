@@ -229,17 +229,20 @@ export function applyOperation(
                         if (shouldCharge) {
                             classFee = cls.fee.amount;
                             if (classFee > 0) {
-                                details += `- Lớp ${cls.name}: ${classFee.toLocaleString('vi-VN')} ₫${!isEnrolled ? ' (Lớp cũ/Đã nghỉ)' : ''}\n`;
+                                details += `- Lớp ${cls.name}: ${Math.round(classFee).toLocaleString('vi-VN')} ₫${!isEnrolled ? ' (Lớp cũ/Đã nghỉ)' : ''}\n`;
                             }
                         }
                     } else if (cls.fee.type === FeeType.PER_SESSION) {
                         if (attendedSessions > 0) {
                             classFee = attendedSessions * cls.fee.amount;
-                            details += `- Lớp ${cls.name}: ${attendedSessions} buổi x ${cls.fee.amount.toLocaleString('vi-VN')} ₫ = ${classFee.toLocaleString('vi-VN')} ₫\n`;
+                            details += `- Lớp ${cls.name}: ${attendedSessions} buổi x ${Math.round(cls.fee.amount).toLocaleString('vi-VN')} ₫ = ${Math.round(classFee).toLocaleString('vi-VN')} ₫\n`;
                         }
                     }
                     totalAmount += classFee;
                 }
+
+                // Round total amount to avoid floating point errors
+                totalAmount = Math.round(totalAmount);
 
                 const existingInvoice = data.invoices.find(inv => inv.studentId === student.id && inv.month === monthStr);
 
