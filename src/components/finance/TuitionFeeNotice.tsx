@@ -183,14 +183,14 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
             <div className="border-t border-dashed border-gray-300 my-1"></div>
 
             <div className="text-center">
-                <h4 className="font-bold text-sm uppercase tracking-widest text-gray-500 mb-2 border-b border-gray-200 inline-block pb-1">THÔNG TIN CHUYỂN KHOẢN</h4>
+                <h4 className="font-bold text-sm uppercase tracking-widest text-red-600 mb-2 border-b border-red-200 inline-block pb-1">THÔNG TIN CHUYỂN KHOẢN</h4>
                 
                 <div className="bg-white rounded-2xl p-2 border border-gray-100 inline-block max-w-xl w-full">
                     <div className="flex flex-col items-center">
-                        <div className="mb-2 text-center">
-                             <p className="font-medium text-base text-gray-700">{settings.bankName}</p>
-                            <p className="font-mono font-bold text-2xl tracking-wider text-gray-900 my-1">{settings.bankAccountNumber}</p>
-                            <p className="uppercase font-semibold text-sm text-gray-600">{settings.bankAccountHolder}</p>
+                        <div className="mb-2 text-center text-red-600">
+                             <p className="font-medium text-base">{settings.bankName}</p>
+                            <p className="font-mono font-bold text-2xl tracking-wider my-1">{settings.bankAccountNumber}</p>
+                            <p className="uppercase font-semibold text-sm">{settings.bankAccountHolder}</p>
                         </div>
 
                         {qrCodeUrl && (
