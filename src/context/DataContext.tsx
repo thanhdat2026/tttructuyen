@@ -114,7 +114,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     refreshData();
   }, [refreshData]);
 
-  // Generic handler for operations that return the full AppData state
+  // Helper function to handle API operations that return the full updated state
+  // This replaces the manual state updates which were causing type errors
   const handleStateUpdateOperation = <T,>(apiFunc: (payload: T) => Promise<Omit<AppData, 'loading'>>) => async (payload: T) => {
     if (isSubmitting) return;
     setIsSubmitting(true);
@@ -130,22 +131,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Helper for functions that don't return state (or complex ones where we prefer full refresh)
-  const createRefreshingFunc = <T,>(apiFunc: (payload: T) => Promise<any>) => async (payload: T) => {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    setError(null);
-    try {
-        await apiFunc(payload);
-        await refreshData();
-    } catch (err: any) {
-         setError(`Thao tác thất bại: ${err.message}`);
-         throw err;
-    } finally {
-        setIsSubmitting(false);
-    }
-  };
-
   const value: DataContextType = {
     state,
     error,
@@ -153,6 +138,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isInitialOffline,
     refreshData,
     
+    // All mutations now use the handleStateUpdateOperation helper
+    // effectively syncing the local state with the backend's returned state
     addStudent: handleStateUpdateOperation(api.addStudent),
     updateStudent: handleStateUpdateOperation(api.updateStudent),
     deleteStudent: handleStateUpdateOperation(api.deleteStudent),
