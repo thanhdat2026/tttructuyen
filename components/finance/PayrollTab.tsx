@@ -66,8 +66,10 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
         let sortableItems = [...filteredPayrolls];
         if (sortConfig) {
             sortableItems.sort((a, b) => {
-                const aValue = a[sortConfig.key] as any;
-                const bValue = b[sortConfig.key] as any;
+                // Explicitly cast to any to bypass strict undefined checks in TypeScript build
+                // This is safe because we check for null/undefined before comparison
+                const aValue = (a as any)[sortConfig.key];
+                const bValue = (b as any)[sortConfig.key];
                 
                 if (aValue === bValue) return 0;
                 if (aValue === null || aValue === undefined) return 1;
