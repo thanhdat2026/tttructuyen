@@ -74,10 +74,13 @@ export const AttendanceHubScreen: React.FC = () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Helper: Parse "YYYY-MM-DD" to Local Date (Midnight)
+        // Helper: Parse "YYYY-MM-DD" to Local Date (Midnight) without UTC offset issues
         const parseDateString = (dateStr: string) => {
             if (!dateStr) return new Date();
-            const [y, m, d] = dateStr.split('-').map(Number);
+            const parts = dateStr.split('-');
+            const y = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10);
+            const d = parseInt(parts[2], 10);
             return new Date(y, m - 1, d);
         };
 
@@ -107,13 +110,16 @@ export const AttendanceHubScreen: React.FC = () => {
         const existingSessions = new Set<string>();
 
         // 1. PRIORITIZE ACTUAL ATTENDANCE RECORDS (LỊCH SỬ ĐIỂM DANH)
+        // Iterate through all attendance records to find ones that fall within our render range
+        // We group by classId + date to create a single event per class session
+        
         state.attendance.forEach(record => {
             const recordDate = parseDateString(record.date);
-            
-            // Check if record is within the visible calendar range
+            // Check if record is within the visible calendar range (roughly)
             if (recordDate.getTime() >= renderStart.getTime() && recordDate.getTime() <= renderEnd.getTime()) {
                 const key = `${record.classId}|${record.date}`;
                 
+                // If we haven't added an event for this class session yet
                 if (!existingSessions.has(key)) {
                     const cls = state.classes.find(c => c.id === record.classId);
                     if (cls) {
@@ -133,10 +139,10 @@ export const AttendanceHubScreen: React.FC = () => {
 
         // 2. FILL IN GAPS WITH SCHEDULED CLASSES (LỊCH DỰ KIẾN)
         // Iterate through every day in the render range
-        for (let d = new Date(renderStart); d <= renderEnd; d.setDate(d.getDate() + 1)) {
-            const currentDate = new Date(d);
+        const loopDate = new Date(renderStart);
+        while (loopDate <= renderEnd) {
+            const currentDate = new Date(loopDate);
             const dayOfWeek = currentDate.getDay();
-            // Use our helper to get consistent YYYY-MM-DD string
             const dateString = formatDateString(currentDate);
             const isPast = currentDate < today;
 
@@ -157,7 +163,7 @@ export const AttendanceHubScreen: React.FC = () => {
                         }
 
                         events.push({
-                            date: new Date(currentDate),
+                            date: currentDate,
                             title: cls.name,
                             link: ROUTES.ATTENDANCE_DETAIL.replace(':classId', cls.id).replace(':date', dateString),
                             color: color,
@@ -167,6 +173,9 @@ export const AttendanceHubScreen: React.FC = () => {
                     }
                 }
             });
+            
+            // Next day
+            loopDate.setDate(loopDate.getDate() + 1);
         }
         return events;
     }, [state.classes, state.attendance, selectedMonth, selectedYear]);
@@ -242,7 +251,7 @@ export const AttendanceHubScreen: React.FC = () => {
         const sortedEvents = [...calendarEvents].sort((a, b) => a.date.getTime() - b.date.getTime());
         
         sortedEvents.forEach(event => {
-            // Use consistent date string generation
+            // Use consistent YYYY-MM-DD string as key
             const y = event.date.getFullYear();
             const m = String(event.date.getMonth() + 1).padStart(2, '0');
             const d = String(event.date.getDate()).padStart(2, '0');
@@ -376,4 +385,3 @@ export const AttendanceHubScreen: React.FC = () => {
         </div>
     );
 };
-    

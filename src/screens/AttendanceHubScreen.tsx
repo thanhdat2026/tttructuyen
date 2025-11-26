@@ -20,6 +20,7 @@ const dayOfWeekToNumber: Record<ClassSchedule['dayOfWeek'], number> = {
 };
 
 const currentYear = new Date().getFullYear();
+// Range: 2 years future, 8 years past
 const years = Array.from({ length: 10 }, (_, i) => currentYear - i + 2); 
 const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
@@ -29,7 +30,7 @@ interface CalendarEvent {
     link: string;
     color: string;
     linkState?: object;
-    statusText: string;
+    statusText: string; // Helper text for list view
 }
 
 export const AttendanceHubScreen: React.FC = () => {
@@ -39,7 +40,7 @@ export const AttendanceHubScreen: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [selectedDate, setSelectedDate] = useState(new Date());
-    const [viewMode, setViewMode] = useState<'calendar' | 'list'>('list');
+    const [viewMode, setViewMode] = useState<'calendar' | 'list'>('list'); // Default to list for better mobile UX
 
     const selectedMonth = selectedDate.getMonth() + 1;
     const selectedYear = selectedDate.getFullYear();
@@ -47,6 +48,7 @@ export const AttendanceHubScreen: React.FC = () => {
     const canManage = role === UserRole.ADMIN || role === UserRole.MANAGER;
     const canExport = canManage || role === UserRole.TEACHER;
 
+    // Detect mobile on mount to set default view
     useEffect(() => {
         if (window.innerWidth >= 768) {
             setViewMode('calendar');
@@ -94,7 +96,7 @@ export const AttendanceHubScreen: React.FC = () => {
         const startOfMonth = new Date(selectedYear, selectedMonth - 1, 1);
         const endOfMonth = new Date(selectedYear, selectedMonth, 0);
         
-        // Extend range to cover full calendar grid
+        // Extend range to cover full calendar grid (start from Sunday before, end at Saturday after)
         const renderStart = new Date(startOfMonth);
         renderStart.setDate(renderStart.getDate() - renderStart.getDay()); // Go back to Sunday
         
@@ -103,19 +105,21 @@ export const AttendanceHubScreen: React.FC = () => {
             renderEnd.setDate(renderEnd.getDate() + (6 - renderEnd.getDay())); // Go forward to Saturday
         }
 
-        // Track existing sessions to avoid duplicates
-        // Key format: "classId|YYYY-MM-DD"
+        // Set to track which sessions have real attendance data
+        // Key: "classId|dateString"
         const existingSessions = new Set<string>();
 
         // 1. PRIORITIZE ACTUAL ATTENDANCE RECORDS (LỊCH SỬ ĐIỂM DANH)
-        // Loop through all attendance records to find ones in our render range
+        // Iterate through all attendance records to find ones that fall within our render range
+        // We group by classId + date to create a single event per class session
+        
         state.attendance.forEach(record => {
             const recordDate = parseDateString(record.date);
-            
-            // Check if record is within the visible calendar range
+            // Check if record is within the visible calendar range (roughly)
             if (recordDate.getTime() >= renderStart.getTime() && recordDate.getTime() <= renderEnd.getTime()) {
                 const key = `${record.classId}|${record.date}`;
                 
+                // If we haven't added an event for this class session yet
                 if (!existingSessions.has(key)) {
                     const cls = state.classes.find(c => c.id === record.classId);
                     if (cls) {
@@ -134,9 +138,10 @@ export const AttendanceHubScreen: React.FC = () => {
         });
 
         // 2. FILL IN GAPS WITH SCHEDULED CLASSES (LỊCH DỰ KIẾN)
+        // Iterate through every day in the render range
         const loopDate = new Date(renderStart);
         while (loopDate <= renderEnd) {
-            const currentDate = new Date(loopDate); // Create a copy
+            const currentDate = new Date(loopDate);
             const dayOfWeek = currentDate.getDay();
             const dateString = formatDateString(currentDate);
             const isPast = currentDate < today;
@@ -169,10 +174,9 @@ export const AttendanceHubScreen: React.FC = () => {
                 }
             });
             
-            // Increment day
+            // Next day
             loopDate.setDate(loopDate.getDate() + 1);
         }
-        
         return events;
     }, [state.classes, state.attendance, selectedMonth, selectedYear]);
         
@@ -247,7 +251,7 @@ export const AttendanceHubScreen: React.FC = () => {
         const sortedEvents = [...calendarEvents].sort((a, b) => a.date.getTime() - b.date.getTime());
         
         sortedEvents.forEach(event => {
-            // Use consistent date string generation
+            // Use consistent YYYY-MM-DD string as key
             const y = event.date.getFullYear();
             const m = String(event.date.getMonth() + 1).padStart(2, '0');
             const d = String(event.date.getDate()).padStart(2, '0');
@@ -381,4 +385,3 @@ export const AttendanceHubScreen: React.FC = () => {
         </div>
     );
 };
-    
