@@ -138,9 +138,20 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (isSubmitting) return;
         setIsSubmitting(true);
         try {
-            // Use server response for consistency
-            const newState = await api.addStudent(payload);
-            setState({ ...newState, loading: false });
+            await api.addStudent(payload);
+            const newStudent = { ...payload.student, createdAt: new Date().toISOString().split('T')[0], balance: 0 };
+            setState(prev => {
+                const classIdsSet = new Set(payload.classIds);
+                return {
+                    ...prev,
+                    students: [...prev.students, newStudent],
+                    classes: prev.classes.map(c => 
+                        classIdsSet.has(c.id) 
+                        ? { ...c, studentIds: [...c.studentIds, newStudent.id] } 
+                        : c
+                    ),
+                };
+            });
         } catch (err: any) {
             setError(err.message);
             throw err;
