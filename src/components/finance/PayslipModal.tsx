@@ -36,7 +36,7 @@ export const PayslipModal: React.FC<PayslipModalProps> = ({ isOpen, onClose, pay
         }
     }, [isOpen, payroll]);
 
-    const totalSalary = payroll ? payroll.baseSalary + bonus - deduction : 0;
+    const totalSalary = payroll ? Math.max(0, Math.round(payroll.baseSalary + bonus - deduction)) : 0;
 
     const handleSave = async () => {
         if (!payroll) return;
@@ -83,15 +83,14 @@ export const PayslipModal: React.FC<PayslipModalProps> = ({ isOpen, onClose, pay
             </div>
 
             <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Lương cơ bản / Lương dạy:</p>
-                        <p className="font-bold text-lg">{payroll.baseSalary.toLocaleString('vi-VN')} ₫</p>
-                        <p className="text-xs text-gray-400">({payroll.sessionsTaught} buổi)</p>
+                <div className="bg-slate-50 dark:bg-gray-700 p-4 rounded-lg space-y-2">
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-500 dark:text-gray-400">Lương cơ bản {payroll.sessionsTaught > 0 ? `(${payroll.sessionsTaught} buổi)` : ''}:</span>
+                        <span className="font-semibold">{payroll.baseSalary.toLocaleString('vi-VN')} ₫</span>
                     </div>
-                    <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Thực lĩnh:</p>
-                        <p className="font-bold text-lg text-primary">{totalSalary.toLocaleString('vi-VN')} ₫</p>
+                    <div className="border-t border-gray-200 dark:border-gray-600 pt-2 flex justify-between items-center">
+                        <span className="text-gray-500 dark:text-gray-400 font-medium">Thực lĩnh:</span>
+                        <span className="font-bold text-xl text-primary">{totalSalary.toLocaleString('vi-VN')} ₫</span>
                     </div>
                 </div>
 
@@ -117,28 +116,28 @@ export const PayslipModal: React.FC<PayslipModalProps> = ({ isOpen, onClose, pay
                 {!readOnly && (
                     <div>
                         <label className="block text-sm font-medium mb-2">Trạng thái thanh toán</label>
-                        <div className="flex gap-4">
-                            <label className="flex items-center cursor-pointer">
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <label className="flex items-center cursor-pointer p-3 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
                                 <input 
                                     type="radio" 
                                     checked={status === 'UNPAID'} 
                                     onChange={() => setStatus('UNPAID')} 
-                                    className="form-radio text-yellow-600"
+                                    className="form-radio text-yellow-600 w-5 h-5"
                                 />
                                 <span className="ml-2 text-yellow-700 dark:text-yellow-400 font-medium">Chưa thanh toán</span>
                             </label>
-                            <label className="flex items-center cursor-pointer">
+                            <label className="flex items-center cursor-pointer p-3 border rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
                                 <input 
                                     type="radio" 
                                     checked={status === 'PAID'} 
                                     onChange={() => setStatus('PAID')} 
-                                    className="form-radio text-green-600"
+                                    className="form-radio text-green-600 w-5 h-5"
                                 />
                                 <span className="ml-2 text-green-700 dark:text-green-400 font-medium">Đã thanh toán</span>
                             </label>
                         </div>
                         {status === 'PAID' && (
-                            <p className="text-xs text-gray-500 mt-1">* Khi chọn "Đã thanh toán", hệ thống sẽ tự động tạo một khoản Chi phí lương.</p>
+                            <p className="text-xs text-gray-500 mt-2">* Khi chọn "Đã thanh toán", hệ thống sẽ tự động tạo một khoản Chi phí lương.</p>
                         )}
                     </div>
                 )}
@@ -152,13 +151,13 @@ export const PayslipModal: React.FC<PayslipModalProps> = ({ isOpen, onClose, pay
                     </div>
                 )}
 
-                <div className="flex justify-between items-center pt-4 border-t dark:border-gray-700">
-                    <Button variant="secondary" onClick={handleDownload} isLoading={isDownloading}>
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-between sm:items-center gap-3 pt-4 border-t dark:border-gray-700">
+                    <Button variant="secondary" onClick={handleDownload} isLoading={isDownloading} className="w-full sm:w-auto justify-center">
                         {ICONS.download} Tải phiếu lương
                     </Button>
-                    <div className="flex gap-2">
-                        <Button variant="secondary" onClick={onClose}>Đóng</Button>
-                        {!readOnly && <Button onClick={handleSave} isLoading={isSaving}>Lưu Cập nhật</Button>}
+                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                        <Button variant="secondary" onClick={onClose} className="w-full sm:w-auto justify-center">Đóng</Button>
+                        {!readOnly && <Button onClick={handleSave} isLoading={isSaving} className="w-full sm:w-auto justify-center">Lưu Cập nhật</Button>}
                     </div>
                 </div>
             </div>

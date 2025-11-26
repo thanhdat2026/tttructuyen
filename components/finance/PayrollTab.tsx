@@ -66,8 +66,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
         let sortableItems = [...filteredPayrolls];
         if (sortConfig) {
             sortableItems.sort((a, b) => {
-                // Explicitly cast to any to bypass strict undefined checks in TypeScript build
-                // This is safe because we check for null/undefined before comparison
+                // Fix TS18048 by casting to any to allow comparison of potentially undefined values
                 const aValue = (a as any)[sortConfig.key];
                 const bValue = (b as any)[sortConfig.key];
                 
@@ -134,16 +133,21 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
                 {paginatedPayrolls.map(item => (
                     <ListItemCard
                         key={item.id}
-                        title={`${item.teacherName} - ${item.month}`}
+                        title={
+                            <div className="flex flex-col">
+                                <span className="font-bold text-gray-900 dark:text-white">{item.teacherName}</span>
+                                <span className="text-xs text-gray-500">Tháng {item.month}</span>
+                            </div>
+                        }
                         details={[
+                            { label: "Thực lĩnh", value: <span className="font-bold text-xl text-primary">{item.totalSalary.toLocaleString('vi-VN')} ₫</span> },
                             { label: "Số buổi", value: item.sessionsTaught > 0 ? item.sessionsTaught : 'Lương cứng' },
-                            { label: "Tổng lương", value: `${item.totalSalary.toLocaleString('vi-VN')} ₫` },
                         ]}
                         status={{
-                            text: item.status === 'PAID' ? 'Đã TT' : 'Chưa TT',
+                            text: item.status === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán',
                             colorClasses: item.status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                         }}
-                        actions={<Button size="sm" variant="secondary" onClick={() => setSelectedPayroll(item)}>Chi tiết</Button>}
+                        actions={<Button className="w-full mt-2" size="sm" variant="secondary" onClick={() => setSelectedPayroll(item)}>Chi tiết / Sửa</Button>}
                     />
                 ))}
             </div>

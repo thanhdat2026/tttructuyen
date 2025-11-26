@@ -81,16 +81,16 @@ export const TeacherPayrollTab: React.FC<TeacherPayrollTabProps> = ({ period }) 
                 {teacherPayrolls.map(item => (
                     <ListItemCard
                         key={item.id}
-                        title={<span className="font-semibold">Bảng lương {item.month}</span>}
+                        title={<span className="font-semibold text-lg">Tháng {item.month}</span>}
                         details={[
-                            { label: "Số buổi", value: item.sessionsTaught > 0 ? item.sessionsTaught : 'N/A' },
-                            { label: "Tổng lương", value: `${item.totalSalary.toLocaleString('vi-VN')} VND` },
+                            { label: "Thực lĩnh", value: <span className="font-bold text-xl text-primary">{item.totalSalary.toLocaleString('vi-VN')} ₫</span> },
+                            { label: "Số buổi", value: item.sessionsTaught > 0 ? item.sessionsTaught : 'Lương cứng' },
                         ]}
                         status={{
                             text: item.status === 'PAID' ? 'Đã nhận' : 'Chưa nhận',
                             colorClasses: item.status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                         }}
-                        actions={<Button size="sm" variant="secondary" onClick={() => setSelectedPayroll(item)}>Chi tiết</Button>}
+                        actions={<Button className="w-full" variant="secondary" onClick={() => setSelectedPayroll(item)}>Xem Chi tiết</Button>}
                     />
                 ))}
             </div>
