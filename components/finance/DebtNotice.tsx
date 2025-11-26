@@ -50,7 +50,7 @@ export const DebtNotice: React.FC<DebtNoticeProps> = ({ student, transactions, s
     return (
         <div className="bg-white p-2 text-gray-900 border border-gray-300 flex flex-col text-[10px]" style={{ fontFamily: "Arial, sans-serif", maxWidth: '300px', margin: '0 auto' }}>
             <header className="text-center pb-2 border-b border-dashed border-gray-400">
-                <h1 className="text-sm font-bold uppercase" style={{ color: settings.themeColor }}>{settings.name}</h1>
+                <h1 className="text-sm font-bold uppercase whitespace-nowrap" style={{ color: settings.themeColor }}>{settings.name}</h1>
                 <p>{settings.address}</p>
                 <p>ĐT: {settings.phone}</p>
             </header>
@@ -105,7 +105,7 @@ export const DebtNotice: React.FC<DebtNoticeProps> = ({ student, transactions, s
             
             {qrCodeUrl && (
                 <div className="text-center mt-3 pt-2 border-t border-dashed border-gray-400">
-                    <img src={qrCodeUrl} alt="QR Code" className="w-24 h-24 mx-auto" />
+                    <img src={qrCodeUrl} alt="QR Code" className="w-24 h-24 mx-auto" crossOrigin="anonymous" />
                     <p className="mt-1 font-semibold">Quét mã thanh toán</p>
                 </div>
             )}

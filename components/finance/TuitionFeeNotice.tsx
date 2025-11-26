@@ -62,7 +62,6 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
     }, [student, transactions, invoice]);
 
     const qrCodeUrl = useMemo(() => {
-        // Clean up inputs to prevent QR generation failure
         const bankBin = settings.bankBin?.replace(/\s+/g, '');
         const bankAccountNumber = settings.bankAccountNumber?.replace(/\s+/g, '');
 
@@ -94,15 +93,14 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
     return (
         <div ref={ref} className="bg-white p-10 text-gray-900 font-sans flex flex-col" style={{ width: '210mm', minHeight: 'auto', margin: '0 auto', boxSizing: 'border-box' }}>
             
-            {/* Header - Centered */}
-            <div className="text-center mb-10">
+            <div className="text-center mb-8">
                 <h1 className="text-3xl font-bold text-blue-700 uppercase tracking-wide mb-2 whitespace-nowrap">{settings.name}</h1>
                 <div className="text-sm text-gray-600 flex flex-col items-center justify-center gap-1">
                     <span>{settings.address}</span>
                     <span>Hotline: <span className="font-medium">{settings.phone}</span></span>
                 </div>
                 
-                <div className="mt-10">
+                <div className="mt-8">
                     <h2 className="text-4xl font-extrabold uppercase text-gray-900 tracking-tight">THÔNG BÁO HỌC PHÍ</h2>
                     <p className="text-lg text-gray-600 mt-2 font-medium">Tháng {invoice.month.split('-')[1]} năm {invoice.month.split('-')[0]}</p>
                     <div className="flex items-center justify-center gap-4 text-sm text-gray-500 mt-3">
@@ -113,8 +111,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 </div>
             </div>
 
-            {/* Student Info - Clean Grid */}
-            <div className="mb-10 border border-gray-200 rounded-lg p-6 bg-slate-50/50">
+            <div className="mb-8 border border-gray-200 rounded-lg p-6 bg-slate-50/50">
                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-200 pb-2">Thông tin Học viên</h3>
                 <div className="grid grid-cols-2 gap-x-12 gap-y-6 text-sm">
                     <div className="flex flex-col">
@@ -138,8 +135,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 </div>
             </div>
 
-            {/* Financial Table */}
-            <div className="mb-10">
+            <div className="mb-8">
                 <table className="w-full text-sm border-collapse">
                     <thead>
                         <tr className="bg-gray-900 text-white">
@@ -150,18 +146,18 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                     <tbody className="divide-y divide-gray-100">
                         {outstandingDebt > 0 && (
                             <tr>
-                                <td className="py-4 px-4 font-medium text-gray-600">Nợ cũ kỳ trước</td>
-                                <td className="py-4 px-4 text-right font-bold text-gray-800">{formatCurrency(outstandingDebt)}</td>
+                                <td className="py-3 px-4 font-medium text-gray-600">Nợ cũ kỳ trước</td>
+                                <td className="py-3 px-4 text-right font-bold text-gray-800">{formatCurrency(outstandingDebt)}</td>
                             </tr>
                         )}
                         {openingCredit > 0 && (
                             <tr>
-                                <td className="py-4 px-4 font-medium text-gray-600">Đã thanh toán / Số dư kỳ trước</td>
-                                <td className="py-4 px-4 text-right font-bold text-green-600">-{formatCurrency(openingCredit)}</td>
+                                <td className="py-3 px-4 font-medium text-gray-600">Đã thanh toán / Số dư kỳ trước</td>
+                                <td className="py-3 px-4 text-right font-bold text-green-600">-{formatCurrency(openingCredit)}</td>
                             </tr>
                         )}
                         <tr>
-                            <td className="py-4 px-4 align-top">
+                            <td className="py-3 px-4 align-top">
                                 <p className="font-bold text-gray-900 text-base mb-1">Học phí tháng {invoice.month.split('-')[1]}/{invoice.month.split('-')[0]}</p>
                                 {invoice.details && (
                                     <div className="text-gray-500 text-xs leading-relaxed whitespace-pre-wrap border-l-2 border-gray-200 pl-3 mt-1">
@@ -169,15 +165,14 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                                     </div>
                                 )}
                             </td>
-                            <td className="py-4 px-4 text-right font-bold text-gray-900 text-base align-top">
+                            <td className="py-3 px-4 text-right font-bold text-gray-900 text-base align-top">
                                 {formatCurrency(invoice.amount)}
                             </td>
                         </tr>
                     </tbody>
                 </table>
                 
-                {/* Total Payment Box */}
-                <div className="flex justify-end mt-4">
+                <div className="flex justify-end mt-6">
                     <div className="bg-gray-900 text-white rounded-lg shadow-xl px-8 py-4 text-center min-w-[250px]">
                         <span className="block text-[10px] uppercase tracking-widest text-gray-400 mb-1 text-center">TỔNG THANH TOÁN</span>
                         <span className="block text-3xl font-bold tracking-tight leading-none text-center">{formatCurrency(totalDue)}</span>
@@ -185,24 +180,21 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 </div>
             </div>
 
-            <div className="border-t border-dashed border-gray-300 my-8"></div>
+            <div className="border-t border-dashed border-gray-300 my-6"></div>
 
-            {/* Footer Section - QR Code & Payment */}
             <div className="text-center">
-                <h4 className="font-bold text-sm uppercase tracking-widest text-gray-500 mb-6 border-b border-gray-200 inline-block pb-1">THÔNG TIN CHUYỂN KHOẢN</h4>
+                <h4 className="font-bold text-sm uppercase tracking-widest text-gray-500 mb-4 border-b border-gray-200 inline-block pb-1">THÔNG TIN CHUYỂN KHOẢN</h4>
                 
                 <div className="bg-white rounded-3xl p-6 border border-gray-100 inline-block max-w-2xl w-full">
                     <div className="flex flex-col items-center">
-                        {/* Bank Info Text */}
-                        <div className="mb-6 space-y-1">
+                        <div className="mb-4 space-y-1">
                             <div className="text-gray-500 text-base font-medium">Ngân hàng: <span className="text-gray-900 font-bold">{settings.bankName}</span></div>
                             <div className="text-3xl font-mono font-bold tracking-widest text-gray-800 my-1">{settings.bankAccountNumber}</div>
                             <div className="text-base font-bold uppercase text-gray-600">Chủ tài khoản: {settings.bankAccountHolder}</div>
                         </div>
 
-                        {/* QR Code */}
                         {qrCodeUrl && (
-                            <div className="relative group mb-6">
+                            <div className="relative group mb-4">
                                 <div className="absolute -inset-2 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-3xl opacity-60"></div>
                                 <div className="relative bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
                                     <img 
@@ -216,11 +208,6 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                                             (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="w-80 h-80 flex items-center justify-center text-red-500 text-sm bg-gray-50 rounded-xl border border-dashed border-red-300 p-4">Không thể tải mã QR.<br/>Vui lòng kiểm tra kết nối mạng.</div>';
                                         }}
                                     />
-                                    <div className="flex justify-center mt-3 items-center space-x-3 opacity-70">
-                                        <img src="https://img.vietqr.io/image/vietqr-compact.png" className="h-6 object-contain" alt="VietQR" />
-                                        <span className="text-[10px] font-bold text-gray-400">|</span>
-                                        <span className="text-[10px] font-bold text-red-600 uppercase">{settings.bankName}</span>
-                                    </div>
                                 </div>
                                 <div className="mt-3 text-gray-400 text-xs uppercase tracking-wide font-medium">
                                     Quét mã để thanh toán
@@ -228,8 +215,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                             </div>
                         )}
 
-                        {/* Transfer Content */}
-                        <div className="text-center mt-2 w-full">
+                        <div className="text-center mt-4 w-full">
                             <p className="text-[10px] text-gray-400 uppercase tracking-wider font-bold mb-2">NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC)</p>
                             <div className="inline-block bg-yellow-50 border border-yellow-200 text-yellow-800 font-mono font-bold text-xl px-8 py-3 rounded-lg w-full max-w-md">
                                 {`${normalizeInfoName(student.name)}HP${invoice.month.split('-')[1]}${invoice.month.split('-')[0].slice(-2)}`}
@@ -238,7 +224,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                     </div>
                 </div>
 
-                <div className="mt-10 text-xs text-gray-400 italic">
+                <div className="mt-8 text-xs text-gray-400 italic">
                     Xin cảm ơn Quý phụ huynh! Mọi thắc mắc vui lòng liên hệ văn phòng trung tâm.
                 </div>
             </div>
