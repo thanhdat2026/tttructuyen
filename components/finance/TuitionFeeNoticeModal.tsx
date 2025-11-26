@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useMemo } from 'react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
@@ -121,7 +120,7 @@ export const TuitionFeeNoticeModal: React.FC<TuitionFeeNoticeModalProps> = ({ is
     const { outstandingDebt, openingCredit, totalDue } = financialData;
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`Chi tiết Hóa đơn #${invoice.id}`}>
+        <Modal isOpen={isOpen} onClose={onClose} title={`Chi tiết Hóa đơn #${invoice.id.slice(-6)}`}>
             {/* Hidden component for image download */}
             <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
                 <TuitionFeeNotice ref={noticeRef} invoice={invoice} />
@@ -139,13 +138,13 @@ export const TuitionFeeNoticeModal: React.FC<TuitionFeeNoticeModalProps> = ({ is
 
                 {/* Financial Details */}
                 <div className="space-y-2 text-sm">
-                    {outstandingDebt > 0 && (
+                    {Math.round(outstandingDebt) > 0 && (
                         <div className="flex justify-between items-center py-2 border-b dark:border-slate-700">
                             <span className="text-slate-500 dark:text-slate-400">Dư nợ kỳ trước</span>
                             <span className="font-semibold">{formatCurrency(outstandingDebt)}</span>
                         </div>
                     )}
-                    {openingCredit > 0 && (
+                    {Math.round(openingCredit) > 0 && (
                          <div className="flex justify-between items-center py-2 border-b dark:border-slate-700">
                             <span className="text-slate-500 dark:text-slate-400">Số dư/Đã trả kỳ trước</span>
                             <span className="font-semibold text-green-600 dark:text-green-400">-{formatCurrency(openingCredit)}</span>
@@ -169,8 +168,7 @@ export const TuitionFeeNoticeModal: React.FC<TuitionFeeNoticeModalProps> = ({ is
                     <div className="pt-4 border-t dark:border-slate-700">
                         <h3 className="font-semibold mb-3 text-center">Thông tin thanh toán</h3>
                         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                            <div className="flex-1 text-sm space-y-2">
-                                <p><span className="font-semibold">Ngân hàng:</span> {settings.bankName}</p>
+                            <div className="flex-1 text-sm space-y-2 w-full">
                                 <p><span className="font-semibold">Số tài khoản:</span> {settings.bankAccountNumber}</p>
                                 <p><span className="font-semibold">Chủ tài khoản:</span> {settings.bankAccountHolder}</p>
                                 <div className="mt-2 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg flex items-center justify-between">
@@ -184,7 +182,7 @@ export const TuitionFeeNoticeModal: React.FC<TuitionFeeNoticeModalProps> = ({ is
                                 </div>
                             </div>
                             {qrCodeUrl && (
-                                <div className="text-center bg-white p-2 rounded-lg border border-gray-200">
+                                <div className="text-center bg-white p-2 rounded-lg border border-gray-200 flex-shrink-0">
                                     <img 
                                         src={qrCodeUrl} 
                                         alt="QR Code Thanh toán" 
