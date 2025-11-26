@@ -90,10 +90,10 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
     const { outstandingDebt, openingCredit, totalDue } = financialData;
 
     return (
-        <div ref={ref} className="bg-white p-4 text-black font-sans flex flex-col" style={{ width: '210mm', margin: '0 auto', boxSizing: 'border-box' }}>
+        <div ref={ref} className="bg-white p-4 text-black font-sans flex flex-col" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', boxSizing: 'border-box' }}>
             
             <div className="text-center mb-3">
-                <h1 className="text-2xl font-bold uppercase tracking-wide mb-1 whitespace-nowrap" style={{color: settings.themeColor}}>{settings.name}</h1>
+                <h1 className="text-2xl font-bold uppercase tracking-wide mb-1 whitespace-nowrap text-black">{settings.name}</h1>
                 <div className="text-xs text-black flex flex-col items-center justify-center">
                     <span>{settings.address}</span>
                     <span>Hotline: <span className="font-medium">{settings.phone}</span></span>
@@ -122,10 +122,10 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
 
             <div className="mb-3">
                 <table className="w-full text-sm border-collapse border border-black">
-                    <thead>
+                    <thead className="bg-black text-white">
                         <tr>
-                            <th className="py-1 px-2 text-left font-bold uppercase text-xs tracking-wider border border-black">Nội dung / Diễn giải</th>
-                            <th className="py-1 px-2 text-right font-bold uppercase text-xs tracking-wider w-40 border border-black">Thành tiền</th>
+                            <th className="py-1 px-2 text-left font-bold uppercase text-xs tracking-wider border border-gray-600">Nội dung / Diễn giải</th>
+                            <th className="py-1 px-2 text-right font-bold uppercase text-xs tracking-wider w-40 border border-gray-600">Thành tiền</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -146,14 +146,14 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 </table>
                 
                 <div className="flex justify-end mt-2">
-                    <div className="border border-black px-3 py-1 text-right">
+                    <div className="px-3 py-1 text-right">
                         <span className="block text-[9px] uppercase tracking-widest text-black">TỔNG THANH TOÁN</span>
                         <span className="block text-2xl font-bold tracking-tight text-black">{formatCurrency(totalDue)}</span>
                     </div>
                 </div>
             </div>
 
-            <div className="border-t-2 border-dashed border-black mt-8 pt-2">
+            <div className="border-t-2 border-dashed border-black mt-auto pt-2">
                 <h4 className="font-bold text-sm uppercase tracking-widest text-black mb-2 text-center">THÔNG TIN CHUYỂN KHOẢN</h4>
                 
                 <div className="flex justify-between items-start gap-4 mt-2">
@@ -173,7 +173,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                     </div>
 
                     <div className="w-1/2 flex flex-col items-center justify-start">
-                        <div className="w-36 h-36">
+                        <div className="w-36 h-36 border border-black">
                             {qrCodeUrl && (
                                 <img 
                                     src={qrCodeUrl} 
