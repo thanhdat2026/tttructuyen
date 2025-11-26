@@ -92,14 +92,14 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
     return (
         <div ref={ref} className="bg-white p-4 text-black font-sans flex flex-col" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', boxSizing: 'border-box' }}>
             
-            <div className="text-center mb-4">
+            <div className="text-center mb-3">
                 <h1 className="text-2xl font-bold uppercase tracking-wide mb-1 whitespace-nowrap" style={{color: settings.themeColor}}>{settings.name}</h1>
                 <div className="text-xs text-black flex flex-col items-center justify-center">
                     <span>{settings.address}</span>
                     <span>Hotline: <span className="font-medium">{settings.phone}</span></span>
                 </div>
                 
-                <div className="mt-4">
+                <div className="mt-3">
                     <h2 className="text-3xl font-extrabold uppercase text-black tracking-tight">THÔNG BÁO HỌC PHÍ</h2>
                     <p className="text-base text-black mt-1 font-medium">Tháng {invoice.month.split('-')[1]} năm {invoice.month.split('-')[0]}</p>
                     <div className="flex items-center justify-center gap-4 text-xs text-black mt-1">
@@ -110,9 +110,9 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 </div>
             </div>
 
-            <div className="mb-4 border border-black p-3">
+            <div className="mb-3 border border-black p-3">
                 <h3 className="text-xs font-bold text-black uppercase tracking-wider mb-2 border-b border-black pb-1">Thông tin Học viên</h3>
-                <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
+                <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
                     <div><span className="text-black text-xs">Họ và tên</span><p className="font-bold text-lg text-black">{student.name}</p></div>
                     <div><span className="text-black text-xs">Lớp đang học</span><p className="font-semibold text-black">{enrolledClasses.map(c=>c.name).join(', ')}</p></div>
                     <div><span className="text-black text-xs">Mã học viên</span><p className="font-mono font-semibold text-black">{student.id}</p></div>
@@ -120,12 +120,12 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 </div>
             </div>
 
-            <div className="mb-4 flex-grow">
+            <div className="mb-3">
                 <table className="w-full text-sm border-collapse border border-black">
                     <thead>
                         <tr>
-                            <th className="py-1 px-2 text-left font-bold uppercase text-xs tracking-wider border border-black bg-gray-100">Nội dung / Diễn giải</th>
-                            <th className="py-1 px-2 text-right font-bold uppercase text-xs tracking-wider w-40 border border-black bg-gray-100">Thành tiền</th>
+                            <th className="py-1 px-2 text-left font-bold uppercase text-xs tracking-wider border border-black">Nội dung / Diễn giải</th>
+                            <th className="py-1 px-2 text-right font-bold uppercase text-xs tracking-wider w-40 border border-black">Thành tiền</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -146,7 +146,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 </table>
                 
                 <div className="flex justify-end mt-2">
-                    <div className="border-2 border-black px-4 py-1.5 text-right">
+                    <div className="border border-black px-3 py-1 text-right">
                         <span className="block text-[9px] uppercase tracking-widest text-black">TỔNG THANH TOÁN</span>
                         <span className="block text-2xl font-bold tracking-tight text-black">{formatCurrency(totalDue)}</span>
                     </div>
@@ -156,7 +156,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
             <div className="border-t-2 border-dashed border-black mt-auto pt-2">
                 <h4 className="font-bold text-sm uppercase tracking-widest text-black mb-2 text-center">THÔNG TIN CHUYỂN KHOẢN</h4>
                 
-                <div className="flex justify-between items-start gap-4">
+                <div className="flex justify-between items-start gap-4 mt-2">
                     <div className="w-1/2 space-y-3 text-left">
                         <div className="text-black">
                            <p className="font-semibold text-base">{settings.bankName}</p>
@@ -172,23 +172,20 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                         </div>
                     </div>
 
-                    <div className="w-1/2 flex justify-center items-center">
-                        <div className="text-center">
-                            <div className="bg-white p-1 border border-black inline-block w-40 h-40">
-                                {qrCodeUrl && (
-                                    <img 
-                                        src={qrCodeUrl} 
-                                        alt="QR Code" 
-                                        className="w-full h-full object-contain"
-                                        style={{ imageRendering: 'pixelated' }}
-                                        crossOrigin="anonymous"
-                                    />
-                                )}
-                            </div>
-                            <div className="mt-1 text-black text-[10px] uppercase tracking-wide font-medium">
-                                Quét mã để thanh toán
-                            </div>
+                    <div className="w-1/2 flex flex-col items-center justify-start">
+                        <div className="w-36 h-36">
+                            {qrCodeUrl && (
+                                <img 
+                                    src={qrCodeUrl} 
+                                    alt="QR Code" 
+                                    className="w-full h-full object-contain"
+                                    crossOrigin="anonymous"
+                                />
+                            )}
                         </div>
+                        <p className="mt-1 text-black text-[10px] uppercase tracking-wide font-medium">
+                            Quét mã để thanh toán
+                        </p>
                     </div>
                 </div>
             </div>
