@@ -15,6 +15,7 @@ interface CalendarProps {
     events: CalendarEvent[];
     displayDate?: Date; // New prop to control the month shown
     onMonthChange?: (date: Date) => void; // Callback when user changes month via calendar buttons
+    viewMode?: 'month' | 'list'; // Optional prop if we want to support list view inside here later, but ignoring for now
 }
 
 const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
@@ -42,7 +43,7 @@ export const Calendar: React.FC<CalendarProps> = ({ events, displayDate, onMonth
         return (
             <div className="flex justify-between items-center mb-4">
                 <button onClick={() => changeMonth(-1)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">{ICONS.chevronLeft}</button>
-                <h2 className="text-lg md:text-xl font-bold">
+                <h2 className="text-base md:text-xl font-bold">
                     {`Tháng ${currentDate.getMonth() + 1}, ${currentDate.getFullYear()}`}
                 </h2>
                 <button onClick={() => changeMonth(1)} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">{ICONS.chevronRight}</button>
@@ -88,13 +89,13 @@ export const Calendar: React.FC<CalendarProps> = ({ events, displayDate, onMonth
                 });
 
                 days.push(
-                    <div key={day.toString()} className={`p-0.5 md:p-1 min-h-[80px] md:h-28 border border-gray-200 dark:border-gray-700 flex flex-col ${isCurrentMonth ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800/50'}`}>
-                        <div className={`text-xs md:text-sm font-semibold flex items-center justify-center mb-1 ${isToday ? 'bg-primary text-white rounded-full w-6 h-6' : ''} ${isCurrentMonth ? '' : 'text-gray-400'}`}>
+                    <div key={day.toString()} className={`p-0.5 md:p-1 min-h-[60px] md:h-28 border border-gray-200 dark:border-gray-700 flex flex-col ${isCurrentMonth ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800/50'}`}>
+                        <div className={`text-[10px] md:text-sm font-semibold flex items-center justify-center mb-1 ${isToday ? 'bg-primary text-white rounded-full w-5 h-5 md:w-6 md:h-6' : ''} ${isCurrentMonth ? '' : 'text-gray-400'}`}>
                             {cloneDay.getDate()}
                         </div>
-                        <div className="flex-1 space-y-1 overflow-y-auto max-h-[60px] md:max-h-[80px] scrollbar-hide">
+                        <div className="flex-1 space-y-0.5 md:space-y-1 overflow-y-auto max-h-[45px] md:max-h-[80px] scrollbar-hide">
                             {dayEvents.map((event, index) => (
-                                <Link to={event.link} state={event.linkState} key={index} title={event.title} className="block text-[10px] md:text-xs px-1 py-0.5 rounded text-white truncate leading-tight" style={{backgroundColor: event.color}}>
+                                <Link to={event.link} state={event.linkState} key={index} title={event.title} className="block text-[9px] md:text-xs px-1 py-0.5 rounded text-white truncate leading-tight" style={{backgroundColor: event.color}}>
                                     {event.title}
                                 </Link>
                             ))}
