@@ -90,16 +90,16 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
     const { outstandingDebt, openingCredit, totalDue } = financialData;
 
     return (
-        <div ref={ref} className="bg-white p-2 text-black font-sans flex flex-col" style={{ width: '210mm', minHeight: 'auto', margin: '0 auto', boxSizing: 'border-box' }}>
+        <div ref={ref} className="bg-white p-4 text-black font-sans flex flex-col" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', boxSizing: 'border-box' }}>
             
-            <div className="text-center mb-1">
+            <div className="text-center mb-4">
                 <h1 className="text-2xl font-bold uppercase tracking-wide mb-1 whitespace-nowrap" style={{color: settings.themeColor}}>{settings.name}</h1>
                 <div className="text-xs text-black flex flex-col items-center justify-center">
                     <span>{settings.address}</span>
                     <span>Hotline: <span className="font-medium">{settings.phone}</span></span>
                 </div>
                 
-                <div className="mt-1">
+                <div className="mt-4">
                     <h2 className="text-3xl font-extrabold uppercase text-black tracking-tight">THÔNG BÁO HỌC PHÍ</h2>
                     <p className="text-base text-black mt-1 font-medium">Tháng {invoice.month.split('-')[1]} năm {invoice.month.split('-')[0]}</p>
                     <div className="flex items-center justify-center gap-4 text-xs text-black mt-1">
@@ -110,118 +110,89 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 </div>
             </div>
 
-            <div className="mb-1 border border-black rounded-lg p-2">
+            <div className="mb-4 border border-black p-3">
                 <h3 className="text-xs font-bold text-black uppercase tracking-wider mb-2 border-b border-black pb-1">Thông tin Học viên</h3>
                 <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm">
-                    <div className="flex flex-col">
-                        <span className="text-black text-xs mb-0.5">Họ và tên</span>
-                        <span className="font-bold text-lg text-black">{student.name}</span>
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-black text-xs mb-0.5">Lớp đang học</span>
-                        <span className="font-semibold text-black break-words leading-snug">
-                            {enrolledClasses.length > 0 ? enrolledClasses.map(c => c.name).join(', ') : '(Không có lớp)'}
-                        </span>
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-black text-xs mb-0.5">Mã học viên</span>
-                        <span className="font-mono font-semibold text-black">{student.id}</span>
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-black text-xs mb-0.5">Phụ huynh</span>
-                        <span className="font-medium text-black">{student.parentName}</span>
-                    </div>
+                    <div><span className="text-black text-xs">Họ và tên</span><p className="font-bold text-lg text-black">{student.name}</p></div>
+                    <div><span className="text-black text-xs">Lớp đang học</span><p className="font-semibold text-black">{enrolledClasses.map(c=>c.name).join(', ')}</p></div>
+                    <div><span className="text-black text-xs">Mã học viên</span><p className="font-mono font-semibold text-black">{student.id}</p></div>
+                    <div><span className="text-black text-xs">Phụ huynh</span><p className="font-medium text-black">{student.parentName}</p></div>
                 </div>
             </div>
 
-            <div className="mb-1">
-                <table className="w-full text-sm border-collapse">
+            <div className="mb-4 flex-grow">
+                <table className="w-full text-sm border-collapse border border-black">
                     <thead>
-                        <tr className="bg-black text-white">
-                            <th className="py-1 px-2 text-left font-bold uppercase text-xs tracking-wider rounded-tl-md rounded-bl-md">Nội dung / Diễn giải</th>
-                            <th className="py-1 px-2 text-right font-bold uppercase text-xs tracking-wider w-40 rounded-tr-md rounded-br-md">Thành tiền</th>
+                        <tr>
+                            <th className="py-1 px-2 text-left font-bold uppercase text-xs tracking-wider border border-black bg-gray-100">Nội dung / Diễn giải</th>
+                            <th className="py-1 px-2 text-right font-bold uppercase text-xs tracking-wider w-40 border border-black bg-gray-100">Thành tiền</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-black/20">
+                    <tbody>
                         {Math.round(outstandingDebt) > 0 && (
-                            <tr>
-                                <td className="py-1 px-2 font-medium text-black">Nợ cũ kỳ trước</td>
-                                <td className="py-1 px-2 text-right font-bold text-black">{formatCurrency(outstandingDebt)}</td>
-                            </tr>
+                            <tr className="border-b border-black"><td className="py-1 px-2 font-medium text-black">Nợ cũ kỳ trước</td><td className="py-1 px-2 text-right font-bold text-black">{formatCurrency(outstandingDebt)}</td></tr>
                         )}
                         {Math.round(openingCredit) > 0 && (
-                            <tr>
-                                <td className="py-1 px-2 font-medium text-black">Đã thanh toán / Số dư kỳ trước</td>
-                                <td className="py-1 px-2 text-right font-bold">-{formatCurrency(openingCredit)}</td>
-                            </tr>
+                            <tr className="border-b border-black"><td className="py-1 px-2 font-medium text-black">Đã thanh toán / Số dư kỳ trước</td><td className="py-1 px-2 text-right font-bold">-{formatCurrency(openingCredit)}</td></tr>
                         )}
-                        <tr>
+                        <tr className="border-b border-black">
                             <td className="py-1 px-2 align-top">
-                                <p className="font-bold text-black text-base mb-0.5">Học phí tháng {invoice.month.split('-')[1]}/{invoice.month.split('-')[0]}</p>
-                                {invoice.details && (
-                                    <div className="text-black text-xs leading-relaxed whitespace-pre-wrap border-l-2 border-black/30 pl-2 mt-1">
-                                        {invoice.details}
-                                    </div>
-                                )}
+                                <p className="font-bold text-black text-base">Học phí tháng {invoice.month.split('-')[1]}/{invoice.month.split('-')[0]}</p>
+                                {invoice.details && <div className="text-black text-xs whitespace-pre-wrap pl-2 mt-1">{invoice.details}</div>}
                             </td>
-                            <td className="py-1 px-2 text-right font-bold text-black text-base align-top">
-                                {formatCurrency(invoice.amount)}
-                            </td>
+                            <td className="py-1 px-2 text-right font-bold text-black text-base align-top">{formatCurrency(invoice.amount)}</td>
                         </tr>
                     </tbody>
                 </table>
                 
-                <div className="flex justify-end mt-1">
-                    <div className="bg-black text-white rounded-lg shadow-xl px-4 py-1.5 text-center min-w-[220px]">
-                        <span className="block text-[9px] uppercase tracking-widest text-gray-400">TỔNG THANH TOÁN</span>
-                        <span className="block text-2xl font-bold tracking-tight leading-none">{formatCurrency(totalDue)}</span>
+                <div className="flex justify-end mt-2">
+                    <div className="border-2 border-black px-4 py-1.5 text-right">
+                        <span className="block text-[9px] uppercase tracking-widest text-black">TỔNG THANH TOÁN</span>
+                        <span className="block text-2xl font-bold tracking-tight text-black">{formatCurrency(totalDue)}</span>
                     </div>
                 </div>
             </div>
 
-            <div className="border-t border-dashed border-black my-1"></div>
-
-            <div className="mt-1">
+            <div className="border-t-2 border-dashed border-black mt-auto pt-2">
                 <h4 className="font-bold text-sm uppercase tracking-widest text-black mb-2 text-center">THÔNG TIN CHUYỂN KHOẢN</h4>
                 
                 <div className="flex justify-between items-start gap-4">
-                    {/* Left Column: Bank and Transfer Content */}
                     <div className="w-1/2 space-y-3 text-left">
                         <div className="text-black">
-                            <p className="font-semibold text-base">{settings.bankName}</p>
+                           <p className="font-semibold text-base">{settings.bankName}</p>
                             <p className="font-bold text-2xl tracking-wider font-mono my-0.5">{settings.bankAccountNumber}</p>
                             <p className="font-semibold uppercase text-sm">{settings.bankAccountHolder}</p>
                         </div>
                         
                         <div>
                             <p className="text-[9px] text-black uppercase tracking-wider font-bold mb-1">NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC)</p>
-                            <div className="inline-block border border-black text-black font-mono font-bold text-base px-3 py-1 rounded-lg">
+                            <div className="inline-block border border-black text-black font-mono font-bold text-base px-3 py-1">
                                 {`${normalizeInfoName(student.name)}HP${invoice.month.split('-')[1]}${invoice.month.split('-')[0].slice(-2)}`}
                             </div>
                         </div>
                     </div>
 
-                    {/* Right Column: QR Code */}
                     <div className="w-1/2 flex justify-center items-center">
-                        {qrCodeUrl && (
-                            <div className="text-center">
-                                <div className="bg-white p-1 rounded-lg border border-black shadow-sm inline-block">
+                        <div className="text-center">
+                            <div className="bg-white p-1 border border-black inline-block w-40 h-40">
+                                {qrCodeUrl && (
                                     <img 
                                         src={qrCodeUrl} 
                                         alt="QR Code" 
-                                        className="w-40 h-40 object-contain"
+                                        className="w-full h-full object-contain"
                                         style={{ imageRendering: 'pixelated' }}
                                         crossOrigin="anonymous"
                                     />
-                                </div>
-                                <div className="mt-1 text-black text-[10px] uppercase tracking-wide font-medium">
-                                    Quét mã để thanh toán
-                                </div>
+                                )}
                             </div>
-                        )}
+                            <div className="mt-1 text-black text-[10px] uppercase tracking-wide font-medium">
+                                Quét mã để thanh toán
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+
         </div>
     );
 });
