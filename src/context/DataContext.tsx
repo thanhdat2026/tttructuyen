@@ -42,6 +42,7 @@ const initialState: AppState = {
 interface DataContextType {
     state: AppState;
     error: string | null;
+    setError: React.Dispatch<React.SetStateAction<string | null>>;
     isInitialOffline: boolean;
     refreshData: () => Promise<void>;
     addStudent: (payload: { student: Student, classIds: string[] }) => Promise<void>;
@@ -148,6 +149,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const value: DataContextType = {
     state,
     error,
+    setError,
     isInitialOffline,
     refreshData,
     
