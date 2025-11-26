@@ -66,11 +66,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
             // Allocate funds sequentially
             for (const invoice of unpaidInvoices) {
                 // Check if we have enough funds to cover this invoice
+                // We allow a small margin (100 VND) for potential floating point issues
                 if (availableFunds >= invoice.amount - 100) {
                     await updateInvoiceStatus({ invoiceId: invoice.id, status: 'PAID' });
                     availableFunds -= invoice.amount;
                 } else {
                     // If remaining funds are not enough to fully pay the next invoice, we stop.
+                    // The invoice remains UNPAID (partially paid state is implied by balance but not status).
                     break;
                 }
             }
