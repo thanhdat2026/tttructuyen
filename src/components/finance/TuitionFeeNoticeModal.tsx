@@ -71,6 +71,7 @@ export const TuitionFeeNoticeModal: React.FC<TuitionFeeNoticeModalProps> = ({ is
     }, [student, invoice]);
 
     const qrCodeUrl = useMemo(() => {
+        // Clean up inputs to prevent QR generation failure
         const bankBin = settings.bankBin?.replace(/\s+/g, '');
         const bankAccountNumber = settings.bankAccountNumber?.replace(/\s+/g, '');
 
@@ -188,6 +189,7 @@ export const TuitionFeeNoticeModal: React.FC<TuitionFeeNoticeModalProps> = ({ is
                                         src={qrCodeUrl} 
                                         alt="QR Code Thanh toán" 
                                         className="w-32 h-32 object-contain" 
+                                        style={{ imageRendering: 'pixelated' }}
                                         onError={(e) => {
                                             (e.target as HTMLImageElement).style.display = 'none';
                                         }}

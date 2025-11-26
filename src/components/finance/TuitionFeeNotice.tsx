@@ -15,7 +15,7 @@ const normalizeInfoName = (name: string) => {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/đ/g, 'd')
     .replace(/Đ/g, 'D')
-    .replace(/[^a-zA-Z0-9]/g, ''); // Remove spaces and special chars for banking consistency
+    .replace(/[^a-zA-Z0-9]/g, '');
 };
 
 const normalizeAccountName = (name: string) => {
@@ -45,20 +45,13 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
 
         const currentRealTimeBalance = student.balance;
         const relatedTransaction = transactions.find(t => t.relatedInvoiceId === invoice.id && t.type === TransactionType.INVOICE);
-        // If transaction exists, the debit amount was negative.
-        // If not (preview/generation phase), we use -invoice.amount.
         const thisInvoiceDebitAmount = relatedTransaction ? relatedTransaction.amount : -invoice.amount;
         
-        // Balance before this invoice = Current Balance - (This Invoice Debit, which is negative)
-        // So Balance before = Current - (-Amount) = Current + Amount
         const balanceBeforeThisInvoice = currentRealTimeBalance - thisInvoiceDebitAmount;
 
-        // If balance before was negative, it's debt.
         const outstandingDebt = balanceBeforeThisInvoice < 0 ? -balanceBeforeThisInvoice : 0;
-        // If balance before was positive, it's credit/prepayment.
         const openingCredit = balanceBeforeThisInvoice > 0 ? balanceBeforeThisInvoice : 0;
         
-        // Total Due = Debt + This Invoice - Credit
         const totalDue = outstandingDebt + invoice.amount - openingCredit;
 
         return {
@@ -69,16 +62,15 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
     }, [student, transactions, invoice]);
 
     const qrCodeUrl = useMemo(() => {
-        // Clean inputs to avoid URL breakage
+        // Clean up inputs to prevent QR generation failure
         const bankBin = settings.bankBin?.replace(/\s+/g, '');
         const bankAccountNumber = settings.bankAccountNumber?.replace(/\s+/g, '');
-        
+
         if (!bankAccountNumber || !bankBin || !student || financialData.totalDue <= 0) {
             return null;
         }
 
         const [year, month] = invoice.month.split('-');
-        // Simplify description to ensure it fits and is valid
         const description = `${normalizeInfoName(student.name)}HP${month}${year.slice(-2)}`;
         
         const params: Record<string, string> = {
@@ -90,7 +82,6 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
             params.accountName = normalizeAccountName(settings.bankAccountHolder);
         }
         
-        // Use compact2 template for standard QR
         return `https://img.vietqr.io/image/${bankBin}-${bankAccountNumber}-compact2.png?${new URLSearchParams(params).toString()}`;
 
     }, [settings, student, invoice, financialData.totalDue]);
@@ -101,155 +92,146 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
     const { outstandingDebt, openingCredit, totalDue } = financialData;
 
     return (
-        <div ref={ref} className="bg-white p-8 text-gray-900 font-sans flex flex-col" style={{ width: '210mm', minHeight: 'auto', margin: '0 auto', boxSizing: 'border-box' }}>
+        <div ref={ref} className="bg-white p-10 text-gray-900 font-sans flex flex-col" style={{ width: '210mm', minHeight: 'auto', margin: '0 auto', boxSizing: 'border-box' }}>
             
             {/* Header - Centered */}
-            <div className="text-center mb-8">
-                <h1 className="text-2xl font-bold text-blue-700 uppercase tracking-wide mb-1">{settings.name}</h1>
+            <div className="text-center mb-10">
+                <h1 className="text-3xl font-bold text-blue-700 uppercase tracking-wide mb-2 whitespace-nowrap">{settings.name}</h1>
                 <div className="text-sm text-gray-600 flex flex-col items-center justify-center gap-1">
                     <span>{settings.address}</span>
                     <span>Hotline: <span className="font-medium">{settings.phone}</span></span>
                 </div>
                 
-                <div className="mt-8">
+                <div className="mt-10">
                     <h2 className="text-4xl font-extrabold uppercase text-gray-900 tracking-tight">THÔNG BÁO HỌC PHÍ</h2>
                     <p className="text-lg text-gray-600 mt-2 font-medium">Tháng {invoice.month.split('-')[1]} năm {invoice.month.split('-')[0]}</p>
-                    <div className="flex items-center justify-center gap-3 text-sm text-gray-500 mt-2">
-                        <span className="bg-gray-100 px-2 py-0.5 rounded border border-gray-200">Mã HĐ: <strong>#{invoice.id.slice(-6)}</strong></span>
-                        <span className="text-gray-300">•</span>
+                    <div className="flex items-center justify-center gap-4 text-sm text-gray-500 mt-3">
+                        <span>Mã HĐ: <span className="font-mono font-bold text-gray-900">#{invoice.id.slice(-6)}</span></span>
+                        <span className="text-gray-400">•</span>
                         <span>Ngày lập: {new Date(invoice.generatedDate).toLocaleDateString('vi-VN')}</span>
                     </div>
                 </div>
             </div>
 
             {/* Student Info - Clean Grid */}
-            <div className="mb-8 border border-gray-200 rounded-xl p-6 bg-slate-50/50">
+            <div className="mb-10 border border-gray-200 rounded-lg p-6 bg-slate-50/50">
                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 border-b border-gray-200 pb-2">Thông tin Học viên</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-                    <div className="flex justify-between items-baseline border-b border-dashed border-gray-200 pb-1">
-                        <span className="text-gray-500 text-sm">Họ và tên:</span>
-                        <span className="font-bold text-lg text-gray-900">{student.name}</span>
+                <div className="grid grid-cols-2 gap-x-12 gap-y-6 text-sm">
+                    <div className="flex flex-col">
+                        <span className="text-gray-500 text-xs mb-1">Họ và tên</span>
+                        <span className="font-bold text-xl text-gray-900">{student.name}</span>
                     </div>
-                    <div className="flex justify-between items-baseline border-b border-dashed border-gray-200 pb-1">
-                        <span className="text-gray-500 text-sm">Lớp đang học:</span>
-                        <span className="font-semibold text-gray-900 text-right max-w-[60%] text-sm leading-tight">
+                    <div className="flex flex-col">
+                        <span className="text-gray-500 text-xs mb-1">Lớp đang học</span>
+                        <span className="font-semibold text-gray-900 break-words leading-snug">
                             {enrolledClasses.length > 0 ? enrolledClasses.map(c => c.name).join(', ') : '(Không có lớp)'}
                         </span>
                     </div>
-                    <div className="flex justify-between items-baseline border-b border-dashed border-gray-200 pb-1">
-                        <span className="text-gray-500 text-sm">Mã học viên:</span>
+                    <div className="flex flex-col">
+                        <span className="text-gray-500 text-xs mb-1">Mã học viên</span>
                         <span className="font-mono font-semibold text-gray-700">{student.id}</span>
                     </div>
-                    <div className="flex justify-between items-baseline border-b border-dashed border-gray-200 pb-1">
-                        <span className="text-gray-500 text-sm">Phụ huynh:</span>
+                    <div className="flex flex-col">
+                        <span className="text-gray-500 text-xs mb-1">Phụ huynh</span>
                         <span className="font-medium text-gray-900">{student.parentName}</span>
                     </div>
                 </div>
             </div>
 
             {/* Financial Table */}
-            <div className="mb-8">
-                <table className="w-full text-sm">
+            <div className="mb-10">
+                <table className="w-full text-sm border-collapse">
                     <thead>
                         <tr className="bg-gray-900 text-white">
                             <th className="py-3 px-4 text-left font-bold uppercase text-xs tracking-wider rounded-tl-md rounded-bl-md">Nội dung / Diễn giải</th>
-                            <th className="py-3 px-4 text-right font-bold uppercase text-xs tracking-wider w-40 rounded-tr-md rounded-br-md">Thành tiền</th>
+                            <th className="py-3 px-4 text-right font-bold uppercase text-xs tracking-wider w-48 rounded-tr-md rounded-br-md">Thành tiền</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {outstandingDebt > 0 && (
                             <tr>
                                 <td className="py-4 px-4 font-medium text-gray-600">Nợ cũ kỳ trước</td>
-                                <td className="py-4 px-4 text-right font-medium text-gray-800">{formatCurrency(outstandingDebt)}</td>
+                                <td className="py-4 px-4 text-right font-bold text-gray-800">{formatCurrency(outstandingDebt)}</td>
                             </tr>
                         )}
                         {openingCredit > 0 && (
                             <tr>
                                 <td className="py-4 px-4 font-medium text-gray-600">Đã thanh toán / Số dư kỳ trước</td>
-                                <td className="py-4 px-4 text-right font-medium text-green-600">-{formatCurrency(openingCredit)}</td>
+                                <td className="py-4 px-4 text-right font-bold text-green-600">-{formatCurrency(openingCredit)}</td>
                             </tr>
                         )}
                         <tr>
                             <td className="py-4 px-4 align-top">
-                                <p className="font-bold text-gray-900 mb-1">Học phí tháng {invoice.month.split('-')[1]}/{invoice.month.split('-')[0]}</p>
+                                <p className="font-bold text-gray-900 text-base mb-1">Học phí tháng {invoice.month.split('-')[1]}/{invoice.month.split('-')[0]}</p>
                                 {invoice.details && (
-                                    <div className="text-gray-500 text-xs leading-relaxed whitespace-pre-wrap border-l-2 border-gray-200 pl-3">
+                                    <div className="text-gray-500 text-xs leading-relaxed whitespace-pre-wrap border-l-2 border-gray-200 pl-3 mt-1">
                                         {invoice.details}
                                     </div>
                                 )}
                             </td>
-                            <td className="py-4 px-4 text-right font-bold text-gray-900 align-top">
+                            <td className="py-4 px-4 text-right font-bold text-gray-900 text-base align-top">
                                 {formatCurrency(invoice.amount)}
                             </td>
                         </tr>
                     </tbody>
                 </table>
                 
-                {/* Total Payment Box - Floating Right or Centered based on design */}
-                <div className="flex justify-end mt-6">
-                    <div className="bg-gray-900 text-white rounded-xl shadow-lg px-8 py-4 text-center min-w-[250px]">
-                        <span className="block text-[10px] uppercase tracking-widest text-gray-400 mb-1">Tổng thanh toán</span>
-                        <span className="block text-3xl font-bold tracking-tight leading-none">{formatCurrency(totalDue)}</span>
+                {/* Total Payment Box */}
+                <div className="flex justify-end mt-4">
+                    <div className="bg-gray-900 text-white rounded-lg shadow-xl px-8 py-4 text-center min-w-[250px]">
+                        <span className="block text-[10px] uppercase tracking-widest text-gray-400 mb-1 text-center">TỔNG THANH TOÁN</span>
+                        <span className="block text-3xl font-bold tracking-tight leading-none text-center">{formatCurrency(totalDue)}</span>
                     </div>
                 </div>
             </div>
 
-            <div className="border-t-2 border-dashed border-gray-300 my-8"></div>
+            <div className="border-t border-dashed border-gray-300 my-8"></div>
 
             {/* Footer Section - QR Code & Payment */}
             <div className="text-center">
-                <h4 className="font-bold text-sm uppercase tracking-widest text-gray-600 mb-6">Thông tin chuyển khoản</h4>
+                <h4 className="font-bold text-sm uppercase tracking-widest text-gray-500 mb-6 border-b border-gray-200 inline-block pb-1">THÔNG TIN CHUYỂN KHOẢN</h4>
                 
-                <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200 inline-block max-w-2xl w-full shadow-sm">
+                <div className="bg-white rounded-3xl p-6 border border-gray-100 inline-block max-w-2xl w-full">
                     <div className="flex flex-col items-center">
                         {/* Bank Info Text */}
                         <div className="mb-6 space-y-1">
-                            <div className="text-gray-500 text-sm font-medium">Ngân hàng: <span className="text-gray-900 font-bold text-lg">{settings.bankName}</span></div>
-                            <div className="text-3xl font-mono font-bold tracking-widest text-gray-800 my-2">{settings.bankAccountNumber}</div>
-                            <div className="text-sm font-bold uppercase text-gray-600">Chủ tài khoản: {settings.bankAccountHolder}</div>
+                            <div className="text-gray-500 text-base font-medium">Ngân hàng: <span className="text-gray-900 font-bold">{settings.bankName}</span></div>
+                            <div className="text-3xl font-mono font-bold tracking-widest text-gray-800 my-1">{settings.bankAccountNumber}</div>
+                            <div className="text-base font-bold uppercase text-gray-600">Chủ tài khoản: {settings.bankAccountHolder}</div>
                         </div>
 
                         {/* QR Code */}
                         {qrCodeUrl && (
                             <div className="relative group mb-6">
-                                <div className="absolute -inset-1 bg-gradient-to-r from-gray-200 to-slate-200 rounded-2xl opacity-50 blur group-hover:opacity-75 transition duration-200"></div>
-                                <div className="relative bg-white p-3 rounded-2xl border border-gray-200 shadow-inner">
+                                <div className="absolute -inset-2 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-3xl opacity-60"></div>
+                                <div className="relative bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
                                     <img 
                                         src={qrCodeUrl} 
                                         alt="QR Code" 
                                         className="w-80 h-80 object-contain" 
                                         style={{ imageRendering: 'pixelated' }}
+                                        crossOrigin="anonymous"
                                         onError={(e) => {
-                                            // Fallback if image fails to load
                                             (e.target as HTMLImageElement).style.display = 'none';
-                                            (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="w-80 h-80 flex items-center justify-center text-red-500 text-sm bg-gray-50 rounded-xl border border-dashed border-red-300 p-4">Không thể tải mã QR.<br/>Vui lòng kiểm tra kết nối mạng hoặc thông tin ngân hàng.</div>';
+                                            (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="w-80 h-80 flex items-center justify-center text-red-500 text-sm bg-gray-50 rounded-xl border border-dashed border-red-300 p-4">Không thể tải mã QR.<br/>Vui lòng kiểm tra kết nối mạng.</div>';
                                         }}
                                     />
-                                    <div className="flex justify-center mt-3 space-x-2">
-                                        <div className="flex items-center gap-1">
-                                            <div className="w-12 h-1 bg-blue-600 rounded-full"></div>
-                                            <div className="w-2 h-1 bg-red-500 rounded-full"></div>
-                                        </div>
-                                        <span className="text-[10px] font-bold text-gray-400">napas 247</span>
-                                        <div className="w-px h-3 bg-gray-300 mx-2"></div>
+                                    <div className="flex justify-center mt-3 items-center space-x-3 opacity-70">
+                                        <img src="https://img.vietqr.io/image/vietqr-compact.png" className="h-6 object-contain" alt="VietQR" />
+                                        <span className="text-[10px] font-bold text-gray-400">|</span>
                                         <span className="text-[10px] font-bold text-red-600 uppercase">{settings.bankName}</span>
                                     </div>
-                                    <div className="text-[10px] text-center text-gray-400 mt-2">
-                                        <p className="font-bold text-gray-600 uppercase">{settings.bankAccountHolder}</p>
-                                        <p>{settings.bankAccountNumber}</p>
-                                        <p>Số tiền: {formatCurrency(totalDue)}</p>
-                                    </div>
                                 </div>
-                                <div className="mt-3 bg-white border border-gray-200 text-gray-600 text-xs px-4 py-1 rounded-full inline-block shadow-sm">
+                                <div className="mt-3 text-gray-400 text-xs uppercase tracking-wide font-medium">
                                     Quét mã để thanh toán
                                 </div>
                             </div>
                         )}
 
                         {/* Transfer Content */}
-                        <div className="text-center mt-2">
-                            <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-2">NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC)</p>
-                            <div className="inline-block bg-yellow-50 border-2 border-yellow-300 text-yellow-800 font-mono font-bold text-xl px-8 py-3 rounded-xl shadow-sm transform hover:scale-105 transition-transform duration-200">
+                        <div className="text-center mt-2 w-full">
+                            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-bold mb-2">NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC)</p>
+                            <div className="inline-block bg-yellow-50 border border-yellow-200 text-yellow-800 font-mono font-bold text-xl px-8 py-3 rounded-lg w-full max-w-md">
                                 {`${normalizeInfoName(student.name)}HP${invoice.month.split('-')[1]}${invoice.month.split('-')[0].slice(-2)}`}
                             </div>
                         </div>

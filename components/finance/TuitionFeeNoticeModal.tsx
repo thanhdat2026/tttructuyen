@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useMemo } from 'react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
@@ -23,7 +24,7 @@ const formatCurrency = (amount: number) => `${Math.round(amount).toLocaleString(
 
 // For the 'addInfo' QR parameter
 const normalizeInfoName = (name: string) => {
-  return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').replace(/\s+/g, '');
+  return name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').replace(/[^a-zA-Z0-9]/g, '');
 };
 
 // For the 'accountName' QR parameter
@@ -57,9 +58,9 @@ export const TuitionFeeNoticeModal: React.FC<TuitionFeeNoticeModalProps> = ({ is
         const totalDue = outstandingDebt + invoice.amount - openingCredit;
 
         return {
-            outstandingDebt,
-            openingCredit,
-            totalDue: Math.max(0, totalDue),
+            outstandingDebt: Math.round(outstandingDebt),
+            openingCredit: Math.round(openingCredit),
+            totalDue: Math.max(0, Math.round(totalDue)),
         };
     }, [student, transactions, invoice]);
 
@@ -70,16 +71,19 @@ export const TuitionFeeNoticeModal: React.FC<TuitionFeeNoticeModalProps> = ({ is
     }, [student, invoice]);
 
     const qrCodeUrl = useMemo(() => {
-        const { bankAccountNumber, bankBin, bankAccountHolder } = settings;
+        // Clean up inputs to prevent QR generation failure
+        const bankBin = settings.bankBin?.replace(/\s+/g, '');
+        const bankAccountNumber = settings.bankAccountNumber?.replace(/\s+/g, '');
+
         if (!bankAccountNumber || !bankBin || !student || financialData.totalDue <= 0) {
             return null;
         }
         const params: Record<string, string> = {
-            amount: Math.round(financialData.totalDue).toString(),
+            amount: financialData.totalDue.toString(),
             addInfo: transferContent,
         };
-        if (bankAccountHolder) {
-            params.accountName = normalizeAccountName(bankAccountHolder);
+        if (settings.bankAccountHolder) {
+            params.accountName = normalizeAccountName(settings.bankAccountHolder);
         }
         return `https://img.vietqr.io/image/${bankBin}-${bankAccountNumber}-compact2.png?${new URLSearchParams(params).toString()}`;
     }, [settings, student, financialData.totalDue, transferContent]);
@@ -135,14 +139,18 @@ export const TuitionFeeNoticeModal: React.FC<TuitionFeeNoticeModalProps> = ({ is
 
                 {/* Financial Details */}
                 <div className="space-y-2 text-sm">
-                    <div className="flex justify-between items-center py-2 border-b dark:border-slate-700">
-                        <span className="text-slate-500 dark:text-slate-400">Dư nợ kỳ trước</span>
-                        <span className="font-semibold">{formatCurrency(outstandingDebt)}</span>
-                    </div>
-                     <div className="flex justify-between items-center py-2 border-b dark:border-slate-700">
-                        <span className="text-slate-500 dark:text-slate-400">Số dư/Đã trả kỳ trước</span>
-                        <span className="font-semibold text-green-600 dark:text-green-400">-{formatCurrency(openingCredit)}</span>
-                    </div>
+                    {outstandingDebt > 0 && (
+                        <div className="flex justify-between items-center py-2 border-b dark:border-slate-700">
+                            <span className="text-slate-500 dark:text-slate-400">Dư nợ kỳ trước</span>
+                            <span className="font-semibold">{formatCurrency(outstandingDebt)}</span>
+                        </div>
+                    )}
+                    {openingCredit > 0 && (
+                         <div className="flex justify-between items-center py-2 border-b dark:border-slate-700">
+                            <span className="text-slate-500 dark:text-slate-400">Số dư/Đã trả kỳ trước</span>
+                            <span className="font-semibold text-green-600 dark:text-green-400">-{formatCurrency(openingCredit)}</span>
+                        </div>
+                    )}
                     <div className="py-2 border-b dark:border-slate-700">
                          <div className="flex justify-between items-start">
                              <span className="text-slate-500 dark:text-slate-400">Học phí phát sinh trong kỳ</span>
@@ -176,8 +184,16 @@ export const TuitionFeeNoticeModal: React.FC<TuitionFeeNoticeModalProps> = ({ is
                                 </div>
                             </div>
                             {qrCodeUrl && (
-                                <div className="text-center bg-white p-2 rounded-lg">
-                                    <img src={qrCodeUrl} alt="QR Code Thanh toán" className="w-32 h-32" />
+                                <div className="text-center bg-white p-2 rounded-lg border border-gray-200">
+                                    <img 
+                                        src={qrCodeUrl} 
+                                        alt="QR Code Thanh toán" 
+                                        className="w-32 h-32 object-contain" 
+                                        style={{ imageRendering: 'pixelated' }}
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                        }}
+                                    />
                                 </div>
                             )}
                         </div>
