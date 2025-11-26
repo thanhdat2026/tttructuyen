@@ -7,6 +7,9 @@ import { ListItemCard } from '../common/ListItemCard';
 import { Pagination } from '../common/Pagination';
 import { Button } from '../common/Button';
 import { PayslipModal } from './PayslipModal';
+import { ConfirmationModal } from '../common/ConfirmationModal';
+import { useToast } from '../../hooks/useToast';
+import { ICONS } from '../../constants';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -14,12 +17,72 @@ interface PayrollTabProps {
     period: 'this_month' | 'last_month' | 'this_year';
 }
 
+const GeneratePayrollModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onGenerate: (month: number, year: number) => Promise<void>;
+}> = ({ isOpen, onClose, onGenerate }) => {
+    const today = new Date();
+    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const [year, setYear] = useState(lastMonth.getFullYear());
+    const [month, setMonth] = useState(lastMonth.getMonth() + 1);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const years = Array.from({ length: 5 }, (_, i) => today.getFullYear() - i);
+    const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+    const handleGenerate = async () => {
+        setIsLoading(true);
+        await onGenerate(month, year);
+        setIsLoading(false);
+        onClose();
+    };
+
+    return (
+        <ConfirmationModal
+            isOpen={isOpen}
+            onClose={onClose}
+            onConfirm={handleGenerate}
+            title="Tính Lương Giáo viên"
+            message={
+                <div className="space-y-4">
+                    <p>Chọn kỳ để tính lương. Hệ thống sẽ:</p>
+                    <ul className="list-disc list-inside text-sm space-y-1 pl-2 text-gray-600 dark:text-gray-300">
+                        <li>Quét toàn bộ dữ liệu điểm danh trong tháng đã chọn.</li>
+                        <li>Tính toán lương dựa trên số buổi dạy (hoặc lương cứng) và mức lương hiện tại của giáo viên.</li>
+                        <li><strong>Bảo toàn</strong> các khoản Thưởng/Phạt và Trạng thái thanh toán nếu bạn đã nhập trước đó.</li>
+                        <li>Tự động tạo bảng lương cho giáo viên mới hoặc cập nhật số liệu cho bảng lương cũ.</li>
+                    </ul>
+                    <div className="flex items-center gap-4 pt-2">
+                        <div className="flex-1">
+                            <label className="block text-xs font-medium mb-1">Tháng</label>
+                            <select value={month} onChange={e => setMonth(Number(e.target.value))} className="form-select w-full">
+                                {months.map(m => <option key={m} value={m}>Tháng {m}</option>)}
+                            </select>
+                        </div>
+                        <div className="flex-1">
+                            <label className="block text-xs font-medium mb-1">Năm</label>
+                            <select value={year} onChange={e => setYear(Number(e.target.value))} className="form-select w-full">
+                                {years.map(y => <option key={y} value={y}>Năm {y}</option>)}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            }
+            confirmButtonText={isLoading ? 'Đang tính toán...' : 'Xác nhận Tính toán'}
+            confirmButtonVariant="primary"
+        />
+    );
+};
+
 export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
-    const { state } = useData();
+    const { state, generatePayrolls } = useData();
+    const { toast } = useToast();
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<SortConfig<Payroll> | null>({ key: 'month', direction: 'descending' });
     const [selectedPayroll, setSelectedPayroll] = useState<Payroll | null>(null);
+    const [isGenerateModalOpen, setGenerateModalOpen] = useState(false);
 
     // Enhanced filters
     const [selectedMonth, setSelectedMonth] = useState(0); // 0 = All months
@@ -98,6 +161,18 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
     
     useEffect(() => { setCurrentPage(1); }, [searchQuery, sortConfig, selectedMonth, selectedYear]);
 
+    const handleGenerate = async (month: number, year: number) => {
+        try {
+            await generatePayrolls({ month, year });
+            toast.success(`Đã tính lương xong cho tháng ${month}/${year}.`);
+            // Auto switch filter to view the generated data
+            setSelectedMonth(month);
+            setSelectedYear(year);
+        } catch (error) {
+            toast.error('Lỗi khi tính lương. Vui lòng thử lại.');
+        }
+    };
+
     const columns: Column<Payroll>[] = [
         { header: 'Tháng', accessor: 'month', sortable: true },
         { header: 'Tên Giáo viên', accessor: 'teacherName', sortable: true },
@@ -120,22 +195,27 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
         <div className="card-base">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                 <h2 className="text-xl font-bold">Bảng lương Giáo viên</h2>
-                <div className="flex items-center gap-2">
-                    <select 
-                        value={selectedMonth} 
-                        onChange={(e) => setSelectedMonth(Number(e.target.value))} 
-                        className="form-select py-1.5 w-auto"
-                    >
-                        <option value={0}>Tất cả các tháng</option>
-                        {months.map(m => <option key={m} value={m}>Tháng {m}</option>)}
-                    </select>
-                    <select 
-                        value={selectedYear} 
-                        onChange={(e) => setSelectedYear(Number(e.target.value))} 
-                        className="form-select py-1.5 w-auto"
-                    >
-                        {years.map(y => <option key={y} value={y}>{y}</option>)}
-                    </select>
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    <div className="flex items-center gap-2">
+                        <select 
+                            value={selectedMonth} 
+                            onChange={(e) => setSelectedMonth(Number(e.target.value))} 
+                            className="form-select py-1.5 w-auto text-sm"
+                        >
+                            <option value={0}>Tất cả các tháng</option>
+                            {months.map(m => <option key={m} value={m}>Tháng {m}</option>)}
+                        </select>
+                        <select 
+                            value={selectedYear} 
+                            onChange={(e) => setSelectedYear(Number(e.target.value))} 
+                            className="form-select py-1.5 w-auto text-sm"
+                        >
+                            {years.map(y => <option key={y} value={y}>{y}</option>)}
+                        </select>
+                    </div>
+                    <Button onClick={() => setGenerateModalOpen(true)} className="whitespace-nowrap">
+                        {ICONS.plus} Tính lương
+                    </Button>
                 </div>
             </div>
             
@@ -183,6 +263,8 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
                 ) : (
                     <div className="text-center text-gray-500 py-8">
                         Không tìm thấy dữ liệu lương phù hợp.
+                        <br/>
+                        Hãy thử bấm <strong>"Tính lương"</strong> để tạo dữ liệu mới.
                     </div>
                 )}
             </div>
@@ -193,6 +275,11 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
                 isOpen={!!selectedPayroll} 
                 onClose={() => setSelectedPayroll(null)} 
                 payroll={selectedPayroll} 
+            />
+            <GeneratePayrollModal
+                isOpen={isGenerateModalOpen}
+                onClose={() => setGenerateModalOpen(false)}
+                onGenerate={handleGenerate}
             />
         </div>
     );
