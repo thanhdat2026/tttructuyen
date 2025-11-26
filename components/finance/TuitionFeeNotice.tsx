@@ -136,11 +136,11 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                             <tr className="border-b border-indigo-900"><td className="py-1 px-2 font-medium">Đã thanh toán / Số dư kỳ trước</td><td className="py-1 px-2 text-right font-bold">-{formatCurrency(openingCredit)}</td></tr>
                         )}
                         <tr className="border-b border-indigo-900">
-                            <td className="py-1 px-2 align-top">
+                            <td className="py-2 px-2 align-top">
                                 <p className="font-bold text-base">Học phí tháng {invoice.month.split('-')[1]}/{invoice.month.split('-')[0]}</p>
                                 {invoice.details && <div className="text-xs whitespace-pre-wrap pl-2 mt-1">{invoice.details}</div>}
                             </td>
-                            <td className="py-1 px-2 text-right font-bold text-base align-top">{formatCurrency(invoice.amount)}</td>
+                            <td className="py-2 px-2 text-right font-bold text-base align-top">{formatCurrency(invoice.amount)}</td>
                         </tr>
                     </tbody>
                 </table>
