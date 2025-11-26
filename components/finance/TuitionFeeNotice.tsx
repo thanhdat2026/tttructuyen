@@ -130,10 +130,10 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                     </thead>
                     <tbody>
                         {Math.round(outstandingDebt) > 0 && (
-                            <tr className="border-b border-indigo-900"><td className="py-1 px-2 font-medium">Nợ cũ kỳ trước</td><td className="py-1 px-2 text-right font-bold">{formatCurrency(outstandingDebt)}</td></tr>
+                            <tr className="border-b border-indigo-900"><td className="py-2 px-2 font-medium">Nợ cũ kỳ trước</td><td className="py-2 px-2 text-right font-bold">{formatCurrency(outstandingDebt)}</td></tr>
                         )}
                         {Math.round(openingCredit) > 0 && (
-                            <tr className="border-b border-indigo-900"><td className="py-1 px-2 font-medium">Đã thanh toán / Số dư kỳ trước</td><td className="py-1 px-2 text-right font-bold">-{formatCurrency(openingCredit)}</td></tr>
+                            <tr className="border-b border-indigo-900"><td className="py-2 px-2 font-medium">Đã thanh toán / Số dư kỳ trước</td><td className="py-2 px-2 text-right font-bold">-{formatCurrency(openingCredit)}</td></tr>
                         )}
                         <tr className="border-b border-indigo-900">
                             <td className="py-2 px-2 align-top">
@@ -153,7 +153,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 </div>
             </div>
 
-             <div className="border-t-2 border-dashed border-indigo-900 mt-auto pt-2">
+             <div className="border-t-2 border-dashed border-indigo-900 pt-2 mt-auto">
                 <h4 className="font-bold text-sm uppercase tracking-widest mb-2 text-center">THÔNG TIN CHUYỂN KHOẢN</h4>
                 
                 <div className="flex justify-between items-start gap-4 mt-2">
@@ -173,12 +173,12 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                     </div>
 
                     <div className="w-1/2 flex flex-col items-center justify-start">
-                        <div className="w-36 h-36 border border-indigo-900">
+                        <div>
                             {qrCodeUrl && (
                                 <img 
                                     src={qrCodeUrl} 
                                     alt="QR Code" 
-                                    className="w-full h-full object-contain"
+                                    className="w-36 h-36 object-contain"
                                     crossOrigin="anonymous"
                                 />
                             )}
