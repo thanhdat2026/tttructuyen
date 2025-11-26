@@ -1,9 +1,12 @@
-import React, { useMemo } from 'react';
+
+import React, { useMemo, useState } from 'react';
 import { useData } from '../../hooks/useDataContext';
 import { useAuth } from '../../hooks/useAuth';
 import { Table } from '../common/Table';
 import { Payroll, Teacher, UserRole } from '../../types';
 import { ListItemCard } from '../common/ListItemCard';
+import { Button } from '../common/Button';
+import { PayslipModal } from './PayslipModal';
 
 interface TeacherPayrollTabProps {
     period: 'this_month' | 'last_month' | 'this_year';
@@ -25,6 +28,7 @@ const getPeriodDateRange = (period: 'this_month' | 'last_month' | 'this_year'): 
 export const TeacherPayrollTab: React.FC<TeacherPayrollTabProps> = ({ period }) => {
     const { state } = useData();
     const { user, role } = useAuth();
+    const [selectedPayroll, setSelectedPayroll] = useState<Payroll | null>(null);
 
     const teacherPayrolls = useMemo(() => {
         if (!user || role !== UserRole.TEACHER) return [];
@@ -48,8 +52,15 @@ export const TeacherPayrollTab: React.FC<TeacherPayrollTabProps> = ({ period }) 
     const columns = [
         { header: 'Tháng', accessor: 'month' as keyof Payroll },
         { header: 'Số buổi dạy', accessor: 'sessionsTaught' as keyof Payroll },
-        { header: 'Mức lương', accessor: (item: Payroll) => `${item.baseSalary.toLocaleString('vi-VN')} VND` },
         { header: 'Tổng lương', accessor: (item: Payroll) => `${item.totalSalary.toLocaleString('vi-VN')} VND` },
+        { 
+            header: 'Trạng thái', 
+            accessor: (item: Payroll) => (
+                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                    {item.status === 'PAID' ? 'Đã nhận' : 'Chưa nhận'}
+                </span>
+            )
+        },
     ];
 
     return (
@@ -61,6 +72,9 @@ export const TeacherPayrollTab: React.FC<TeacherPayrollTabProps> = ({ period }) 
                     data={teacherPayrolls}
                     sortConfig={null}
                     onSort={() => {}}
+                    actions={(item) => (
+                        <Button size="sm" variant="secondary" onClick={() => setSelectedPayroll(item)}>Chi tiết</Button>
+                    )}
                 />
             </div>
              <div className="md:hidden space-y-4">
@@ -72,9 +86,21 @@ export const TeacherPayrollTab: React.FC<TeacherPayrollTabProps> = ({ period }) 
                             { label: "Số buổi", value: item.sessionsTaught > 0 ? item.sessionsTaught : 'N/A' },
                             { label: "Tổng lương", value: `${item.totalSalary.toLocaleString('vi-VN')} VND` },
                         ]}
+                        status={{
+                            text: item.status === 'PAID' ? 'Đã nhận' : 'Chưa nhận',
+                            colorClasses: item.status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                        }}
+                        actions={<Button size="sm" variant="secondary" onClick={() => setSelectedPayroll(item)}>Chi tiết</Button>}
                     />
                 ))}
             </div>
+            
+            <PayslipModal 
+                isOpen={!!selectedPayroll} 
+                onClose={() => setSelectedPayroll(null)} 
+                payroll={selectedPayroll} 
+                readOnly={true}
+            />
         </div>
     );
 };

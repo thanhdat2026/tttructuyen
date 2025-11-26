@@ -68,6 +68,11 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
             sortableItems.sort((a, b) => {
                 const aValue = a[sortConfig.key] as any;
                 const bValue = b[sortConfig.key] as any;
+                
+                if (aValue === bValue) return 0;
+                if (aValue === null || aValue === undefined) return 1;
+                if (bValue === null || bValue === undefined) return -1;
+
                 if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
                 if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
                 return 0;
@@ -101,7 +106,9 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
 
     return (
         <div className="card-base">
-            <h2 className="text-xl font-bold mb-4">Bảng lương Giáo viên</h2>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Bảng lương Giáo viên</h2>
+            </div>
             <input 
                 type="text"
                 placeholder="Tìm theo tên giáo viên..."

@@ -1,11 +1,12 @@
 
-
 import React, { useMemo, useState, useEffect } from 'react';
 import { useData } from '../../hooks/useDataContext';
 import { Table, SortConfig, Column } from '../common/Table';
 import { Payroll } from '../../types';
 import { ListItemCard } from '../common/ListItemCard';
 import { Pagination } from '../common/Pagination';
+import { Button } from '../common/Button';
+import { PayslipModal } from './PayslipModal';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -38,6 +39,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<SortConfig<Payroll> | null>({ key: 'month', direction: 'descending' });
+    const [selectedPayroll, setSelectedPayroll] = useState<Payroll | null>(null);
 
     const handleSort = (key: keyof Payroll) => {
         let direction: 'ascending' | 'descending' = 'ascending';
@@ -64,8 +66,13 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
         let sortableItems = [...filteredPayrolls];
         if (sortConfig) {
             sortableItems.sort((a, b) => {
-                const aValue = a[sortConfig.key];
-                const bValue = b[sortConfig.key];
+                const aValue = a[sortConfig.key] as any;
+                const bValue = b[sortConfig.key] as any;
+                
+                if (aValue === bValue) return 0;
+                if (aValue === null || aValue === undefined) return 1;
+                if (bValue === null || bValue === undefined) return -1;
+
                 if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
                 if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
                 return 0;
@@ -84,12 +91,24 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
         { header: 'Tên Giáo viên', accessor: 'teacherName', sortable: true },
         { header: 'Số buổi dạy', accessor: 'sessionsTaught', sortable: true },
         { header: 'Lương Cơ bản', accessor: (item) => `${item.baseSalary.toLocaleString('vi-VN')} ₫`, sortable: true, sortKey: 'baseSalary' },
-        { header: 'Tổng lương', accessor: (item) => `${item.totalSalary.toLocaleString('vi-VN')} ₫`, sortable: true, sortKey: 'totalSalary' },
+        { header: 'Tổng Thực Lĩnh', accessor: (item) => <span className="font-bold text-primary">{item.totalSalary.toLocaleString('vi-VN')} ₫</span>, sortable: true, sortKey: 'totalSalary' },
+        { 
+            header: 'Trạng thái', 
+            accessor: (item) => (
+                <span className={`px-2 py-1 rounded-full text-xs font-semibold ${item.status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                    {item.status === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+                </span>
+            ),
+            sortable: true, 
+            sortKey: 'status'
+        },
     ];
 
     return (
         <div className="card-base">
-            <h2 className="text-xl font-bold mb-4">Bảng lương Giáo viên</h2>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Bảng lương Giáo viên</h2>
+            </div>
             <input 
                 type="text"
                 placeholder="Tìm theo tên giáo viên..."
@@ -99,7 +118,15 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
             />
 
             <div className="hidden md:block">
-                <Table<Payroll> columns={columns} data={paginatedPayrolls} sortConfig={sortConfig} onSort={handleSort} />
+                <Table<Payroll> 
+                    columns={columns} 
+                    data={paginatedPayrolls} 
+                    sortConfig={sortConfig} 
+                    onSort={handleSort} 
+                    actions={(item) => (
+                        <Button size="sm" variant="secondary" onClick={() => setSelectedPayroll(item)}>Chi tiết / Sửa</Button>
+                    )}
+                />
             </div>
             <div className="md:hidden space-y-4">
                 {paginatedPayrolls.map(item => (
@@ -110,11 +137,22 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
                             { label: "Số buổi", value: item.sessionsTaught > 0 ? item.sessionsTaught : 'Lương cứng' },
                             { label: "Tổng lương", value: `${item.totalSalary.toLocaleString('vi-VN')} ₫` },
                         ]}
+                        status={{
+                            text: item.status === 'PAID' ? 'Đã TT' : 'Chưa TT',
+                            colorClasses: item.status === 'PAID' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                        }}
+                        actions={<Button size="sm" variant="secondary" onClick={() => setSelectedPayroll(item)}>Chi tiết</Button>}
                     />
                 ))}
             </div>
 
             {paginatedPayrolls.length > 0 && <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} totalItems={sortedPayrolls.length} itemsPerPage={ITEMS_PER_PAGE} />}
+            
+            <PayslipModal 
+                isOpen={!!selectedPayroll} 
+                onClose={() => setSelectedPayroll(null)} 
+                payroll={selectedPayroll} 
+            />
         </div>
     );
 };
