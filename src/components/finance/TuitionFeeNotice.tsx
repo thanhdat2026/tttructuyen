@@ -182,21 +182,28 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
 
             <div className="border-t border-dashed border-gray-300 my-1"></div>
 
-            <div className="mt-2">
-                <h4 className="font-bold text-sm uppercase tracking-widest text-red-600 mb-2 text-center">THÔNG TIN CHUYỂN KHOẢN</h4>
+            <div className="mt-2 text-center">
+                <h4 className="font-bold text-sm uppercase tracking-widest text-red-600 mb-2">THÔNG TIN CHUYỂN KHOẢN</h4>
                 
-                <div className="flex justify-between items-start">
-                    {/* Left: Bank Info */}
-                    <div className="text-left text-red-600">
-                        <p className="font-semibold text-base">{settings.bankName}</p>
-                        <p className="font-bold text-2xl tracking-wider font-mono my-0.5">{settings.bankAccountNumber}</p>
-                        <p className="font-semibold uppercase text-sm">{settings.bankAccountHolder}</p>
+                <div className="text-red-600 mb-3">
+                    <p className="font-semibold text-base">{settings.bankName}</p>
+                    <p className="font-bold text-2xl tracking-wider font-mono my-0.5">{settings.bankAccountNumber}</p>
+                    <p className="font-semibold uppercase text-sm">{settings.bankAccountHolder}</p>
+                </div>
+
+                <div className="flex justify-around items-center mt-3">
+                    {/* Left Column: Transfer Content */}
+                    <div className="text-center">
+                        <p className="text-[9px] text-gray-400 uppercase tracking-wider font-bold mb-1">NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC)</p>
+                        <div className="inline-block bg-yellow-50 border border-yellow-200 text-yellow-800 font-mono font-bold text-base px-4 py-1.5 rounded-lg">
+                            {`${normalizeInfoName(student.name)}HP${invoice.month.split('-')[1]}${invoice.month.split('-')[0].slice(-2)}`}
+                        </div>
                     </div>
 
-                    {/* Right: QR Code & Transfer Content */}
+                    {/* Right Column: QR Code */}
                     <div className="text-center">
                         {qrCodeUrl && (
-                            <div className="relative group mb-1 inline-block">
+                            <div className="relative group inline-block">
                                 <div className="bg-white p-1.5 rounded-lg border border-gray-200 shadow-sm">
                                     <img 
                                         src={qrCodeUrl} 
@@ -215,17 +222,10 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                                 </div>
                             </div>
                         )}
-
-                        <div className="mt-2">
-                            <p className="text-[9px] text-gray-400 uppercase tracking-wider font-bold mb-1">NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC)</p>
-                            <div className="inline-block bg-yellow-50 border border-yellow-200 text-yellow-800 font-mono font-bold text-base px-4 py-1.5 rounded-lg">
-                                {`${normalizeInfoName(student.name)}HP${invoice.month.split('-')[1]}${invoice.month.split('-')[0].slice(-2)}`}
-                            </div>
-                        </div>
                     </div>
                 </div>
                 
-                <div className="mt-2 text-xs text-gray-400 italic text-center">
+                <div className="mt-4 text-xs text-gray-400 italic text-center">
                     Xin cảm ơn Quý phụ huynh! Mọi thắc mắc vui lòng liên hệ hotline trung tâm.
                 </div>
             </div>
