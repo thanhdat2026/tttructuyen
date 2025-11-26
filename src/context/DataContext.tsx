@@ -103,7 +103,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setState({ ...data, loading: false });
     } catch (err: any) {
         console.error("Failed to load local data:", err);
-        // This error now implies a problem with localStorage, not network.
         setIsInitialOffline(true);
         setError('Không thể tải dữ liệu cục bộ. Vui lòng cho phép trang web lưu trữ dữ liệu và thử lại.');
         setState(prev => ({ ...prev, loading: false }));
@@ -130,10 +129,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Helper for simple additions that can optimistically update state or just append
-  // Note: For this app structure, we rely mostly on full refresh or specific state updates for complex types
-  // but we can keep the pattern consistent.
-
   const value: DataContextType = {
     state,
     error,
@@ -143,20 +138,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (isSubmitting) return;
         setIsSubmitting(true);
         try {
-            await api.addStudent(payload);
-            const newStudent = { ...payload.student, createdAt: new Date().toISOString().split('T')[0], balance: 0 };
-            setState(prev => {
-                const classIdsSet = new Set(payload.classIds);
-                return {
-                    ...prev,
-                    students: [...prev.students, newStudent],
-                    classes: prev.classes.map(c => 
-                        classIdsSet.has(c.id) 
-                        ? { ...c, studentIds: [...c.studentIds, newStudent.id] } 
-                        : c
-                    ),
-                };
-            });
+            // Use server response for consistency
+            const newState = await api.addStudent(payload);
+            setState({ ...newState, loading: false });
         } catch (err: any) {
             setError(err.message);
             throw err;
@@ -204,8 +188,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (isSubmitting) return;
         setIsSubmitting(true);
         try {
-            const newTeacher = await api.addTeacher(data);
-            setState(prev => ({...prev, teachers: [...prev.teachers, newTeacher]}));
+            const newState = await api.addTeacher(data);
+            setState({ ...newState, loading: false });
         } catch (err: any) {
             setError(err.message);
             throw err;
@@ -235,8 +219,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (isSubmitting) return;
         setIsSubmitting(true);
         try {
-            const newStaff = await api.addStaff(data);
-            setState(prev => ({...prev, staff: [...prev.staff, newStaff]}));
+            const newState = await api.addStaff(data);
+            setState({ ...newState, loading: false });
         } catch (err: any) {
             setError(err.message);
             throw err;
@@ -266,8 +250,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (isSubmitting) return;
         setIsSubmitting(true);
         try {
-            const newClass = await api.addClass(data);
-            setState(prev => ({...prev, classes: [...prev.classes, newClass]}));
+            const newState = await api.addClass(data);
+            setState({ ...newState, loading: false });
         } catch (err: any) {
             setError(err.message);
             throw err;
@@ -297,8 +281,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (isSubmitting) return;
         setIsSubmitting(true);
         try {
-            const newReport = await api.addProgressReport(data);
-            setState(prev => ({ ...prev, progressReports: [...prev.progressReports, newReport]}));
+            const newState = await api.addProgressReport(data);
+            setState({ ...newState, loading: false });
         } catch (err: any) {
             setError(err.message);
             throw err;
@@ -310,8 +294,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (isSubmitting) return;
         setIsSubmitting(true);
         try {
-            const newItem = await api.addIncome(data);
-            setState(prev => ({ ...prev, income: [...prev.income, newItem]}));
+            const newState = await api.addIncome(data);
+            setState({ ...newState, loading: false });
         } catch (err: any) {
             setError(err.message);
             throw err;
@@ -349,8 +333,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (isSubmitting) return;
         setIsSubmitting(true);
         try {
-            const newItem = await api.addExpense(data);
-            setState(prev => ({ ...prev, expenses: [...prev.expenses, newItem]}));
+            const newState = await api.addExpense(data);
+            setState({ ...newState, loading: false });
         } catch (err: any) {
             setError(err.message);
             throw err;
@@ -388,8 +372,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (isSubmitting) return;
         setIsSubmitting(true);
         try {
-            const newAnnouncement = await api.addAnnouncement(data);
-            setState(prev => ({...prev, announcements: [newAnnouncement, ...prev.announcements]}));
+            const newState = await api.addAnnouncement(data);
+            setState({ ...newState, loading: false });
         } catch (err: any) {
             setError(err.message);
             throw err;
