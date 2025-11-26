@@ -93,7 +93,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
         <div ref={ref} className="bg-white p-4 text-black font-sans flex flex-col" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', boxSizing: 'border-box' }}>
             
             <div className="text-center mb-3">
-                <h1 className="text-2xl font-bold uppercase tracking-wide mb-1 whitespace-nowrap text-black">{settings.name}</h1>
+                <h1 className="text-2xl font-bold uppercase tracking-wide mb-1 whitespace-nowrap" style={{color: settings.themeColor}}>{settings.name}</h1>
                 <div className="text-xs text-black flex flex-col items-center justify-center">
                     <span>{settings.address}</span>
                     <span>Hotline: <span className="font-medium">{settings.phone}</span></span>
@@ -122,10 +122,10 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
 
             <div className="mb-3">
                 <table className="w-full text-sm border-collapse border border-black">
-                    <thead className="bg-black text-white">
+                    <thead>
                         <tr>
-                            <th className="py-1 px-2 text-left font-bold uppercase text-xs tracking-wider border border-gray-600">Nội dung / Diễn giải</th>
-                            <th className="py-1 px-2 text-right font-bold uppercase text-xs tracking-wider w-40 border border-gray-600">Thành tiền</th>
+                            <th className="py-1 px-2 text-left font-bold uppercase text-xs tracking-wider border border-black bg-black text-white">Nội dung / Diễn giải</th>
+                            <th className="py-1 px-2 text-right font-bold uppercase text-xs tracking-wider w-40 border border-black bg-black text-white">Thành tiền</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -145,9 +145,9 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                     </tbody>
                 </table>
                 
-                <div className="flex justify-end mt-2">
+                <div className="flex justify-end mt-4">
                     <div className="px-3 py-1 text-right">
-                        <span className="block text-[9px] uppercase tracking-widest text-black">TỔNG THANH TOÁN</span>
+                        <span className="block text-xs uppercase tracking-widest text-black">TỔNG THANH TOÁN</span>
                         <span className="block text-2xl font-bold tracking-tight text-black">{formatCurrency(totalDue)}</span>
                     </div>
                 </div>
@@ -165,7 +165,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                         </div>
                         
                         <div>
-                            <p className="text-[9px] text-black uppercase tracking-wider font-bold mb-1">NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC)</p>
+                            <p className="text-xs text-black uppercase tracking-wider font-bold mb-1">NỘI DUNG CHUYỂN KHOẢN (BẮT BUỘC)</p>
                             <div className="inline-block text-black font-mono font-bold text-base px-3 py-1">
                                 {`${normalizeInfoName(student.name)}HP${invoice.month.split('-')[1]}${invoice.month.split('-')[0].slice(-2)}`}
                             </div>
@@ -173,7 +173,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                     </div>
 
                     <div className="w-1/2 flex flex-col items-center justify-start">
-                        <div className="w-36 h-36 border border-black">
+                        <div className="w-36 h-36 border border-black p-1">
                             {qrCodeUrl && (
                                 <img 
                                     src={qrCodeUrl} 
@@ -183,7 +183,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                                 />
                             )}
                         </div>
-                        <p className="mt-1 text-black text-[10px] uppercase tracking-wide font-medium">
+                        <p className="mt-1 text-black text-xs uppercase tracking-wide font-medium">
                             Quét mã để thanh toán
                         </p>
                     </div>
