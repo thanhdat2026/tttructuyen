@@ -50,18 +50,31 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
                 type: 'CREDIT',
             });
 
-            // 2. Automatically mark unpaid invoices as PAID if covered by this payment
-            // Calculate expected balance after this payment
-            const currentVirtualBalance = student.balance + amount;
+            // 2. Smart Allocation Logic:
+            // Retrieve all UNPAID invoices sorted by date (Oldest first)
+            const unpaidInvoices = state.invoices
+                .filter(inv => inv.studentId === student.id && inv.status === 'UNPAID')
+                .sort((a, b) => new Date(a.generatedDate).getTime() - new Date(b.generatedDate).getTime());
 
-            // If the payment clears the debt (balance >= 0, allowing for small float margin), mark ALL unpaid invoices as PAID
-            if (currentVirtualBalance >= -1000) {
-                 const unpaidInvoices = state.invoices
-                    .filter(inv => inv.studentId === student.id && inv.status === 'UNPAID');
-                 
-                 for (const invoice of unpaidInvoices) {
-                     await updateInvoiceStatus({ invoiceId: invoice.id, status: 'PAID' });
-                 }
+            const totalUnpaidAmount = unpaidInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+            
+            // Calculate "Net Credit Available for Unpaid Invoices"
+            // Formula: (Current Balance Before Payment + Total Unpaid Amount) = Previous Credits/Payments
+            // Total Funds Available = Previous Credits + New Payment Amount
+            let availableFunds = student.balance + totalUnpaidAmount + amount;
+
+            // Allocate funds sequentially
+            for (const invoice of unpaidInvoices) {
+                // Check if we have enough funds to cover this invoice
+                // We allow a small margin (100 VND) for potential floating point issues
+                if (availableFunds >= invoice.amount - 100) {
+                    await updateInvoiceStatus({ invoiceId: invoice.id, status: 'PAID' });
+                    availableFunds -= invoice.amount;
+                } else {
+                    // If remaining funds are not enough to fully pay the next invoice, we stop.
+                    // The invoice remains UNPAID (partially paid state is implied by balance but not status).
+                    break;
+                }
             }
 
             toast.success(`Ghi nhận thanh toán ${amount.toLocaleString('vi-VN')} ₫ cho ${student.name}.`);
