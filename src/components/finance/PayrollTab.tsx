@@ -66,7 +66,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
         let sortableItems = [...filteredPayrolls];
         if (sortConfig) {
             sortableItems.sort((a, b) => {
-                // Fix TS18048 by casting to any
+                // Cast to any to bypass TypeScript strict null checks for sorting generic objects
                 const aValue = (a as any)[sortConfig.key];
                 const bValue = (b as any)[sortConfig.key];
                 

@@ -173,13 +173,17 @@ export function applyOperation(
             const { month, year } = payload;
             const monthStr = `${year}-${String(month).padStart(2, '0')}`;
             
-            const studentsToInvoiceIds = new Set(data.students.filter(s => s.status === PersonStatus.ACTIVE).map(s => s.id));
+            // Logic update: Also consider students who have attendance records in this month, even if inactive
+            const activeStudentIds = new Set(data.students.filter(s => s.status === PersonStatus.ACTIVE).map(s => s.id));
+            const studentsWithAttendanceIds = new Set<string>();
             
             data.attendance.forEach(a => {
                 if (a.date.startsWith(monthStr)) {
-                    studentsToInvoiceIds.add(a.studentId);
+                    studentsWithAttendanceIds.add(a.studentId);
                 }
             });
+
+            const studentsToInvoiceIds = new Set([...activeStudentIds, ...studentsWithAttendanceIds]);
 
             for (const studentId of studentsToInvoiceIds) {
                 const student = data.students.find(s => s.id === studentId);
@@ -188,6 +192,7 @@ export function applyOperation(
                 let totalAmount = 0;
                 let details = '';
                 
+                // Identify classes: Currently enrolled OR has attendance in this month
                 const relevantClassIds = new Set<string>();
 
                 data.classes.forEach(c => {
@@ -217,12 +222,13 @@ export function applyOperation(
                     ).length;
 
                     if (cls.fee.type === FeeType.MONTHLY || cls.fee.type === FeeType.PER_COURSE) {
+                        // If monthly fee, charge if active&enrolled OR if they attended sessions (even if dropped out)
                         const shouldCharge = (student.status === PersonStatus.ACTIVE && isEnrolled) || attendedSessions > 0;
 
                         if (shouldCharge) {
                             classFee = cls.fee.amount;
                             if (classFee > 0) {
-                                details += `- Lớp ${cls.name}: ${classFee.toLocaleString('vi-VN')} ₫${!isEnrolled ? ' (Đã chuyển/nghỉ)' : ''}\n`;
+                                details += `- Lớp ${cls.name}: ${classFee.toLocaleString('vi-VN')} ₫${!isEnrolled ? ' (Lớp cũ/Đã nghỉ)' : ''}\n`;
                             }
                         }
                     } else if (cls.fee.type === FeeType.PER_SESSION) {
@@ -237,19 +243,29 @@ export function applyOperation(
                 const existingInvoice = data.invoices.find(inv => inv.studentId === student.id && inv.month === monthStr);
 
                 if (existingInvoice) {
+                    // Update existing UNPAID invoice if amount changed
                     if (existingInvoice.status === 'UNPAID' && (totalAmount !== existingInvoice.amount)) {
                         const amountDifference = totalAmount - existingInvoice.amount;
                         existingInvoice.amount = totalAmount;
                         existingInvoice.details = details.trim();
+                        
+                        // Update related transaction
                         const relatedTransaction = data.transactions.find(t => t.relatedInvoiceId === existingInvoice.id);
                         if(relatedTransaction) relatedTransaction.amount = -totalAmount;
+                        
+                        // Update student balance
                         const studentToUpdate = data.students.find(s => s.id === student.id);
                         if (studentToUpdate) studentToUpdate.balance -= amountDifference;
                     }
                 } else if (totalAmount > 0) {
+                    // Create new invoice
                     const invoiceId = generateUniqueId('INV');
                     data.invoices.push({ id: invoiceId, studentId: student.id, studentName: student.name, month: monthStr, amount: totalAmount, details: details.trim(), status: 'UNPAID', generatedDate: new Date().toISOString().split('T')[0], paidDate: null });
+                    
+                    // Create debit transaction
                     data.transactions.push({ id: generateUniqueId('TRX'), studentId: student.id, date: new Date().toISOString().split('T')[0], type: TransactionType.INVOICE, description: `Hóa đơn học phí tháng ${month}/${year}`, amount: -totalAmount, relatedInvoiceId: invoiceId });
+                    
+                    // Update student balance
                     const studentToUpdate = data.students.find(s => s.id === student.id);
                     if (studentToUpdate) studentToUpdate.balance -= totalAmount;
                 }
@@ -318,12 +334,14 @@ export function applyOperation(
             const { month, year } = payload;
             const monthStr = `${year}-${String(month).padStart(2, '0')}`;
             
+            // Get all teachers, calculate payroll for everyone
             const allTeachers = data.teachers;
             
             for(const teacher of allTeachers) {
                 let baseSalary = 0, sessionsTaught = 0;
                 const teacherClasses = data.classes.filter(c => c.teacherIds.includes(teacher.id));
                 
+                // Count unique sessions taught by this teacher in this month
                 const distinctSessions = new Set<string>();
                 data.attendance.forEach(a => {
                     if (a.date.startsWith(monthStr) && teacherClasses.some(c => c.id === a.classId)) {
@@ -332,6 +350,7 @@ export function applyOperation(
                 });
                 sessionsTaught = distinctSessions.size;
 
+                // If teacher is inactive and has no sessions, skip
                 if (teacher.status === PersonStatus.INACTIVE && sessionsTaught === 0) {
                     continue;
                 }
@@ -345,13 +364,13 @@ export function applyOperation(
                 const payrollId = `PAY-${teacher.id}-${monthStr}`;
                 const existingPayroll = data.payrolls.find(p => p.id === payrollId);
                 
-                // Preserve existing values if they exist to prevent overwriting edits
+                // Preserve existing manual edits if they exist
                 const bonus = existingPayroll ? existingPayroll.bonus : 0;
                 const deduction = existingPayroll ? existingPayroll.deduction : 0;
                 const status = existingPayroll ? existingPayroll.status : 'UNPAID';
                 const paidDate = existingPayroll ? existingPayroll.paidDate : undefined;
                 
-                // Ensure total salary is not negative and round it
+                // Ensure total salary is never negative and rounded
                 const totalSalary = Math.max(0, Math.round(baseSalary + bonus - deduction));
 
                 const newPayroll: Payroll = { 
@@ -387,18 +406,18 @@ export function applyOperation(
             payroll.bonus = bonus;
             payroll.deduction = deduction;
             payroll.status = status;
-            // Ensure total salary is not negative and round it
+            // Recalculate total
             payroll.totalSalary = Math.max(0, Math.round(payroll.baseSalary + bonus - deduction));
             
             const expenseId = `EXP-${payrollId}`;
 
             if (status === 'PAID') {
-                // Set payment date if not already set
+                // If marking as paid, set date if missing
                 if (!payroll.paidDate) {
                      payroll.paidDate = new Date().toISOString().split('T')[0];
                 }
                 
-                // Update or Create Expense
+                // Create or Update Expense record automatically
                 const existingExpense = data.expenses.find(e => e.id === expenseId);
                 if (existingExpense) {
                     existingExpense.amount = payroll.totalSalary;
@@ -414,8 +433,8 @@ export function applyOperation(
                     });
                 }
             } else if (status === 'UNPAID') {
+                // If marking as unpaid, clear date and remove expense
                 payroll.paidDate = undefined;
-                // Remove associated Expense if it exists
                 data.expenses = data.expenses.filter(e => e.id !== expenseId);
             }
             break;
