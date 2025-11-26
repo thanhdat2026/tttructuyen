@@ -173,9 +173,9 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 </table>
                 
                 <div className="flex justify-end mt-2">
-                    <div className="bg-gray-900 text-white rounded-lg shadow-xl px-6 py-2 text-center min-w-[240px]">
-                        <span className="block text-[9px] uppercase tracking-widest text-gray-400 mb-0.5 text-center">TỔNG THANH TOÁN</span>
-                        <span className="block text-2xl font-bold tracking-tight leading-none text-center">{formatCurrency(totalDue)}</span>
+                    <div className="bg-gray-900 text-white rounded-lg shadow-xl px-6 py-2 flex flex-col items-center min-w-[240px]">
+                        <span className="text-[9px] uppercase tracking-widest text-gray-400 mb-0.5">TỔNG THANH TOÁN</span>
+                        <span className="text-2xl font-bold tracking-tight leading-none">{formatCurrency(totalDue)}</span>
                     </div>
                 </div>
             </div>
@@ -224,7 +224,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 </div>
 
                 <div className="mt-2 text-xs text-gray-400 italic">
-                    Xin cảm ơn Quý phụ huynh! Mọi thắc mắc vui lòng liên hệ văn phòng trung tâm.
+                    Xin cảm ơn Quý phụ huynh! Mọi thắc mắc vui lòng liên hệ hotline trung tâm.
                 </div>
             </div>
         </div>
