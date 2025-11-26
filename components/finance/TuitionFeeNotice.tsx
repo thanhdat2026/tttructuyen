@@ -91,7 +91,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
     const { outstandingDebt, openingCredit, totalDue } = financialData;
 
     return (
-        <div ref={ref} className="bg-white p-4 text-gray-900 font-sans flex flex-col" style={{ width: '210mm', minHeight: 'auto', margin: '0 auto', boxSizing: 'border-box' }}>
+        <div ref={ref} className="bg-white p-3 text-gray-900 font-sans flex flex-col" style={{ width: '210mm', minHeight: 'auto', margin: '0 auto', boxSizing: 'border-box' }}>
             
             <div className="text-center mb-2">
                 <h1 className="text-2xl font-bold text-blue-700 uppercase tracking-wide mb-1 whitespace-nowrap">{settings.name}</h1>
@@ -111,53 +111,53 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 </div>
             </div>
 
-            <div className="mb-4 border border-gray-200 rounded-lg p-4 bg-slate-50/50">
+            <div className="mb-2 border border-gray-200 rounded-lg p-3 bg-slate-50/50">
                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 border-b border-gray-200 pb-2">Thông tin Học viên</h3>
-                <div className="grid grid-cols-2 gap-x-12 gap-y-4 text-sm">
+                <div className="grid grid-cols-2 gap-x-12 gap-y-3 text-sm">
                     <div className="flex flex-col">
-                        <span className="text-gray-500 text-xs mb-1">Họ và tên</span>
+                        <span className="text-gray-500 text-xs mb-0.5">Họ và tên</span>
                         <span className="font-bold text-lg text-gray-900">{student.name}</span>
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-gray-500 text-xs mb-1">Lớp đang học</span>
+                        <span className="text-gray-500 text-xs mb-0.5">Lớp đang học</span>
                         <span className="font-semibold text-gray-900 break-words leading-snug">
                             {enrolledClasses.length > 0 ? enrolledClasses.map(c => c.name).join(', ') : '(Không có lớp)'}
                         </span>
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-gray-500 text-xs mb-1">Mã học viên</span>
+                        <span className="text-gray-500 text-xs mb-0.5">Mã học viên</span>
                         <span className="font-mono font-semibold text-gray-700">{student.id}</span>
                     </div>
                     <div className="flex flex-col">
-                        <span className="text-gray-500 text-xs mb-1">Phụ huynh</span>
+                        <span className="text-gray-500 text-xs mb-0.5">Phụ huynh</span>
                         <span className="font-medium text-gray-900">{student.parentName}</span>
                     </div>
                 </div>
             </div>
 
-            <div className="mb-4">
+            <div className="mb-2">
                 <table className="w-full text-sm border-collapse">
                     <thead>
                         <tr className="bg-gray-900 text-white">
-                            <th className="py-2 px-4 text-left font-bold uppercase text-xs tracking-wider rounded-tl-md rounded-bl-md">Nội dung / Diễn giải</th>
-                            <th className="py-2 px-4 text-right font-bold uppercase text-xs tracking-wider w-40 rounded-tr-md rounded-br-md">Thành tiền</th>
+                            <th className="py-2 px-3 text-left font-bold uppercase text-xs tracking-wider rounded-tl-md rounded-bl-md">Nội dung / Diễn giải</th>
+                            <th className="py-2 px-3 text-right font-bold uppercase text-xs tracking-wider w-40 rounded-tr-md rounded-br-md">Thành tiền</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {Math.round(outstandingDebt) > 0 && (
                             <tr>
-                                <td className="py-2 px-4 font-medium text-gray-600">Nợ cũ kỳ trước</td>
-                                <td className="py-2 px-4 text-right font-bold text-gray-800">{formatCurrency(outstandingDebt)}</td>
+                                <td className="py-2 px-3 font-medium text-gray-600">Nợ cũ kỳ trước</td>
+                                <td className="py-2 px-3 text-right font-bold text-gray-800">{formatCurrency(outstandingDebt)}</td>
                             </tr>
                         )}
                         {Math.round(openingCredit) > 0 && (
                             <tr>
-                                <td className="py-2 px-4 font-medium text-gray-600">Đã thanh toán / Số dư kỳ trước</td>
-                                <td className="py-2 px-4 text-right font-bold text-green-600">-{formatCurrency(openingCredit)}</td>
+                                <td className="py-2 px-3 font-medium text-gray-600">Đã thanh toán / Số dư kỳ trước</td>
+                                <td className="py-2 px-3 text-right font-bold text-green-600">-{formatCurrency(openingCredit)}</td>
                             </tr>
                         )}
                         <tr>
-                            <td className="py-3 px-4 align-top">
+                            <td className="py-2 px-3 align-top">
                                 <p className="font-bold text-gray-900 text-base mb-1">Học phí tháng {invoice.month.split('-')[1]}/{invoice.month.split('-')[0]}</p>
                                 {invoice.details && (
                                     <div className="text-gray-500 text-xs leading-relaxed whitespace-pre-wrap border-l-2 border-gray-200 pl-3 mt-1">
@@ -165,7 +165,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                                     </div>
                                 )}
                             </td>
-                            <td className="py-3 px-4 text-right font-bold text-gray-900 text-base align-top">
+                            <td className="py-2 px-3 text-right font-bold text-gray-900 text-base align-top">
                                 {formatCurrency(invoice.amount)}
                             </td>
                         </tr>
@@ -173,8 +173,8 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 </table>
                 
                 <div className="flex justify-end mt-2">
-                    <div className="bg-gray-900 text-white rounded-lg shadow-xl px-6 py-3 text-center min-w-[240px]">
-                        <span className="block text-[9px] uppercase tracking-widest text-gray-400 mb-1 text-center">TỔNG THANH TOÁN</span>
+                    <div className="bg-gray-900 text-white rounded-lg shadow-xl px-6 py-2 text-center min-w-[240px]">
+                        <span className="block text-[9px] uppercase tracking-widest text-gray-400 mb-0.5 text-center">TỔNG THANH TOÁN</span>
                         <span className="block text-2xl font-bold tracking-tight leading-none text-center">{formatCurrency(totalDue)}</span>
                     </div>
                 </div>
@@ -183,29 +183,28 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
             <div className="border-t border-dashed border-gray-300 my-1"></div>
 
             <div className="text-center">
-                <h4 className="font-bold text-sm uppercase tracking-widest text-red-600 mb-2 border-b border-red-200 inline-block pb-1">THÔNG TIN CHUYỂN KHOẢN</h4>
+                <h4 className="font-bold text-sm uppercase tracking-widest text-red-600 mb-2">THÔNG TIN CHUYỂN KHOẢN</h4>
                 
+                <div className="text-red-600 mb-2">
+                    <p className="font-semibold text-base">{settings.bankName}</p>
+                    <p className="font-bold text-2xl tracking-wider font-mono my-0.5">{settings.bankAccountNumber}</p>
+                    <p className="font-semibold uppercase text-sm">{settings.bankAccountHolder}</p>
+                </div>
+
                 <div className="bg-white rounded-2xl p-2 border border-gray-100 inline-block max-w-xl w-full">
                     <div className="flex flex-col items-center">
-                        <div className="mb-2 text-center text-red-600">
-                             <p className="font-medium text-base">{settings.bankName}</p>
-                            <p className="font-mono font-bold text-2xl tracking-wider my-1">{settings.bankAccountNumber}</p>
-                            <p className="uppercase font-semibold text-sm">{settings.bankAccountHolder}</p>
-                        </div>
-
                         {qrCodeUrl && (
-                            <div className="relative group mb-2">
-                                <div className="absolute -inset-1 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-xl opacity-50"></div>
-                                <div className="relative bg-white p-1.5 rounded-lg border border-gray-200 shadow-sm">
+                            <div className="relative group mb-1">
+                                <div className="bg-white p-1.5 rounded-lg border border-gray-200 shadow-sm">
                                     <img 
                                         src={qrCodeUrl} 
                                         alt="QR Code" 
-                                        className="w-48 h-48 object-contain"
+                                        className="w-40 h-40 object-contain"
                                         style={{ imageRendering: 'pixelated' }}
                                         crossOrigin="anonymous"
                                         onError={(e) => {
                                             (e.target as HTMLImageElement).style.display = 'none';
-                                            (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="w-48 h-48 flex items-center justify-center text-red-500 text-xs bg-gray-50 rounded-lg border border-dashed border-red-300 p-2">Không thể tải mã QR.</div>';
+                                            (e.target as HTMLImageElement).parentElement!.innerHTML = '<div class="w-40 h-40 flex items-center justify-center text-red-500 text-xs bg-gray-50 rounded-lg border border-dashed border-red-300 p-2">Không thể tải mã QR.</div>';
                                         }}
                                     />
                                 </div>
