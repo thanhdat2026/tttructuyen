@@ -121,7 +121,7 @@ export const TuitionFeeNoticeModal: React.FC<TuitionFeeNoticeModalProps> = ({ is
     const { outstandingDebt, openingCredit, totalDue } = financialData;
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`Chi tiết Hóa đơn #${invoice.id}`}>
+        <Modal isOpen={isOpen} onClose={onClose} title={`Chi tiết Hóa đơn #${invoice.id.slice(-6)}`}>
             {/* Hidden component for image download */}
             <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
                 <TuitionFeeNotice ref={noticeRef} invoice={invoice} />
@@ -139,13 +139,13 @@ export const TuitionFeeNoticeModal: React.FC<TuitionFeeNoticeModalProps> = ({ is
 
                 {/* Financial Details */}
                 <div className="space-y-2 text-sm">
-                    {outstandingDebt > 0 && (
+                    {Math.round(outstandingDebt) > 0 && (
                         <div className="flex justify-between items-center py-2 border-b dark:border-slate-700">
                             <span className="text-slate-500 dark:text-slate-400">Dư nợ kỳ trước</span>
                             <span className="font-semibold">{formatCurrency(outstandingDebt)}</span>
                         </div>
                     )}
-                    {openingCredit > 0 && (
+                    {Math.round(openingCredit) > 0 && (
                          <div className="flex justify-between items-center py-2 border-b dark:border-slate-700">
                             <span className="text-slate-500 dark:text-slate-400">Số dư/Đã trả kỳ trước</span>
                             <span className="font-semibold text-green-600 dark:text-green-400">-{formatCurrency(openingCredit)}</span>
