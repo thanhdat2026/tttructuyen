@@ -91,16 +91,16 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
     const { outstandingDebt, openingCredit, totalDue } = financialData;
 
     return (
-        <div ref={ref} className="bg-white p-6 text-gray-900 font-sans flex flex-col" style={{ width: '210mm', minHeight: 'auto', margin: '0 auto', boxSizing: 'border-box' }}>
+        <div ref={ref} className="bg-white p-4 text-gray-900 font-sans flex flex-col" style={{ width: '210mm', minHeight: 'auto', margin: '0 auto', boxSizing: 'border-box' }}>
             
-            <div className="text-center mb-4">
+            <div className="text-center mb-2">
                 <h1 className="text-2xl font-bold text-blue-700 uppercase tracking-wide mb-1 whitespace-nowrap">{settings.name}</h1>
                 <div className="text-xs text-gray-600 flex flex-col items-center justify-center">
                     <span>{settings.address}</span>
                     <span>Hotline: <span className="font-medium">{settings.phone}</span></span>
                 </div>
                 
-                <div className="mt-4">
+                <div className="mt-2">
                     <h2 className="text-3xl font-extrabold uppercase text-gray-900 tracking-tight">THÔNG BÁO HỌC PHÍ</h2>
                     <p className="text-base text-gray-600 mt-1 font-medium">Tháng {invoice.month.split('-')[1]} năm {invoice.month.split('-')[0]}</p>
                     <div className="flex items-center justify-center gap-4 text-xs text-gray-500 mt-2">
@@ -180,19 +180,17 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                 </div>
             </div>
 
-            <div className="border-t border-dashed border-gray-300 my-2"></div>
+            <div className="border-t border-dashed border-gray-300 my-1"></div>
 
             <div className="text-center">
                 <h4 className="font-bold text-sm uppercase tracking-widest text-gray-500 mb-2 border-b border-gray-200 inline-block pb-1">THÔNG TIN CHUYỂN KHOẢN</h4>
                 
-                <div className="bg-white rounded-2xl p-3 border border-gray-100 inline-block max-w-xl w-full">
+                <div className="bg-white rounded-2xl p-2 border border-gray-100 inline-block max-w-xl w-full">
                     <div className="flex flex-col items-center">
-                        <div className="mb-2 text-center text-sm">
-                            <p className="font-semibold text-gray-800">
-                                <span className="font-mono text-xl tracking-wider">{settings.bankAccountNumber}</span>
-                                <br/>
-                                <span className="uppercase">{settings.bankAccountHolder}</span>
-                            </p>
+                        <div className="mb-2 text-center">
+                             <p className="font-medium text-base text-gray-700">{settings.bankName}</p>
+                            <p className="font-mono font-bold text-2xl tracking-wider text-gray-900 my-1">{settings.bankAccountNumber}</p>
+                            <p className="uppercase font-semibold text-sm text-gray-600">{settings.bankAccountHolder}</p>
                         </div>
 
                         {qrCodeUrl && (
@@ -226,7 +224,7 @@ export const TuitionFeeNotice = forwardRef<HTMLDivElement, TuitionFeeNoticeProps
                     </div>
                 </div>
 
-                <div className="mt-4 text-xs text-gray-400 italic">
+                <div className="mt-2 text-xs text-gray-400 italic">
                     Xin cảm ơn Quý phụ huynh! Mọi thắc mắc vui lòng liên hệ văn phòng trung tâm.
                 </div>
             </div>

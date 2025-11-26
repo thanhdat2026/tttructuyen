@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useMemo } from 'react';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
@@ -169,16 +170,17 @@ export const TuitionFeeNoticeModal: React.FC<TuitionFeeNoticeModalProps> = ({ is
                         <h3 className="font-semibold mb-3 text-center">Thông tin thanh toán</h3>
                         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                             <div className="flex-1 text-sm space-y-2 w-full">
+                                <p><span className="font-semibold">Ngân hàng:</span> {settings.bankName}</p>
                                 <p><span className="font-semibold">Số tài khoản:</span> {settings.bankAccountNumber}</p>
                                 <p><span className="font-semibold">Chủ tài khoản:</span> {settings.bankAccountHolder}</p>
-                                <div className="mt-2 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg flex items-center justify-between">
-                                    <div>
-                                        <p className="font-bold text-yellow-800 dark:text-yellow-200">Nội dung CK:</p>
-                                        <p className="text-red-600 font-mono font-bold break-all">{transferContent}</p>
+                                <div className="mt-2 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg text-center">
+                                    <p className="font-bold text-yellow-800 dark:text-yellow-200">Nội dung CK:</p>
+                                    <div className="flex items-center justify-center gap-2 mt-1">
+                                      <p className="text-red-600 font-mono font-bold break-all">{transferContent}</p>
+                                      <button onClick={() => handleCopy(transferContent)} className="p-1.5 rounded-full hover:bg-yellow-200 dark:hover:bg-yellow-800/50" title="Sao chép nội dung">
+                                          {ICONS.copy}
+                                      </button>
                                     </div>
-                                    <button onClick={() => handleCopy(transferContent)} className="p-2 rounded-full hover:bg-yellow-200 dark:hover:bg-yellow-800/50" title="Sao chép nội dung">
-                                        {ICONS.copy}
-                                    </button>
                                 </div>
                             </div>
                             {qrCodeUrl && (
