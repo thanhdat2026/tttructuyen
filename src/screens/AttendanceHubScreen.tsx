@@ -27,18 +27,18 @@ interface CalendarEvent {
     endTime: string;
 }
 
-const formatDateString = (date: Date) => {
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
+const formatDateString = (date: Date): string => {
+  // Timezone-safe date formatting
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 };
 
 export const AttendanceHubScreen: React.FC = () => {
     const { state } = useData();
     const [displayMonth, setDisplayMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
-    const [isScheduleVisible, setIsScheduleVisible] = useState(true);
 
     const normalizedSelectedDate = useMemo(() => {
         const d = new Date(selectedDate);
@@ -46,30 +46,25 @@ export const AttendanceHubScreen: React.FC = () => {
         return d;
     }, [selectedDate]);
 
-
     const monthlyCalendarEvents = useMemo(() => {
         const eventsMap = new Map<string, CalendarEvent>();
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const parseDateString = (dateStr: string) => {
-            const [y, m, d] = dateStr.split('-').map(Number);
-            return new Date(y, m - 1, d);
-        };
-        
         const selectedYear = displayMonth.getFullYear();
         const selectedMonth = displayMonth.getMonth();
         const startOfMonth = new Date(selectedYear, selectedMonth, 1);
         const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
 
+        // 1. Process actual attendance records first (source of truth)
         state.attendance.forEach(record => {
-            const recordDate = parseDateString(record.date);
+            const recordDate = new Date(record.date + 'T00:00:00'); // Ensure local timezone
             if (recordDate >= startOfMonth && recordDate <= endOfMonth) {
                 const key = `${record.classId}|${record.date}`;
                 const cls = state.classes.find(c => c.id === record.classId);
                 if (cls) {
                     const scheduleForDay = cls.schedule.find(s => dayOfWeekToNumber[s.dayOfWeek] === recordDate.getDay());
-                     eventsMap.set(key, {
+                    eventsMap.set(key, {
                         date: recordDate,
                         title: cls.name,
                         link: ROUTES.ATTENDANCE_DETAIL.replace(':classId', cls.id).replace(':date', record.date),
@@ -83,6 +78,7 @@ export const AttendanceHubScreen: React.FC = () => {
             }
         });
 
+        // 2. Fill in the projected schedule for unmarked days
         const loopDate = new Date(startOfMonth);
         while (loopDate <= endOfMonth) {
             const currentDate = new Date(loopDate);
@@ -127,7 +123,7 @@ export const AttendanceHubScreen: React.FC = () => {
              <div className="p-4 md:p-6 pb-2 flex-shrink-0">
                 <h2 className="text-xl md:text-2xl font-bold">Lịch điểm danh</h2>
             </div>
-            <div className="px-4 md:px-6">
+            <div className="px-4 md:px-6 flex-shrink-0">
                 <div className="card-base p-0 md:p-2">
                     <Calendar 
                         displayDate={displayMonth}
@@ -138,23 +134,9 @@ export const AttendanceHubScreen: React.FC = () => {
                 </div>
             </div>
             
-            <div className="flex-grow bg-white dark:bg-gray-800 rounded-t-2xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden mt-4">
-                <div className="px-4 pt-4 pb-2 flex-shrink-0">
-                    <button
-                        onClick={() => setIsScheduleVisible(!isScheduleVisible)}
-                        className="w-full flex flex-col items-center py-1 group"
-                        aria-expanded={isScheduleVisible}
-                        aria-controls="schedule-list"
-                    >
-                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full group-hover:bg-gray-400 dark:group-hover:bg-gray-500 transition-colors"></div>
-                    </button>
-                </div>
-
-                <div
-                    id="schedule-list"
-                    className={`overflow-hidden transition-all duration-300 ease-in-out ${isScheduleVisible ? 'max-h-[70vh]' : 'max-h-0'}`}
-                >
-                    <div className="px-4 pb-4 overflow-y-auto h-full">
+            <div className="flex-grow bg-white dark:bg-slate-800/80 rounded-t-2xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] backdrop-blur-sm flex flex-col overflow-hidden mt-4">
+                <div className="flex-1 overflow-y-auto pt-4">
+                     <div className="px-4 pb-4">
                         {eventsForSelectedDay.length > 0 ? (
                             <div className="space-y-3 pt-2">
                                 {eventsForSelectedDay.map((event, idx) => (
