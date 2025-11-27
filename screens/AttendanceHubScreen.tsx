@@ -5,7 +5,6 @@ import { useData } from '../hooks/useDataContext';
 import { Calendar } from '../components/common/Calendar';
 import { ClassSchedule } from '../types';
 import { ROUTES, ICONS } from '../constants';
-import { Button } from '../components/common/Button';
 import { Link } from 'react-router-dom';
 
 const dayOfWeekToNumber: Record<ClassSchedule['dayOfWeek'], number> = {

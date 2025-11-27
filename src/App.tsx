@@ -95,7 +95,7 @@ const AppLayout: React.FC = () => {
         <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-900">
             <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
             <div className="flex-1 flex flex-col overflow-hidden relative">
-                <Header pageTitle={pageTitle} onMenuClick={() => setIsSidebarOpen(true)} />
+                <Header pageTitle={pageTitle} />
                 {/* Added pb-20 for mobile to account for BottomNav */}
                 <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
                     {error && (

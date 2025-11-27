@@ -10,7 +10,6 @@ import { ChangePasswordModal } from '../auth/ChangePasswordModal';
 
 interface HeaderProps {
   pageTitle: string;
-  onMenuClick: () => void;
 }
 
 const Clock: React.FC = () => {
@@ -37,7 +36,7 @@ const Clock: React.FC = () => {
 };
 
 
-export const Header: React.FC<HeaderProps> = ({ pageTitle, onMenuClick }) => {
+export const Header: React.FC<HeaderProps> = ({ pageTitle }) => {
   const { user, role, logout } = useAuth();
   const { state, updateSettings } = useData();
   const [isChangePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
@@ -67,7 +66,7 @@ export const Header: React.FC<HeaderProps> = ({ pageTitle, onMenuClick }) => {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-b dark:border-gray-700 h-16 flex items-center justify-between px-4 md:px-6 flex-shrink-0 gap-4 print:hidden">
+      <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-b dark:border-gray-700 h-16 flex items-center justify-between px-4 md:px-6 flex-shrink-0 gap-4 print:hidden">
         {/* Left Section */}
         <div className="flex items-center gap-2 flex-shrink-0 min-w-0">
           <h1 className="text-lg md:text-xl font-bold text-gray-800 dark:text-white truncate">{pageTitle}</h1>
