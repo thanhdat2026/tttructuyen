@@ -4,18 +4,18 @@
     --color-sidebar-bg-dark: #111827; /* Default sidebar color, matches new background */
 
     /* New Light Theme */
-    --background-light: #f8fafc; /* slate-50, soft gray */
+    --background-light: #f1f5f9; /* slate-100, soft gray */
     --card-bg-light: #ffffff;
     --text-light-primary: #0f172a; /* Near black for high contrast */
     --text-light-secondary: #475569;
     --border-light: #e2e8f0;
 
-    /* New Dark Theme - Neutral Gray */
-    --background-dark: #0f172a;    /* slate-900, dark navy */
-    --card-bg-dark: #1f2937;    /* Neutral gray-800 */
-    --text-dark-primary: #f9fafb; /* Neutral gray-50 */
-    --text-dark-secondary: #9ca3af; /* Neutral gray-400 */
-    --border-dark: #374151;     /* Neutral gray-700 */
+    /* New Dark Theme - Matching screenshot */
+    --background-dark: #1e293b;    /* slate-800, dark navy */
+    --card-bg-dark: #334155;    /* slate-700 */
+    --text-dark-primary: #f1f5f9; /* slate-100 */
+    --text-dark-secondary: #94a3b8; /* slate-400 */
+    --border-dark: #475569;     /* slate-600 */
   }
 
   body {
@@ -51,8 +51,8 @@
   }
   .dark .form-input, .dark .form-select, .dark .form-textarea {
     color: var(--text-dark-primary);
-    background-color: #374151; /* gray-700 */
-    border-color: #4b5563; /* gray-600 */
+    background-color: #475569; /* slate-600 */
+    border-color: #64748b; /* slate-500 */
   }
   .dark .form-input:focus, .dark .form-select:focus, .dark .form-textarea:focus {
      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.4);
@@ -80,15 +80,12 @@
   /* Global Card Style */
   .card-base {
      background-color: var(--card-bg-light);
-     padding: 1.5rem;
+     padding: 1rem;
      border-radius: 0.75rem;
-     border: 1px solid var(--border-light);
-     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   }
   .dark .card-base {
     background-color: var(--card-bg-dark);
-    border-color: var(--border-dark);
-    box-shadow: none;
+    border: 1px solid var(--border-dark);
   }
 
   /* Print Styles */

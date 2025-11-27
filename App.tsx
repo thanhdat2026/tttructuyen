@@ -69,6 +69,8 @@ const AppLayout: React.FC = () => {
     const { error, setError } = useData();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     
+    const isAttendanceHub = location.pathname === ROUTES.ATTENDANCE_HUB;
+
     const pageTitle = useMemo(() => {
         const path = location.pathname;
         if (path.startsWith(ROUTES.CLASS_DETAIL.split('/:')[0])) return 'Chi tiết Lớp học';
@@ -92,12 +94,11 @@ const AppLayout: React.FC = () => {
     }, [location.pathname]);
 
     return (
-        <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-900">
+        <div className="flex h-screen w-full bg-slate-100 dark:bg-slate-800">
             <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
             <div className="flex-1 flex flex-col overflow-hidden relative">
                 <Header pageTitle={pageTitle} />
-                {/* Added pb-20 for mobile to account for BottomNav */}
-                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
+                <main className={isAttendanceHub ? "flex-1 overflow-hidden" : "flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 pb-24 md:pb-6"}>
                     {error && (
                         <div className="bg-red-100 border-l-4 border-red-500 text-red-800 p-4 mb-6 rounded-md relative shadow-md" role="alert">
                             <p className="font-bold">Thao tác thất bại</p>

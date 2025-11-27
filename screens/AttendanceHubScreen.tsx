@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState } from 'react';
 import { useData } from '../hooks/useDataContext';
 import { Calendar } from '../components/common/Calendar';
@@ -119,9 +120,10 @@ export const AttendanceHubScreen: React.FC = () => {
     }, [monthlyCalendarEvents, normalizedSelectedDate]);
     
     return (
-        <div className="flex flex-col h-full -m-4 md:-m-6 text-gray-800 dark:text-white">
+        <div className="flex flex-col h-full text-gray-800 dark:text-white">
+            {/* Top Calendar part */}
             <div className="p-4 md:p-6 flex-shrink-0">
-                <div className="card-base p-0 md:p-2">
+                 <div className="card-base p-0 md:p-2">
                     <Calendar 
                         displayDate={displayMonth}
                         onMonthChange={setDisplayMonth}
@@ -131,7 +133,8 @@ export const AttendanceHubScreen: React.FC = () => {
                 </div>
             </div>
             
-            <div className="flex-grow bg-white dark:bg-slate-800/80 rounded-t-2xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] backdrop-blur-sm flex flex-col overflow-hidden">
+            {/* Bottom Schedule List */}
+            <div className="flex-grow bg-white dark:bg-slate-700 rounded-t-2xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden">
                 <div className="flex-1 overflow-y-auto pt-4">
                      <div className="px-4 pb-24 md:pb-6">
                         {eventsForSelectedDay.length > 0 ? (
@@ -141,7 +144,7 @@ export const AttendanceHubScreen: React.FC = () => {
                                         to={event.link} 
                                         state={event.linkState} 
                                         key={idx}
-                                        className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors group"
+                                        className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-600/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-500/50 transition-colors group"
                                     >
                                         <div className="flex items-center gap-4">
                                             <div className="w-1.5 h-12 rounded-full shrink-0" style={{ backgroundColor: event.color }}></div>
