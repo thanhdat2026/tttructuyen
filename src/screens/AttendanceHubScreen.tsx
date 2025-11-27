@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { useData } from '../hooks/useDataContext';
 import { Calendar } from '../components/common/Calendar';
-import { ClassSchedule, AttendanceRecord } from '../types';
+import { ClassSchedule } from '../types';
 import { ROUTES, ICONS } from '../constants';
 import { Button } from '../components/common/Button';
 import { Link } from 'react-router-dom';
