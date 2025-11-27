@@ -1,10 +1,8 @@
 
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useData } from '../hooks/useDataContext';
-import { useAuth } from '../hooks/useAuth';
-import { useToast } from '../hooks/useToast';
 import { Calendar } from '../components/common/Calendar';
-import { ClassSchedule, UserRole, AttendanceRecord } from '../types';
+import { ClassSchedule, AttendanceRecord } from '../types';
 import { ROUTES, ICONS } from '../constants';
 import { Button } from '../components/common/Button';
 import { Link } from 'react-router-dom';
@@ -19,10 +17,6 @@ const dayOfWeekToNumber: Record<ClassSchedule['dayOfWeek'], number> = {
     'Saturday': 6,
 };
 
-const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 10 }, (_, i) => currentYear - i + 2); 
-const months = Array.from({ length: 12 }, (_, i) => i + 1);
-
 interface CalendarEvent {
     date: Date;
     title: string;
@@ -33,30 +27,11 @@ interface CalendarEvent {
 }
 
 export const AttendanceHubScreen: React.FC = () => {
-    const { state, updateAttendance } = useData();
-    const { role, user } = useAuth();
-    const { toast } = useToast();
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const [monthNavigator, setMonthNavigator] = useState(new Date());
+    const { state } = useData();
     const [activeDate, setActiveDate] = useState(new Date());
     
-    const canManage = role === UserRole.ADMIN || role === UserRole.MANAGER;
-    const canExport = canManage || role === UserRole.TEACHER;
-
-    const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newMonth = parseInt(e.target.value, 10);
-        setMonthNavigator(new Date(monthNavigator.getFullYear(), newMonth - 1, 1));
-    };
-
-    const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newYear = parseInt(e.target.value, 10);
-        setMonthNavigator(new Date(newYear, monthNavigator.getMonth(), 1));
-    };
-
-    const handleCalendarNavigate = (date: Date) => {
-        setMonthNavigator(date);
-    };
+    // Set hours to 0 to compare dates correctly
+    activeDate.setHours(0,0,0,0);
 
     const calendarEvents = useMemo(() => {
         const events: CalendarEvent[] = [];
@@ -73,8 +48,8 @@ export const AttendanceHubScreen: React.FC = () => {
             return date.toISOString().split('T')[0];
         };
         
-        const selectedYear = monthNavigator.getFullYear();
-        const selectedMonth = monthNavigator.getMonth();
+        const selectedYear = activeDate.getFullYear();
+        const selectedMonth = activeDate.getMonth();
         const startOfMonth = new Date(selectedYear, selectedMonth, 1);
         const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
 
@@ -134,76 +109,29 @@ export const AttendanceHubScreen: React.FC = () => {
             loopDate.setDate(loopDate.getDate() + 1);
         }
         return events;
-    }, [state.classes, state.attendance, monthNavigator]);
+    }, [state.classes, state.attendance, activeDate]);
         
-    const handleExport = () => {
-        const monthStr = `${monthNavigator.getFullYear()}-${String(monthNavigator.getMonth() + 1).padStart(2, '0')}`;
-        let recordsToExport = state.attendance.filter(a => a.date.startsWith(monthStr));
-        if (role === UserRole.TEACHER) {
-            const teacherClassIds = new Set(state.classes.filter(c => (c.teacherIds || []).includes(user!.id)).map(c => c.id));
-            recordsToExport = recordsToExport.filter(a => teacherClassIds.has(a.classId));
-        }
-        if (recordsToExport.length === 0) {
-            toast.info(`Không có dữ liệu điểm danh trong tháng ${monthNavigator.getMonth() + 1}/${monthNavigator.getFullYear()} để xuất.`);
-            return;
-        }
-        const exportData = { month: monthStr, records: recordsToExport };
-        const dataStr = JSON.stringify(exportData, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `diemdanh_thang_${monthNavigator.getMonth() + 1}-${monthNavigator.getFullYear()}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        toast.success('Xuất dữ liệu thành công!');
-    };
-
-    const handleImportClick = () => { fileInputRef.current?.click(); };
-
-    const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const text = e.target?.result as string;
-                const importedData = JSON.parse(text);
-                if (!importedData.month || !Array.isArray(importedData.records)) throw new Error("Định dạng file không hợp lệ.");
-                await updateAttendance(importedData.records as AttendanceRecord[]);
-                toast.success(`Đã nhập ${importedData.records.length} bản ghi điểm danh từ file.`);
-            } catch (error: any) {
-                toast.error(error.message || 'File không hợp lệ hoặc bị lỗi.');
-            } finally {
-                if(event.target) event.target.value = '';
-            }
-        };
-        reader.readAsText(file);
-    };
-
     const eventsForSelectedDay = useMemo(() => {
+        const selectedDateString = activeDate.toISOString().split('T')[0];
         return calendarEvents.filter(event => 
-            event.date.getFullYear() === activeDate.getFullYear() &&
-            event.date.getMonth() === activeDate.getMonth() &&
-            event.date.getDate() === activeDate.getDate()
-        );
+            event.date.toISOString().split('T')[0] === selectedDateString
+        ).sort((a,b) => a.title.localeCompare(b.title));
     }, [calendarEvents, activeDate]);
 
     return (
-        <div className="flex flex-col h-full -m-4 md:-m-6 bg-gray-100 dark:bg-black">
+        <div className="flex flex-col h-full -m-4 md:-m-6 bg-gray-100 dark:bg-black text-gray-800 dark:text-white">
              <div className="p-4 md:p-6 pb-0 flex-shrink-0">
                 <h1 className="text-2xl md:text-3xl font-bold">Lịch điểm danh</h1>
             </div>
             <div className="p-4 md:p-6">
-                <Calendar 
-                    events={calendarEvents} 
-                    displayDate={monthNavigator}
-                    onMonthChange={handleCalendarNavigate}
-                    selectedDate={activeDate}
-                    onDateSelect={setActiveDate}
-                />
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md">
+                    <Calendar 
+                        displayDate={activeDate}
+                        onMonthChange={setActiveDate}
+                        selectedDate={activeDate}
+                        onDateSelect={setActiveDate}
+                    />
+                </div>
             </div>
             <div className="text-center -mt-2 mb-4">
                  <Button variant="secondary" size="sm" onClick={() => setActiveDate(new Date())}>Hôm nay</Button>

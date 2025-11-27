@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { ICONS } from '../../constants';
 
 interface CalendarProps {
-    events: any[]; // Kept for potential future use, but not rendered in cells
     displayDate?: Date;
     onMonthChange?: (date: Date) => void;
     selectedDate?: Date;
@@ -12,7 +11,7 @@ interface CalendarProps {
 
 const dayNames = ['TH 2', 'TH 3', 'TH 4', 'TH 5', 'TH 6', 'TH 7', 'CN'];
 
-export const Calendar: React.FC<CalendarProps> = ({ events, displayDate, onMonthChange, selectedDate, onDateSelect }) => {
+export const Calendar: React.FC<CalendarProps> = ({ displayDate, onMonthChange, selectedDate, onDateSelect }) => {
     const [currentDate, setCurrentDate] = useState(displayDate || new Date());
 
     useEffect(() => {
@@ -65,7 +64,8 @@ export const Calendar: React.FC<CalendarProps> = ({ events, displayDate, onMonth
         const today = new Date();
         today.setHours(0,0,0,0);
 
-        while (day <= monthEnd || (day.getDay() !== 1 || rows.length < 5)) {
+        // Loop until we have filled at least 5 rows and have passed the end of the month
+        while (day <= monthEnd || (rows.length < 5 && day.getMonth() === monthStart.getMonth()) || rows.length < 5) {
              const days = [];
              for (let i = 0; i < 7; i++) {
                 const cloneDay = new Date(day);
@@ -78,24 +78,24 @@ export const Calendar: React.FC<CalendarProps> = ({ events, displayDate, onMonth
                 ) : false;
 
                 days.push(
-                    <div key={day.toString()} className="flex justify-center py-2">
+                    <div key={cloneDay.toISOString()} className="relative flex justify-center items-center py-2 h-12">
                          <button
                             onClick={() => onDateSelect && onDateSelect(cloneDay)}
-                            className={`w-8 h-8 flex flex-col items-center justify-center rounded-full text-sm font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 relative ${
+                            className={`w-8 h-8 flex flex-col items-center justify-center rounded-full text-sm font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 ${
                                 isSelected ? 'bg-primary text-white' : 
-                                isCurrentMonth ? 'text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700' : 'text-gray-400 dark:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                isCurrentMonth ? 'text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700' : 'text-gray-400 dark:text-gray-600'
                             }`}
                         >
                             {cloneDay.getDate()}
-                             {isToday && !isSelected && (
-                                <span className="absolute bottom-1 w-4 h-0.5 bg-primary rounded-full"></span>
-                             )}
                         </button>
+                        {isToday && (
+                            <span className="absolute bottom-1 w-4 h-0.5 bg-primary rounded-full"></span>
+                        )}
                     </div>
                 );
                 day.setDate(day.getDate() + 1);
             }
-            rows.push(<div key={day.toString()} className="grid grid-cols-7">{days}</div>);
+            rows.push(<div key={day.toISOString()} className="grid grid-cols-7">{days}</div>);
             if (day > monthEnd && day.getDay() === 1) break;
         }
         return <div>{rows}</div>;
@@ -103,7 +103,7 @@ export const Calendar: React.FC<CalendarProps> = ({ events, displayDate, onMonth
 
 
     return (
-        <div className="card-base p-2 md:p-4">
+        <div className="p-2 md:p-4">
             {renderHeader()}
             {renderDays()}
             {renderCells()}

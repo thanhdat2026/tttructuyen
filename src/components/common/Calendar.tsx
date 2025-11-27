@@ -1,29 +1,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { ICONS } from '../../constants';
-import { Link } from 'react-router-dom';
-
-interface CalendarEvent {
-    date: Date;
-    title: string;
-    link: string;
-    color: string;
-    linkState?: object;
-}
 
 interface CalendarProps {
-    events: CalendarEvent[];
-    displayDate?: Date; // New prop to control the month shown
-    onMonthChange?: (date: Date) => void; // Callback when user changes month via calendar buttons
-    viewMode?: 'month' | 'list'; // Optional prop if we want to support list view inside here later, but ignoring for now
+    displayDate?: Date;
+    onMonthChange?: (date: Date) => void;
+    selectedDate?: Date;
+    onDateSelect?: (date: Date) => void;
 }
 
-const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+const dayNames = ['TH 2', 'TH 3', 'TH 4', 'TH 5', 'TH 6', 'TH 7', 'CN'];
 
-export const Calendar: React.FC<CalendarProps> = ({ events, displayDate, onMonthChange }) => {
+export const Calendar: React.FC<CalendarProps> = ({ displayDate, onMonthChange, selectedDate, onDateSelect }) => {
     const [currentDate, setCurrentDate] = useState(displayDate || new Date());
 
-    // Sync internal state if displayDate prop changes
     useEffect(() => {
         if (displayDate) {
             setCurrentDate(displayDate);
@@ -32,6 +22,7 @@ export const Calendar: React.FC<CalendarProps> = ({ events, displayDate, onMonth
 
     const changeMonth = (amount: number) => {
         const newDate = new Date(currentDate);
+        newDate.setDate(1); // Avoids issues with month-end dates
         newDate.setMonth(newDate.getMonth() + amount);
         setCurrentDate(newDate);
         if (onMonthChange) {
@@ -63,56 +54,56 @@ export const Calendar: React.FC<CalendarProps> = ({ events, displayDate, onMonth
         const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
         const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
         const startDate = new Date(monthStart);
-        startDate.setDate(startDate.getDate() - monthStart.getDay());
-        const endDate = new Date(monthEnd);
-        if (monthEnd.getDay() !== 6) {
-             endDate.setDate(endDate.getDate() + (6 - monthEnd.getDay()));
-        }
-
+        
+        // Adjust start date to be the Monday of the first week
+        const dayOffset = (monthStart.getDay() + 6) % 7; // Monday is 0, Sunday is 6
+        startDate.setDate(startDate.getDate() - dayOffset);
+        
         const rows = [];
-        let days = [];
         let day = new Date(startDate);
         const today = new Date();
         today.setHours(0,0,0,0);
 
-        while (day <= endDate) {
-            for (let i = 0; i < 7; i++) {
+        // Loop until we have filled at least 5 rows and have passed the end of the month
+        while (day <= monthEnd || (rows.length < 5 && day.getMonth() === monthStart.getMonth()) || rows.length < 5) {
+             const days = [];
+             for (let i = 0; i < 7; i++) {
                 const cloneDay = new Date(day);
                 const isCurrentMonth = cloneDay.getMonth() === currentDate.getMonth();
                 const isToday = cloneDay.getTime() === today.getTime();
-
-                const dayEvents = events.filter(e => {
-                    const eventDate = new Date(e.date);
-                    return eventDate.getFullYear() === cloneDay.getFullYear() &&
-                           eventDate.getMonth() === cloneDay.getMonth() &&
-                           eventDate.getDate() === cloneDay.getDate();
-                });
+                const isSelected = selectedDate ? (
+                    cloneDay.getFullYear() === selectedDate.getFullYear() &&
+                    cloneDay.getMonth() === selectedDate.getMonth() &&
+                    cloneDay.getDate() === selectedDate.getDate()
+                ) : false;
 
                 days.push(
-                    <div key={day.toString()} className={`p-0.5 md:p-1 min-h-[60px] md:h-28 border border-gray-200 dark:border-gray-700 flex flex-col ${isCurrentMonth ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800/50'}`}>
-                        <div className={`text-[10px] md:text-sm font-semibold flex items-center justify-center mb-1 ${isToday ? 'bg-primary text-white rounded-full w-5 h-5 md:w-6 md:h-6' : ''} ${isCurrentMonth ? '' : 'text-gray-400'}`}>
+                    <div key={cloneDay.toISOString()} className="relative flex justify-center items-center py-2 h-12">
+                         <button
+                            onClick={() => onDateSelect && onDateSelect(cloneDay)}
+                            className={`w-8 h-8 flex flex-col items-center justify-center rounded-full text-sm font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/50 ${
+                                isSelected ? 'bg-primary text-white' : 
+                                isCurrentMonth ? 'text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700' : 'text-gray-400 dark:text-gray-600'
+                            }`}
+                        >
                             {cloneDay.getDate()}
-                        </div>
-                        <div className="flex-1 space-y-0.5 md:space-y-1 overflow-y-auto max-h-[45px] md:max-h-[80px] scrollbar-hide">
-                            {dayEvents.map((event, index) => (
-                                <Link to={event.link} state={event.linkState} key={index} title={event.title} className="block text-[9px] md:text-xs px-1 py-0.5 rounded text-white truncate leading-tight" style={{backgroundColor: event.color}}>
-                                    {event.title}
-                                </Link>
-                            ))}
-                        </div>
+                        </button>
+                        {isToday && (
+                            <span className="absolute bottom-1 w-4 h-0.5 bg-primary rounded-full"></span>
+                        )}
                     </div>
                 );
                 day.setDate(day.getDate() + 1);
             }
-            rows.push(<div key={day.toString()} className="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-700 border border-gray-200 dark:border-gray-700">{days}</div>);
-            days = [];
+            rows.push(<div key={day.toISOString()} className="grid grid-cols-7">{days}</div>);
+            if (day > monthEnd && day.getDay() === 1) break;
         }
         return <div>{rows}</div>;
     };
 
 
     return (
-        <div className="card-base p-2 md:p-4">
+        <div className="p-2 md:p-4">
             {renderHeader()}
             {renderDays()}
             {renderCells()}

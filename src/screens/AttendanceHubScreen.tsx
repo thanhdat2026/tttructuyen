@@ -1,10 +1,8 @@
 
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useData } from '../hooks/useDataContext';
-import { useAuth } from '../hooks/useAuth';
-import { useToast } from '../hooks/useToast';
 import { Calendar } from '../components/common/Calendar';
-import { ClassSchedule, UserRole, AttendanceRecord } from '../types';
+import { ClassSchedule, AttendanceRecord } from '../types';
 import { ROUTES, ICONS } from '../constants';
 import { Button } from '../components/common/Button';
 import { Link } from 'react-router-dom';
@@ -19,107 +17,49 @@ const dayOfWeekToNumber: Record<ClassSchedule['dayOfWeek'], number> = {
     'Saturday': 6,
 };
 
-const currentYear = new Date().getFullYear();
-// Range: 2 years future, 8 years past
-const years = Array.from({ length: 10 }, (_, i) => currentYear - i + 2); 
-const months = Array.from({ length: 12 }, (_, i) => i + 1);
-
 interface CalendarEvent {
     date: Date;
     title: string;
     link: string;
     color: string;
     linkState?: object;
-    statusText: string; // Helper text for list view
+    statusText: string;
 }
 
 export const AttendanceHubScreen: React.FC = () => {
-    const { state, updateAttendance } = useData();
-    const { role, user } = useAuth();
-    const { toast } = useToast();
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const [selectedDate, setSelectedDate] = useState(new Date());
-    const [viewMode, setViewMode] = useState<'calendar' | 'list'>('list'); // Default to list for better mobile UX
-
-    const selectedMonth = selectedDate.getMonth() + 1;
-    const selectedYear = selectedDate.getFullYear();
+    const { state } = useData();
+    const [activeDate, setActiveDate] = useState(new Date());
     
-    const canManage = role === UserRole.ADMIN || role === UserRole.MANAGER;
-    const canExport = canManage || role === UserRole.TEACHER;
-
-    // Detect mobile on mount to set default view
-    useEffect(() => {
-        if (window.innerWidth >= 768) {
-            setViewMode('calendar');
-        }
-    }, []);
-
-    const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newMonth = parseInt(e.target.value, 10);
-        setSelectedDate(new Date(selectedYear, newMonth - 1, 1));
-    };
-
-    const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const newYear = parseInt(e.target.value, 10);
-        setSelectedDate(new Date(newYear, selectedMonth - 1, 1));
-    };
-
-    const handleCalendarNavigate = (date: Date) => {
-        setSelectedDate(date);
-    };
+    // Set hours to 0 to compare dates correctly
+    activeDate.setHours(0,0,0,0);
 
     const calendarEvents = useMemo(() => {
         const events: CalendarEvent[] = [];
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        // Helper: Parse "YYYY-MM-DD" to Local Date (Midnight) without UTC offset issues
         const parseDateString = (dateStr: string) => {
             if (!dateStr) return new Date();
-            const parts = dateStr.split('-');
-            const y = parseInt(parts[0], 10);
-            const m = parseInt(parts[1], 10);
-            const d = parseInt(parts[2], 10);
+            const [y, m, d] = dateStr.split('-').map(Number);
             return new Date(y, m - 1, d);
         };
 
-        // Helper: Format Date to "YYYY-MM-DD" Local
         const formatDateString = (date: Date) => {
-            const y = date.getFullYear();
-            const m = String(date.getMonth() + 1).padStart(2, '0');
-            const d = String(date.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d}`;
+            return date.toISOString().split('T')[0];
         };
-
-        // Determine range to render: The entire selected month
-        const startOfMonth = new Date(selectedYear, selectedMonth - 1, 1);
-        const endOfMonth = new Date(selectedYear, selectedMonth, 0);
         
-        // Extend range to cover full calendar grid (start from Sunday before, end at Saturday after)
-        const renderStart = new Date(startOfMonth);
-        renderStart.setDate(renderStart.getDate() - renderStart.getDay()); // Go back to Sunday
-        
-        const renderEnd = new Date(endOfMonth);
-        if (renderEnd.getDay() !== 6) {
-            renderEnd.setDate(renderEnd.getDate() + (6 - renderEnd.getDay())); // Go forward to Saturday
-        }
+        const selectedYear = activeDate.getFullYear();
+        const selectedMonth = activeDate.getMonth();
+        const startOfMonth = new Date(selectedYear, selectedMonth, 1);
+        const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
 
-        // Set to track which sessions have real attendance data
-        // Key: "classId|dateString"
         const existingSessions = new Set<string>();
 
-        // 1. PRIORITIZE ACTUAL ATTENDANCE RECORDS (LỊCH SỬ ĐIỂM DANH)
-        // Iterate through all attendance records to find ones that fall within our render range
-        // We group by classId + date to create a single event per class session
-        
+        // 1. Process actual attendance records
         state.attendance.forEach(record => {
             const recordDate = parseDateString(record.date);
-            // Check if record is within the visible calendar range (roughly)
-            if (recordDate.getTime() >= renderStart.getTime() && recordDate.getTime() <= renderEnd.getTime()) {
+            if (recordDate >= startOfMonth && recordDate <= endOfMonth) {
                 const key = `${record.classId}|${record.date}`;
-                
-                // If we haven't added an event for this class session yet
                 if (!existingSessions.has(key)) {
                     const cls = state.classes.find(c => c.id === record.classId);
                     if (cls) {
@@ -127,7 +67,7 @@ export const AttendanceHubScreen: React.FC = () => {
                             date: recordDate,
                             title: cls.name,
                             link: ROUTES.ATTENDANCE_DETAIL.replace(':classId', cls.id).replace(':date', record.date),
-                            color: '#10b981', // Green (Present/Done)
+                            color: '#10b981', // Green
                             linkState: { returnTo: ROUTES.ATTENDANCE_HUB },
                             statusText: 'Đã điểm danh'
                         });
@@ -137,31 +77,24 @@ export const AttendanceHubScreen: React.FC = () => {
             }
         });
 
-        // 2. FILL IN GAPS WITH SCHEDULED CLASSES (LỊCH DỰ KIẾN)
-        // Iterate through every day in the render range
-        const loopDate = new Date(renderStart);
-        while (loopDate <= renderEnd) {
+        // 2. Fill in scheduled classes
+        const loopDate = new Date(startOfMonth);
+        while (loopDate <= endOfMonth) {
             const currentDate = new Date(loopDate);
             const dayOfWeek = currentDate.getDay();
             const dateString = formatDateString(currentDate);
             const isPast = currentDate < today;
 
             state.classes.forEach(cls => {
-                // Check if the class is scheduled for this day of the week
                 if (cls.schedule && cls.schedule.some(s => dayOfWeekToNumber[s.dayOfWeek] === dayOfWeek)) {
-                    
                     const key = `${cls.id}|${dateString}`;
-
-                    // ONLY add if there is NO existing attendance record for this slot
                     if (!existingSessions.has(key)) {
-                        let color = '#9ca3af'; // Default Gray (Future)
+                        let color = '#9ca3af'; // Gray
                         let statusText = 'Lịch học';
-
                         if (isPast) {
-                            color = '#ef4444'; // Red (Missed/Forgot)
+                            color = '#ef4444'; // Red
                             statusText = 'Chưa điểm danh';
                         }
-
                         events.push({
                             date: currentDate,
                             title: cls.name,
@@ -173,215 +106,71 @@ export const AttendanceHubScreen: React.FC = () => {
                     }
                 }
             });
-            
-            // Next day
             loopDate.setDate(loopDate.getDate() + 1);
         }
         return events;
-    }, [state.classes, state.attendance, selectedMonth, selectedYear]);
+    }, [state.classes, state.attendance, activeDate]);
         
-    const handleExport = () => {
-        const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
-        let recordsToExport = state.attendance.filter(a => a.date.startsWith(monthStr));
-
-        if (role === UserRole.TEACHER) {
-            const teacherClassIds = new Set(state.classes.filter(c => (c.teacherIds || []).includes(user!.id)).map(c => c.id));
-            recordsToExport = recordsToExport.filter(a => teacherClassIds.has(a.classId));
-        }
-
-        if (recordsToExport.length === 0) {
-            toast.info(`Không có dữ liệu điểm danh trong tháng ${selectedMonth}/${selectedYear} để xuất.`);
-            return;
-        }
-
-        const exportData = {
-            month: monthStr,
-            records: recordsToExport,
-        };
-
-        const dataStr = JSON.stringify(exportData, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `diemdanh_thang_${selectedMonth}-${selectedYear}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        toast.success('Xuất dữ liệu thành công!');
-    };
-
-    const handleImportClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handleFileImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const text = e.target?.result;
-                if (typeof text !== 'string') throw new Error("Không thể đọc file.");
-                
-                const importedData = JSON.parse(text);
-
-                if (!importedData.month || !Array.isArray(importedData.records)) {
-                    throw new Error("Định dạng file không hợp lệ.");
-                }
-
-                await updateAttendance(importedData.records as AttendanceRecord[]);
-                toast.success(`Đã nhập ${importedData.records.length} bản ghi điểm danh từ file. Dữ liệu đã được cập nhật.`);
-
-            } catch (error: any) {
-                toast.error(error.message || 'File không hợp lệ hoặc bị lỗi.');
-            } finally {
-                if(event.target) event.target.value = '';
-            }
-        };
-        reader.readAsText(file);
-    };
-
-    // Group events by date for List View
-    const eventsByDate = useMemo(() => {
-        const grouped: Record<string, CalendarEvent[]> = {};
-        // Sort events by date
-        const sortedEvents = [...calendarEvents].sort((a, b) => a.date.getTime() - b.date.getTime());
-        
-        sortedEvents.forEach(event => {
-            // Use consistent YYYY-MM-DD string as key
-            const y = event.date.getFullYear();
-            const m = String(event.date.getMonth() + 1).padStart(2, '0');
-            const d = String(event.date.getDate()).padStart(2, '0');
-            const dateKey = `${y}-${m}-${d}`;
-
-            // Only include events for the selected month/year in the list view to keep it focused
-            if (event.date.getMonth() + 1 === selectedMonth && event.date.getFullYear() === selectedYear) {
-                if (!grouped[dateKey]) {
-                    grouped[dateKey] = [];
-                }
-                grouped[dateKey].push(event);
-            }
-        });
-        return grouped;
-    }, [calendarEvents, selectedMonth, selectedYear]);
+    const eventsForSelectedDay = useMemo(() => {
+        const selectedDateString = activeDate.toISOString().split('T')[0];
+        return calendarEvents.filter(event => 
+            event.date.toISOString().split('T')[0] === selectedDateString
+        ).sort((a,b) => a.title.localeCompare(b.title));
+    }, [calendarEvents, activeDate]);
 
     return (
-        <div className="space-y-4">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col h-full -m-4 md:-m-6 bg-gray-100 dark:bg-black text-gray-800 dark:text-white">
+             <div className="p-4 md:p-6 pb-0 flex-shrink-0">
                 <h1 className="text-2xl md:text-3xl font-bold">Lịch điểm danh</h1>
+            </div>
+            <div className="p-4 md:p-6">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md">
+                    <Calendar 
+                        displayDate={activeDate}
+                        onMonthChange={setActiveDate}
+                        selectedDate={activeDate}
+                        onDateSelect={setActiveDate}
+                    />
+                </div>
+            </div>
+            <div className="text-center -mt-2 mb-4">
+                 <Button variant="secondary" size="sm" onClick={() => setActiveDate(new Date())}>Hôm nay</Button>
+            </div>
+            
+            <div className="flex-grow bg-white dark:bg-gray-900 rounded-t-2xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] p-4 flex flex-col">
+                <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-3 flex-shrink-0"></div>
+                <h2 className="font-bold text-lg text-center mb-3 flex-shrink-0">Lớp học ở đây</h2>
                 
-                {/* View Mode Toggle */}
-                <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1 self-end md:self-auto">
-                    <button 
-                        onClick={() => setViewMode('list')}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-gray-600 shadow-sm text-primary' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-                    >
-                        Danh sách
-                    </button>
-                    <button 
-                        onClick={() => setViewMode('calendar')}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${viewMode === 'calendar' ? 'bg-white dark:bg-gray-600 shadow-sm text-primary' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-                    >
-                        Lịch
-                    </button>
-                </div>
-            </div>
-            
-             <div className="card-base p-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                     <div className="flex items-center gap-2 w-full md:w-auto">
-                        <span className="font-medium whitespace-nowrap hidden md:inline">Thời gian:</span>
-                        <select value={selectedMonth} onChange={handleMonthChange} className="form-select py-2 text-sm flex-1 md:flex-none">
-                            {months.map(m => <option key={m} value={m}>Tháng {m}</option>)}
-                        </select>
-                        <select value={selectedYear} onChange={handleYearChange} className="form-select py-2 text-sm flex-1 md:flex-none">
-                            {years.map(y => <option key={y} value={y}>{y}</option>)}
-                        </select>
-                    </div>
-                     <div className="flex items-center gap-2 w-full md:w-auto justify-end">
-                        {canExport && (
-                            <Button onClick={handleExport} variant="secondary" size="sm" className="whitespace-nowrap">
-                                {ICONS.export} Xuất
-                            </Button>
-                        )}
-                        {canManage && (
-                            <>
-                                <Button onClick={handleImportClick} variant="secondary" size="sm" className="whitespace-nowrap">
-                                    {ICONS.restore} Nhập
-                                </Button>
-                                <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={handleFileImport} />
-                            </>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Legend */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs md:text-sm px-1">
-                <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-green-500 mr-1.5"></span> Đã điểm danh</div>
-                <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-red-500 mr-1.5"></span> Chưa điểm danh</div>
-                <div className="flex items-center"><span className="w-3 h-3 rounded-full bg-gray-500 mr-1.5"></span> Lịch học</div>
-            </div>
-            
-            {/* Calendar View */}
-            {viewMode === 'calendar' && (
-                <Calendar 
-                    events={calendarEvents} 
-                    displayDate={selectedDate}
-                    onMonthChange={handleCalendarNavigate}
-                />
-            )}
-
-            {/* List View */}
-            {viewMode === 'list' && (
-                <div className="space-y-4">
-                    {Object.keys(eventsByDate).length > 0 ? (
-                        Object.entries(eventsByDate).map(([dateStr, events]) => {
-                            const eventsList = events as CalendarEvent[];
-                            const [y, m, d] = dateStr.split('-').map(Number);
-                            const date = new Date(y, m - 1, d);
-                            const isToday = new Date().toDateString() === date.toDateString();
-                            
-                            return (
-                                <div key={dateStr} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                                    <div className={`px-4 py-3 font-semibold text-sm flex justify-between items-center ${isToday ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200' : 'bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300'}`}>
-                                        <span>{date.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' })}</span>
-                                        {isToday && <span className="text-xs bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-100 px-2 py-0.5 rounded-full">Hôm nay</span>}
+                <div className="flex-grow overflow-y-auto">
+                    {eventsForSelectedDay.length > 0 ? (
+                        <div className="space-y-3">
+                            {eventsForSelectedDay.map((event, idx) => (
+                                <Link 
+                                    to={event.link} 
+                                    state={event.linkState} 
+                                    key={idx}
+                                    className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-1.5 h-10 rounded-full shrink-0" style={{ backgroundColor: event.color }}></div>
+                                        <div>
+                                            <h3 className="font-bold text-base text-gray-900 dark:text-white">{event.title}</h3>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-0.5">{event.statusText}</p>
+                                        </div>
                                     </div>
-                                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                                        {eventsList.map((event, idx) => (
-                                            <Link 
-                                                to={event.link} 
-                                                state={event.linkState} 
-                                                key={idx}
-                                                className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors group"
-                                            >
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-1.5 h-10 rounded-full shrink-0" style={{ backgroundColor: event.color }}></div>
-                                                    <div>
-                                                        <h3 className="font-bold text-base text-gray-900 dark:text-white">{event.title}</h3>
-                                                        <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-0.5">{event.statusText}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="text-gray-400 group-hover:text-primary transition-colors">
-                                                    {ICONS.chevronRight}
-                                                </div>
-                                            </Link>
-                                        ))}
+                                    <div className="text-gray-400 group-hover:text-primary transition-colors">
+                                        {ICONS.chevronRight}
                                     </div>
-                                </div>
-                            );
-                        })
+                                </Link>
+                            ))}
+                        </div>
                     ) : (
-                        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
-                            <p className="text-gray-500 dark:text-gray-400">Không có lịch học nào trong tháng này.</p>
+                        <div className="flex items-center justify-center h-full text-center">
+                            <p className="text-gray-500">Không có lịch trình</p>
                         </div>
                     )}
                 </div>
-            )}
+            </div>
         </div>
     );
 };
