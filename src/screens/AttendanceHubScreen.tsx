@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState } from 'react';
 import { useData } from '../hooks/useDataContext';
 import { Calendar } from '../components/common/Calendar';
@@ -127,12 +128,12 @@ export const AttendanceHubScreen: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col h-full -m-4 md:-m-6 bg-gray-100 dark:bg-black text-gray-800 dark:text-white">
+        <div className="flex flex-col h-full -m-4 md:-m-6 bg-slate-50 dark:bg-slate-900 text-gray-800 dark:text-white">
              <div className="p-4 md:p-6 pb-0 flex-shrink-0">
                 <h1 className="text-2xl md:text-3xl font-bold">Lịch điểm danh</h1>
             </div>
             <div className="p-4 md:p-6">
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md">
+                <div className="card-base p-0 md:p-2">
                     <Calendar 
                         displayDate={displayMonth}
                         onMonthChange={setDisplayMonth}
@@ -141,11 +142,13 @@ export const AttendanceHubScreen: React.FC = () => {
                     />
                 </div>
             </div>
-            <div className="text-center -mt-2 mb-4">
-                 <Button variant="secondary" size="sm" onClick={handleTodayClick}>Hôm nay</Button>
+            <div className="text-center -mt-4 md:-mt-6 mb-4">
+                 <button onClick={handleTodayClick} className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-1.5 rounded-full text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                    Hôm nay
+                </button>
             </div>
             
-            <div className="flex-grow bg-white dark:bg-gray-900 rounded-t-2xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden">
+            <div className="flex-grow bg-white dark:bg-gray-800 rounded-t-2xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden">
                 <div className="px-4 pt-4 pb-2 flex-shrink-0">
                     <button
                         onClick={() => setIsScheduleVisible(!isScheduleVisible)}
@@ -169,7 +172,7 @@ export const AttendanceHubScreen: React.FC = () => {
                                         to={event.link} 
                                         state={event.linkState} 
                                         key={idx}
-                                        className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group"
+                                        className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-600/50 transition-colors group"
                                     >
                                         <div className="flex items-center gap-4">
                                             <div className="w-1.5 h-10 rounded-full shrink-0" style={{ backgroundColor: event.color }}></div>

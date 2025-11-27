@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useData } from '../../hooks/useDataContext';
@@ -66,17 +67,9 @@ export const Header: React.FC<HeaderProps> = ({ pageTitle, onMenuClick }) => {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-b dark:border-gray-700 h-16 flex items-center justify-between px-4 md:px-6 flex-shrink-0 gap-4 print:hidden shadow-sm">
+      <header className="sticky top-0 z-30 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-b dark:border-gray-700 h-16 flex items-center justify-between px-4 md:px-6 flex-shrink-0 gap-4 print:hidden">
         {/* Left Section */}
         <div className="flex items-center gap-2 flex-shrink-0 min-w-0">
-          {/* Hide burger menu on mobile since we have BottomNav, show only on tablet/desktop if needed or keep hidden if sidebar is persistent */}
-          <button
-            onClick={onMenuClick}
-            className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hidden md:block lg:hidden" 
-            title="Mở menu"
-          >
-            {ICONS.menu}
-          </button>
           <h1 className="text-lg md:text-xl font-bold text-gray-800 dark:text-white truncate">{pageTitle}</h1>
         </div>
         
@@ -93,11 +86,11 @@ export const Header: React.FC<HeaderProps> = ({ pageTitle, onMenuClick }) => {
                 onClick={() => setIsUserMenuOpen(prev => !prev)} 
                 className="flex items-center gap-2 p-1.5 md:p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition-all"
             >
-                <div className="hidden sm:block text-right">
+                 <div className="hidden sm:block text-right">
                     <p className="font-semibold text-sm text-gray-800 dark:text-white">{user?.name}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{role}</p>
                 </div>
-                <div className="sm:hidden bg-primary/10 text-primary p-1.5 rounded-full">{ICONS.user}</div>
+                {React.cloneElement(ICONS.user, { className: "w-6 h-6"})}
             </button>
             {isUserMenuOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 py-2 z-50 transform origin-top-right transition-all">

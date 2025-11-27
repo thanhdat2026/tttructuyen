@@ -67,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({ pageTitle, onMenuClick }) => {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-b dark:border-gray-700 h-16 flex items-center justify-between px-4 md:px-6 flex-shrink-0 gap-4 print:hidden">
+      <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-b dark:border-gray-700 h-16 flex items-center justify-between px-4 md:px-6 flex-shrink-0 gap-4 print:hidden">
         {/* Left Section */}
         <div className="flex items-center gap-2 flex-shrink-0 min-w-0">
           <button
@@ -77,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({ pageTitle, onMenuClick }) => {
           >
             {ICONS.menu}
           </button>
-          <h1 className="text-lg md:text-xl font-semibold text-gray-800 dark:text-white truncate">{pageTitle}</h1>
+          <h1 className="text-lg md:text-xl font-bold text-gray-800 dark:text-white truncate">{pageTitle}</h1>
         </div>
         
         {/* Right Section */}
@@ -91,35 +91,39 @@ export const Header: React.FC<HeaderProps> = ({ pageTitle, onMenuClick }) => {
           <div className="relative" ref={userMenuRef}>
             <button 
                 onClick={() => setIsUserMenuOpen(prev => !prev)} 
-                className="flex items-center gap-2 p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="flex items-center gap-2 p-1.5 md:p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition-all"
             >
-                <div className="hidden sm:block text-right">
+                 <div className="hidden sm:block text-right">
                     <p className="font-semibold text-sm text-gray-800 dark:text-white">{user?.name}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{role}</p>
                 </div>
-                <div className="sm:hidden">{ICONS.user}</div>
+                {React.cloneElement(ICONS.user, { className: "w-6 h-6 sm:hidden"})}
             </button>
             {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-md shadow-lg border dark:border-slate-700 py-1 z-50">
-                    <div className="px-4 py-3 border-b dark:border-slate-700 mb-1 sm:hidden">
+                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-100 dark:border-slate-700 py-2 z-50 transform origin-top-right transition-all">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 mb-1 sm:hidden">
                         <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">{user?.name}</p>
                         <p className="text-sm text-slate-500 dark:text-slate-400">{role}</p>
                     </div>
-                    <button onClick={() => { toggleTheme(); setIsUserMenuOpen(false); }} className={menuButtonClass} title={state.settings.theme === 'light' ? 'Chuyển sang chế độ tối' : 'Chuyển sang chế độ sáng'}>
-                        {state.settings.theme === 'light' ? ICONS.moon : ICONS.sun}
-                        <span>Giao diện</span>
-                    </button>
-                    {role !== UserRole.ADMIN && role !== UserRole.VIEWER && (
-                         <button onClick={() => { setChangePasswordModalOpen(true); setIsUserMenuOpen(false); }} className={menuButtonClass}>
-                            {ICONS.key}
-                            <span>Đổi mật khẩu</span>
+                    <div className="px-2">
+                        <button onClick={() => { toggleTheme(); setIsUserMenuOpen(false); }} className={`${menuButtonClass} rounded-lg`} title={state.settings.theme === 'light' ? 'Chuyển sang chế độ tối' : 'Chuyển sang chế độ sáng'}>
+                            {state.settings.theme === 'light' ? ICONS.moon : ICONS.sun}
+                            <span>Giao diện: {state.settings.theme === 'light' ? 'Sáng' : 'Tối'}</span>
                         </button>
-                    )}
-                    <div className="my-1 border-t dark:border-slate-700"></div>
-                    <button onClick={logout} className={`${menuButtonClass} text-red-600 dark:text-red-400`}>
-                        {ICONS.logout}
-                        <span>Đăng xuất</span>
-                    </button>
+                        {role !== UserRole.ADMIN && role !== UserRole.VIEWER && (
+                            <button onClick={() => { setChangePasswordModalOpen(true); setIsUserMenuOpen(false); }} className={`${menuButtonClass} rounded-lg`}>
+                                {ICONS.key}
+                                <span>Đổi mật khẩu</span>
+                            </button>
+                        )}
+                    </div>
+                    <div className="my-1 border-t border-gray-100 dark:border-slate-700"></div>
+                    <div className="px-2">
+                        <button onClick={logout} className={`${menuButtonClass} text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20`}>
+                            {ICONS.logout}
+                            <span>Đăng xuất</span>
+                        </button>
+                    </div>
                 </div>
             )}
           </div>

@@ -77,22 +77,22 @@ const AppLayout: React.FC = () => {
         if (path.startsWith(ROUTES.ATTENDANCE_DETAIL.split('/:')[0])) return 'Điểm danh';
 
         switch (path) {
-            case ROUTES.DASHBOARD: return 'Bảng điều khiển';
-            case ROUTES.STUDENTS: return 'Quản lý Học viên';
-            case ROUTES.TEACHERS: return 'Quản lý Giáo viên';
-            case ROUTES.STAFF: return 'Quản lý Nhân viên';
-            case ROUTES.CLASSES: return 'Quản lý Lớp học';
+            case ROUTES.DASHBOARD: return 'Tổng quan';
+            case ROUTES.STUDENTS: return 'Học viên';
+            case ROUTES.TEACHERS: return 'Giáo viên';
+            case ROUTES.STAFF: return 'Nhân viên';
+            case ROUTES.CLASSES: return 'Lớp học';
             case ROUTES.ATTENDANCE_HUB: return 'Điểm danh';
-            case ROUTES.FINANCE: return 'Quản lý Tài chính';
-            case ROUTES.ANNOUNCEMENTS: return 'Quản lý Thông báo';
-            case ROUTES.REPORTS: return 'Báo cáo & Thống kê';
-            case ROUTES.SETTINGS: return 'Cài đặt Trung tâm';
+            case ROUTES.FINANCE: return 'Tài chính';
+            case ROUTES.ANNOUNCEMENTS: return 'Thông báo';
+            case ROUTES.REPORTS: return 'Báo cáo';
+            case ROUTES.SETTINGS: return 'Cài đặt';
             default: return 'EduCenter Pro';
         }
     }, [location.pathname]);
 
     return (
-        <div className="flex h-screen w-full bg-background-light dark:bg-background-dark">
+        <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-900">
             <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
             <div className="flex-1 flex flex-col overflow-hidden relative">
                 <Header pageTitle={pageTitle} onMenuClick={() => setIsSidebarOpen(true)} />
@@ -118,7 +118,7 @@ const AppLayout: React.FC = () => {
 const ParentLayout: React.FC = () => {
      const { error, setError } = useData();
     return (
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-900">
             <ParentHeader />
             <main className="flex-1 container mx-auto px-4 py-6 pb-24 md:pb-6">
                  {error && (
@@ -154,7 +154,7 @@ const AppRoutes: React.FC = () => {
     
     if (state.loading || isAuthLoading) {
          return (
-            <div className="flex h-screen w-screen items-center justify-center">
+            <div className="flex h-screen w-screen items-center justify-center bg-slate-50 dark:bg-slate-900">
                 {ICONS.loading}
                 <span className="ml-4 text-xl">Đang tải dữ liệu...</span>
             </div>

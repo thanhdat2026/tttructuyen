@@ -4,14 +4,14 @@
     --color-sidebar-bg-dark: #111827; /* Default sidebar color, matches new background */
 
     /* New Light Theme */
-    --background-light: #f1f5f9; /* slate-100, slightly darker gray */
+    --background-light: #f8fafc; /* slate-50, soft gray */
     --card-bg-light: #ffffff;
     --text-light-primary: #0f172a; /* Near black for high contrast */
     --text-light-secondary: #475569;
     --border-light: #e2e8f0;
 
     /* New Dark Theme - Neutral Gray */
-    --background-dark: #020617;    /* slate-950, very dark */
+    --background-dark: #0f172a;    /* slate-900, dark navy */
     --card-bg-dark: #1f2937;    /* Neutral gray-800 */
     --text-dark-primary: #f9fafb; /* Neutral gray-50 */
     --text-dark-secondary: #9ca3af; /* Neutral gray-400 */
@@ -191,4 +191,11 @@
     aspect-ratio: 16 / 9;
     margin-top: 1rem;
     margin-bottom: 1rem;
+  }
+
+  /* Additional safe area padding for bottom nav */
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
   }
