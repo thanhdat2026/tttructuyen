@@ -1,3 +1,5 @@
+
+
 import React, { useMemo, useEffect, useState } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -11,6 +13,7 @@ import { ToastContainer } from './components/common/Toast';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { ParentHeader } from './components/layout/ParentHeader';
+import { BottomNav } from './components/layout/BottomNav';
 
 // Screens
 import { DashboardScreen } from './screens/DashboardScreen';
@@ -63,7 +66,7 @@ const ProtectedRoute: React.FC<{children: React.ReactNode, allowedRoles: UserRol
 
 const AppLayout: React.FC = () => {
     const location = useLocation();
-    const { error } = useData();
+    const { error, setError } = useData();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     
     const pageTitle = useMemo(() => {
@@ -79,7 +82,7 @@ const AppLayout: React.FC = () => {
             case ROUTES.TEACHERS: return 'Quản lý Giáo viên';
             case ROUTES.STAFF: return 'Quản lý Nhân viên';
             case ROUTES.CLASSES: return 'Quản lý Lớp học';
-            case ROUTES.ATTENDANCE_HUB: return 'Lịch điểm danh';
+            case ROUTES.ATTENDANCE_HUB: return 'Điểm danh';
             case ROUTES.FINANCE: return 'Quản lý Tài chính';
             case ROUTES.ANNOUNCEMENTS: return 'Quản lý Thông báo';
             case ROUTES.REPORTS: return 'Báo cáo & Thống kê';
@@ -91,32 +94,40 @@ const AppLayout: React.FC = () => {
     return (
         <div className="flex h-screen w-full bg-background-light dark:bg-background-dark">
             <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden relative">
                 <Header pageTitle={pageTitle} onMenuClick={() => setIsSidebarOpen(true)} />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6">
+                {/* Added pb-20 for mobile to account for BottomNav */}
+                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
                     {error && (
-                        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded-md" role="alert">
-                            <p className="font-bold">Thông báo</p>
-                            <p>{error}</p>
+                        <div className="bg-red-100 border-l-4 border-red-500 text-red-800 p-4 mb-6 rounded-md relative shadow-md" role="alert">
+                            <p className="font-bold">Thao tác thất bại</p>
+                            <p className="text-sm">{error}</p>
+                            <button onClick={() => setError(null)} className="absolute top-0 bottom-0 right-0 px-4 py-3" aria-label="Đóng">
+                                {React.cloneElement(ICONS.close, { className: 'w-5 h-5' })}
+                            </button>
                         </div>
                     )}
                     <Outlet />
                 </main>
+                <BottomNav onMenuClick={() => setIsSidebarOpen(true)} />
             </div>
         </div>
     );
 };
 
 const ParentLayout: React.FC = () => {
-    const { error } = useData();
+     const { error, setError } = useData();
     return (
         <div className="flex flex-col min-h-screen">
             <ParentHeader />
-            <main className="flex-1 container mx-auto px-4 py-6">
-                {error && (
-                    <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded-md" role="alert">
-                        <p className="font-bold">Thông báo</p>
-                        <p>{error}</p>
+            <main className="flex-1 container mx-auto px-4 py-6 pb-24 md:pb-6">
+                 {error && (
+                    <div className="bg-red-100 border-l-4 border-red-500 text-red-800 p-4 mb-6 rounded-md relative shadow-md" role="alert">
+                        <p className="font-bold">Thao tác thất bại</p>
+                        <p className="text-sm">{error}</p>
+                        <button onClick={() => setError(null)} className="absolute top-0 bottom-0 right-0 px-4 py-3" aria-label="Đóng">
+                            {React.cloneElement(ICONS.close, { className: 'w-5 h-5' })}
+                        </button>
                     </div>
                 )}
                 <Outlet />
@@ -125,21 +136,9 @@ const ParentLayout: React.FC = () => {
     );
 };
 
-const OfflineScreen: React.FC = () => (
-    <div className="flex h-screen w-screen items-center justify-center flex-col p-8 text-center bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><path d="M17.657 17.657A10 10 0 1 1 6.343 6.343m11.314 0l-11.314 11.314"/></svg>
-        <h1 className="text-2xl font-bold mt-4">Không có kết nối mạng</h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2 max-w-sm">Ứng dụng cần tải dữ liệu ban đầu. Vui lòng kiểm tra kết nối internet của bạn và thử lại.</p>
-        <Button onClick={() => window.location.reload()} className="mt-6">
-            Thử lại
-        </Button>
-    </div>
-);
-
-
 const AppRoutes: React.FC = () => {
     const { isAuthenticated, role, isAuthLoading } = useAuth();
-    const { state, isInitialOffline } = useData();
+    const { state, isInitialOffline, error: initialError } = useData();
 
     useEffect(() => {
         const root = window.document.documentElement;
@@ -163,7 +162,16 @@ const AppRoutes: React.FC = () => {
     }
 
     if (isInitialOffline) {
-        return <OfflineScreen />;
+        return (
+            <div className="flex h-screen w-screen items-center justify-center flex-col p-8 text-center bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <h1 className="text-2xl font-bold mt-4">Lỗi Tải Dữ liệu</h1>
+                <p className="text-gray-600 dark:text-gray-400 mt-2 max-w-lg">{initialError}</p>
+                <Button onClick={() => window.location.reload()} className="mt-6">
+                    Tải lại trang
+                </Button>
+            </div>
+        );
     }
     
     return (

@@ -4,14 +4,14 @@
     --color-sidebar-bg-dark: #111827; /* Default sidebar color, matches new background */
 
     /* New Light Theme */
-    --background-light: #f8fafc; /* Lighter background */
+    --background-light: #f1f5f9; /* slate-100, slightly darker gray */
     --card-bg-light: #ffffff;
     --text-light-primary: #0f172a; /* Near black for high contrast */
     --text-light-secondary: #475569;
     --border-light: #e2e8f0;
 
     /* New Dark Theme - Neutral Gray */
-    --background-dark: #111827; /* Neutral gray-900 */
+    --background-dark: #020617;    /* slate-950, very dark */
     --card-bg-dark: #1f2937;    /* Neutral gray-800 */
     --text-dark-primary: #f9fafb; /* Neutral gray-50 */
     --text-dark-secondary: #9ca3af; /* Neutral gray-400 */

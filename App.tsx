@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useEffect, useState } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -81,7 +82,7 @@ const AppLayout: React.FC = () => {
             case ROUTES.TEACHERS: return 'Quản lý Giáo viên';
             case ROUTES.STAFF: return 'Quản lý Nhân viên';
             case ROUTES.CLASSES: return 'Quản lý Lớp học';
-            case ROUTES.ATTENDANCE_HUB: return 'Lịch điểm danh';
+            case ROUTES.ATTENDANCE_HUB: return 'Điểm danh';
             case ROUTES.FINANCE: return 'Quản lý Tài chính';
             case ROUTES.ANNOUNCEMENTS: return 'Quản lý Thông báo';
             case ROUTES.REPORTS: return 'Báo cáo & Thống kê';
