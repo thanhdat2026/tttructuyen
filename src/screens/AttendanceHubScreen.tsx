@@ -39,11 +39,17 @@ export const AttendanceHubScreen: React.FC = () => {
 
 
     const monthlyCalendarEvents = useMemo(() => {
-        const eventsMap = new Map<string, CalendarEvent>(); // key: 'classId|date'
+        const eventsMap = new Map<string, CalendarEvent>();
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const formatDateString = (date: Date) => date.toISOString().split('T')[0];
+        const formatDateString = (date: Date) => {
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
         const parseDateString = (dateStr: string) => {
             const [y, m, d] = dateStr.split('-').map(Number);
             return new Date(y, m - 1, d);
@@ -54,7 +60,26 @@ export const AttendanceHubScreen: React.FC = () => {
         const startOfMonth = new Date(selectedYear, selectedMonth, 1);
         const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0);
 
-        // 1. Generate all scheduled events for the month
+        // Step 1: Process actual attendance records first (source of truth)
+        state.attendance.forEach(record => {
+            const recordDate = parseDateString(record.date);
+            if (recordDate >= startOfMonth && recordDate <= endOfMonth) {
+                const key = `${record.classId}|${record.date}`;
+                const cls = state.classes.find(c => c.id === record.classId);
+                if (cls && !eventsMap.has(key)) { // Check if not already added
+                     eventsMap.set(key, {
+                        date: recordDate,
+                        title: cls.name,
+                        link: ROUTES.ATTENDANCE_DETAIL.replace(':classId', cls.id).replace(':date', record.date),
+                        color: '#10b981', // Green for "Done"
+                        linkState: { returnTo: ROUTES.ATTENDANCE_HUB },
+                        statusText: 'Đã điểm danh'
+                    });
+                }
+            }
+        });
+
+        // Step 2: Fill in the gaps with the projected schedule
         const loopDate = new Date(startOfMonth);
         while (loopDate <= endOfMonth) {
             const currentDate = new Date(loopDate);
@@ -64,47 +89,37 @@ export const AttendanceHubScreen: React.FC = () => {
             state.classes.forEach(cls => {
                 if (cls.schedule && cls.schedule.some(s => dayOfWeekToNumber[s.dayOfWeek] === dayOfWeek)) {
                     const key = `${cls.id}|${dateString}`;
-                    const isPast = currentDate < today;
                     
-                    eventsMap.set(key, {
-                        date: currentDate,
-                        title: cls.name,
-                        link: ROUTES.ATTENDANCE_DETAIL.replace(':classId', cls.id).replace(':date', dateString),
-                        color: isPast ? '#ef4444' : '#9ca3af', // Red : Gray
-                        linkState: { returnTo: ROUTES.ATTENDANCE_HUB },
-                        statusText: isPast ? 'Chưa điểm danh' : 'Lịch học'
-                    });
+                    // Only add if no attendance record exists for this class on this day
+                    if (!eventsMap.has(key)) {
+                        const isPast = currentDate < today;
+                        eventsMap.set(key, {
+                            date: currentDate,
+                            title: cls.name,
+                            link: ROUTES.ATTENDANCE_DETAIL.replace(':classId', cls.id).replace(':date', dateString),
+                            color: isPast ? '#ef4444' : '#9ca3af', // Red for "Unmarked" : Gray for "Scheduled"
+                            linkState: { returnTo: ROUTES.ATTENDANCE_HUB },
+                            statusText: isPast ? 'Chưa điểm danh' : 'Lịch học'
+                        });
+                    }
                 }
             });
             loopDate.setDate(loopDate.getDate() + 1);
         }
         
-        // 2. Override with actual attendance records
-        state.attendance.forEach(record => {
-            const recordDate = parseDateString(record.date);
-            if (recordDate >= startOfMonth && recordDate <= endOfMonth) {
-                const key = `${record.classId}|${record.date}`;
-                const cls = state.classes.find(c => c.id === record.classId);
-                if (cls) {
-                     eventsMap.set(key, {
-                        date: recordDate,
-                        title: cls.name,
-                        link: ROUTES.ATTENDANCE_DETAIL.replace(':classId', cls.id).replace(':date', record.date),
-                        color: '#10b981', // Green
-                        linkState: { returnTo: ROUTES.ATTENDANCE_HUB },
-                        statusText: 'Đã điểm danh'
-                    });
-                }
-            }
-        });
-        
         return Array.from(eventsMap.values());
     }, [state.classes, state.attendance, displayMonth]);
         
     const eventsForSelectedDay = useMemo(() => {
-        const selectedDateString = normalizedSelectedDate.toISOString().split('T')[0];
+        const formatDateString = (date: Date) => {
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        const selectedDateString = formatDateString(normalizedSelectedDate);
         return monthlyCalendarEvents.filter(event => 
-            event.date.toISOString().split('T')[0] === selectedDateString
+            formatDateString(event.date) === selectedDateString
         ).sort((a,b) => a.title.localeCompare(b.title));
     }, [monthlyCalendarEvents, normalizedSelectedDate]);
     
