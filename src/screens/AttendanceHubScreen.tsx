@@ -120,10 +120,7 @@ export const AttendanceHubScreen: React.FC = () => {
     
     return (
         <div className="flex flex-col h-full -m-4 md:-m-6 text-gray-800 dark:text-white">
-             <div className="p-4 md:p-6 pb-2 flex-shrink-0">
-                <h2 className="text-xl md:text-2xl font-bold">Lịch điểm danh</h2>
-            </div>
-            <div className="px-4 md:px-6 flex-shrink-0">
+            <div className="p-4 md:p-6 flex-shrink-0">
                 <div className="card-base p-0 md:p-2">
                     <Calendar 
                         displayDate={displayMonth}
@@ -134,9 +131,9 @@ export const AttendanceHubScreen: React.FC = () => {
                 </div>
             </div>
             
-            <div className="flex-grow bg-white dark:bg-slate-800/80 rounded-t-2xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] backdrop-blur-sm flex flex-col overflow-hidden mt-4">
+            <div className="flex-grow bg-white dark:bg-slate-800/80 rounded-t-2xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] backdrop-blur-sm flex flex-col overflow-hidden">
                 <div className="flex-1 overflow-y-auto pt-4">
-                     <div className="px-4 pb-4">
+                     <div className="px-4 pb-24 md:pb-6">
                         {eventsForSelectedDay.length > 0 ? (
                             <div className="space-y-3 pt-2">
                                 {eventsForSelectedDay.map((event, idx) => (
