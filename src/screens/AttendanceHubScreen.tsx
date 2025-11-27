@@ -26,10 +26,20 @@ interface CalendarEvent {
     statusText: string;
 }
 
+const formatDateString = (date: Date) => {
+    // This function creates a YYYY-MM-DD string that is timezone-safe,
+    // avoiding issues where `toISOString` might shift the date.
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 export const AttendanceHubScreen: React.FC = () => {
     const { state } = useData();
     const [displayMonth, setDisplayMonth] = useState(new Date()); // For calendar view
     const [selectedDate, setSelectedDate] = useState(new Date()); // For selected day
+    const [isScheduleVisible, setIsScheduleVisible] = useState(true);
 
     const normalizedSelectedDate = useMemo(() => {
         const d = new Date(selectedDate);
@@ -42,13 +52,6 @@ export const AttendanceHubScreen: React.FC = () => {
         const eventsMap = new Map<string, CalendarEvent>();
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-
-        const formatDateString = (date: Date) => {
-            const year = date.getFullYear();
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const day = date.getDate().toString().padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        };
 
         const parseDateString = (dateStr: string) => {
             const [y, m, d] = dateStr.split('-').map(Number);
@@ -111,12 +114,6 @@ export const AttendanceHubScreen: React.FC = () => {
     }, [state.classes, state.attendance, displayMonth]);
         
     const eventsForSelectedDay = useMemo(() => {
-        const formatDateString = (date: Date) => {
-            const year = date.getFullYear();
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const day = date.getDate().toString().padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        };
         const selectedDateString = formatDateString(normalizedSelectedDate);
         return monthlyCalendarEvents.filter(event => 
             formatDateString(event.date) === selectedDateString
@@ -148,38 +145,51 @@ export const AttendanceHubScreen: React.FC = () => {
                  <Button variant="secondary" size="sm" onClick={handleTodayClick}>Hôm nay</Button>
             </div>
             
-            <div className="flex-grow bg-white dark:bg-gray-900 rounded-t-2xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] p-4 flex flex-col">
-                <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-3 flex-shrink-0"></div>
-                <h2 className="font-bold text-lg text-center mb-3 flex-shrink-0">Lớp học ở đây</h2>
-                
-                <div className="flex-grow overflow-y-auto">
-                    {eventsForSelectedDay.length > 0 ? (
-                        <div className="space-y-3">
-                            {eventsForSelectedDay.map((event, idx) => (
-                                <Link 
-                                    to={event.link} 
-                                    state={event.linkState} 
-                                    key={idx}
-                                    className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-1.5 h-10 rounded-full shrink-0" style={{ backgroundColor: event.color }}></div>
-                                        <div>
-                                            <h3 className="font-bold text-base text-gray-900 dark:text-white">{event.title}</h3>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-0.5">{event.statusText}</p>
+            <div className="flex-grow bg-white dark:bg-gray-900 rounded-t-2xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden">
+                <div className="px-4 pt-4 pb-2 flex-shrink-0">
+                    <button
+                        onClick={() => setIsScheduleVisible(!isScheduleVisible)}
+                        className="w-full flex flex-col items-center py-1 group"
+                        aria-expanded={isScheduleVisible}
+                        aria-controls="schedule-list"
+                    >
+                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full group-hover:bg-gray-400 dark:group-hover:bg-gray-500 transition-colors"></div>
+                    </button>
+                </div>
+
+                <div
+                    id="schedule-list"
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${isScheduleVisible ? 'max-h-[70vh]' : 'max-h-0'}`}
+                >
+                    <div className="px-4 pb-4 overflow-y-auto h-full">
+                        {eventsForSelectedDay.length > 0 ? (
+                            <div className="space-y-3 pt-2">
+                                {eventsForSelectedDay.map((event, idx) => (
+                                    <Link 
+                                        to={event.link} 
+                                        state={event.linkState} 
+                                        key={idx}
+                                        className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors group"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-1.5 h-10 rounded-full shrink-0" style={{ backgroundColor: event.color }}></div>
+                                            <div>
+                                                <h3 className="font-bold text-base text-gray-900 dark:text-white">{event.title}</h3>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-0.5">{event.statusText}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="text-gray-400 group-hover:text-primary transition-colors">
-                                        {ICONS.chevronRight}
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="flex items-center justify-center h-full text-center">
-                            <p className="text-gray-500">Không có lịch trình</p>
-                        </div>
-                    )}
+                                        <div className="text-gray-400 group-hover:text-primary transition-colors">
+                                            {ICONS.chevronRight}
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center h-full text-center py-10">
+                                <p className="text-gray-500">Không có lịch trình</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
