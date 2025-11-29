@@ -247,19 +247,27 @@ export function applyOperation(
                 const existingInvoice = data.invoices.find(inv => inv.studentId === student.id && inv.month === monthStr);
 
                 if (existingInvoice) {
-                    // Update existing UNPAID invoice if amount changed
-                    if (existingInvoice.status === 'UNPAID' && (totalAmount !== existingInvoice.amount)) {
+                    // Update existing UNPAID invoice
+                    // Always update generatedDate and details to reflect current 'Generate' action
+                    if (existingInvoice.status === 'UNPAID') {
                         const amountDifference = totalAmount - existingInvoice.amount;
+                        
                         existingInvoice.amount = totalAmount;
                         existingInvoice.details = details.trim();
+                        existingInvoice.generatedDate = new Date().toISOString().split('T')[0]; // Update date to today
                         
                         // Update related transaction
                         const relatedTransaction = data.transactions.find(t => t.relatedInvoiceId === existingInvoice.id);
-                        if(relatedTransaction) relatedTransaction.amount = -totalAmount;
+                        if(relatedTransaction) {
+                            relatedTransaction.amount = -totalAmount;
+                            relatedTransaction.date = existingInvoice.generatedDate; // Sync transaction date
+                        }
                         
-                        // Update student balance
-                        const studentToUpdate = data.students.find(s => s.id === student.id);
-                        if (studentToUpdate) studentToUpdate.balance -= amountDifference;
+                        // Update student balance if amount changed
+                        if (amountDifference !== 0) {
+                            const studentToUpdate = data.students.find(s => s.id === student.id);
+                            if (studentToUpdate) studentToUpdate.balance -= amountDifference;
+                        }
                     }
                 } else if (totalAmount > 0) {
                     // Create new invoice
