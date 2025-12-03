@@ -230,7 +230,7 @@ export const StudentsScreen: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [classFilter, setClassFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
-    const [sortConfig, setSortConfig] = useState<SortConfig<Student> | null>({ key: 'createdAt', direction: 'descending' });
+    const [sortConfig, setSortConfig] = useState<SortConfig<Student> | null>({ key: 'name', direction: 'ascending' });
     const ITEMS_PER_PAGE = 10;
 
     const canManage = role === UserRole.ADMIN || role === UserRole.MANAGER;

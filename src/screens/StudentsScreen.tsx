@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useData } from '../hooks/useDataContext';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
@@ -14,6 +14,11 @@ import { ListItemCard } from '../components/common/ListItemCard';
 import { ResetPasswordModal } from '../components/auth/ChangePasswordModal';
 import { PaymentModal } from '../components/finance/PaymentModal';
 
+
+const removeAccents = (str: string) => {
+  if (!str) return '';
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
+};
 
 const ClassSelector: React.FC<{
     allClasses: Class[];
@@ -215,6 +220,8 @@ export const StudentsScreen: React.FC = () => {
     const { state, addStudent, updateStudent, deleteStudent } = useData();
     const { role } = useAuth();
     const { toast } = useToast();
+    const location = useLocation();
+    const navigate = useNavigate();
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingStudent, setEditingStudent] = useState<Student | undefined>(undefined);
     const [confirmModalState, setConfirmModalState] = useState<{ isOpen: boolean; student: Student | null }>({ isOpen: false, student: null });
@@ -223,7 +230,7 @@ export const StudentsScreen: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [classFilter, setClassFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(1);
-    const [sortConfig, setSortConfig] = useState<SortConfig<Student> | null>({ key: 'createdAt', direction: 'descending' });
+    const [sortConfig, setSortConfig] = useState<SortConfig<Student> | null>({ key: 'name', direction: 'ascending' });
     const ITEMS_PER_PAGE = 10;
 
     const canManage = role === UserRole.ADMIN || role === UserRole.MANAGER;
@@ -235,6 +242,21 @@ export const StudentsScreen: React.FC = () => {
         }
         setSortConfig({ key, direction });
     };
+
+    const handleOpenModal = (student?: Student) => {
+        setEditingStudent(student);
+        setModalOpen(true);
+    };
+
+    useEffect(() => {
+        const { editStudentId } = location.state || {};
+        if (editStudentId && !isModalOpen) {
+            const studentToEdit = state.students.find(s => s.id === editStudentId);
+            if (studentToEdit) {
+                handleOpenModal(studentToEdit);
+            }
+        }
+    }, [location.state, state.students, isModalOpen]);
 
     const filteredStudents = useMemo(() => {
         let studentsToFilter = state.students;
@@ -249,18 +271,58 @@ export const StudentsScreen: React.FC = () => {
 
         if (!searchQuery) return studentsToFilter;
         
-        const lowercasedQuery = searchQuery.toLowerCase();
-        return studentsToFilter.filter(s => 
-            s.id.toLowerCase().includes(lowercasedQuery) ||
-            s.name.toLowerCase().includes(lowercasedQuery) ||
-            s.email.toLowerCase().includes(lowercasedQuery) ||
-            s.phone.includes(searchQuery)
-        );
+        const normalizedQuery = removeAccents(searchQuery.toLowerCase());
+        return studentsToFilter.filter(s => {
+            const normalizedName = removeAccents(s.name.toLowerCase());
+            const phoneMatch = s.phone.includes(searchQuery);
+            const nameMatch = normalizedName.includes(normalizedQuery);
+            return phoneMatch || nameMatch;
+        });
     }, [state.students, state.classes, searchQuery, classFilter]);
     
     const sortedStudents = useMemo(() => {
         let sortableItems = [...filteredStudents];
-        if (sortConfig !== null) {
+        
+        if (searchQuery) {
+            const normalizedQuery = removeAccents(searchQuery.toLowerCase());
+
+            const getScore = (student: Student) => {
+                // Phone match is highest priority
+                if (student.phone.includes(searchQuery)) {
+                    return 3;
+                }
+                
+                const normalizedName = removeAccents(student.name.toLowerCase());
+                const nameParts = normalizedName.split(' ');
+                const lastName = nameParts[nameParts.length - 1];
+
+                // Last name match is second priority
+                if (lastName.startsWith(normalizedQuery)) {
+                    return 2;
+                }
+
+                // Any other name match is lowest priority
+                if (normalizedName.includes(normalizedQuery)) {
+                    return 1;
+                }
+
+                return 0;
+            };
+
+            sortableItems.sort((a, b) => {
+                const scoreA = getScore(a);
+                const scoreB = getScore(b);
+
+                if (scoreA !== scoreB) {
+                    return scoreB - scoreA; // Higher score comes first
+                }
+
+                // If scores are equal, sort by name alphabetically
+                return a.name.localeCompare(b.name, 'vi');
+            });
+
+        } else if (sortConfig !== null) {
+            // Original sorting logic when not searching
             const getLastName = (fullName: string) => {
                 if (!fullName) return '';
                 const parts = fullName.trim().split(/\s+/);
@@ -295,7 +357,7 @@ export const StudentsScreen: React.FC = () => {
             });
         }
         return sortableItems;
-    }, [filteredStudents, sortConfig]);
+    }, [filteredStudents, sortConfig, searchQuery]);
 
     const totalPages = Math.ceil(sortedStudents.length / ITEMS_PER_PAGE);
     const paginatedStudents = sortedStudents.slice(
@@ -356,17 +418,17 @@ export const StudentsScreen: React.FC = () => {
         ), sortable: true, sortKey: 'status' as keyof Student },
     ];
 
-    const handleOpenModal = (student?: Student) => {
-        setEditingStudent(student);
-        setModalOpen(true);
-    };
-
     const handleCloseModal = () => {
         setEditingStudent(undefined);
         setModalOpen(false);
+        const { returnTo } = location.state || {};
+        if (returnTo) {
+            navigate(returnTo, { replace: true, state: {} });
+        }
     };
 
     const handleSubmit = async (payload: { student: Student; classIds: string[] }) => {
+        const { returnTo } = location.state || {};
         try {
             if (editingStudent) {
                 await updateStudent({ 
@@ -375,11 +437,16 @@ export const StudentsScreen: React.FC = () => {
                     classIds: payload.classIds 
                 });
                 toast.success(`Đã cập nhật thông tin học viên ${payload.student.name}`);
+                setModalOpen(false);
+                setEditingStudent(undefined);
+                if (returnTo) {
+                    navigate(`/student/${payload.student.id}`, { replace: true, state: {} });
+                }
             } else {
                 await addStudent(payload);
                 toast.success(`Đã thêm học viên mới ${payload.student.name}`);
+                handleCloseModal();
             }
-            handleCloseModal();
         } catch (error: any) {
             toast.error(error.message || 'Đã xảy ra lỗi. Vui lòng thử lại.');
         }
@@ -415,7 +482,7 @@ export const StudentsScreen: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <input 
                         type="text" 
-                        placeholder="Tìm kiếm học viên (mã, tên, email, SĐT)..." 
+                        placeholder="Tìm kiếm học viên (tên, SĐT)..." 
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                         className="form-input"
