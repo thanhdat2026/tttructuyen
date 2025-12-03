@@ -223,16 +223,17 @@ export function applyOperation(
                     ).length;
 
                     if (cls.fee.type === FeeType.MONTHLY || cls.fee.type === FeeType.PER_COURSE) {
-                        // If monthly fee, charge if active&enrolled OR if they attended sessions (even if dropped out)
-                        const shouldCharge = (student.status === PersonStatus.ACTIVE && isEnrolled) || attendedSessions > 0;
-
-                        if (shouldCharge) {
+                        // Only charge monthly/course fee if student is CURRENTLY enrolled and active.
+                        // This prevents double-charging for monthly fees when a student transfers.
+                        if (student.status === PersonStatus.ACTIVE && isEnrolled) {
                             classFee = cls.fee.amount;
                             if (classFee > 0) {
-                                details += `- Lớp ${cls.name}: ${Math.round(classFee).toLocaleString('vi-VN')} ₫${!isEnrolled ? ' (Lớp cũ/Đã nghỉ)' : ''}\n`;
+                                details += `- Lớp ${cls.name}: ${Math.round(classFee).toLocaleString('vi-VN')} ₫\n`;
                             }
                         }
                     } else if (cls.fee.type === FeeType.PER_SESSION) {
+                        // Always charge for per-session classes based on attendance, regardless of current enrollment.
+                        // This correctly handles billing for past classes.
                         if (attendedSessions > 0) {
                             classFee = attendedSessions * cls.fee.amount;
                             details += `- Lớp ${cls.name}: ${attendedSessions} buổi x ${Math.round(cls.fee.amount).toLocaleString('vi-VN')} ₫ = ${Math.round(classFee).toLocaleString('vi-VN')} ₫\n`;
