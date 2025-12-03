@@ -9,6 +9,7 @@ import { ICONS } from '../constants';
 import { Class, UserRole, FeeType, ClassSchedule, Teacher, Student, PersonStatus } from '../types';
 import { CurrencyInput } from '../components/common/CurrencyInput';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
+import { ListItemCard } from '../components/common/ListItemCard';
 
 // New Component: TeacherSelector
 const TeacherSelector: React.FC<{
@@ -432,40 +433,80 @@ export const ClassesScreen: React.FC = () => {
                     <p className="mt-1">{canManage ? 'Hãy thêm lớp học đầu tiên hoặc thử tìm kiếm khác.' : 'Bạn chưa được phân công vào lớp học nào.'}</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredClasses.map(cls => (
-                        <div key={cls.id} className="card-base flex flex-col justify-between">
-                            <div>
-                                <h2 className="text-xl font-bold text-primary">{cls.name}</h2>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">ID: {cls.id}</p>
-                                <p className="font-semibold">{cls.subject}</p>
-                                <p className="text-gray-500 dark:text-gray-400 mt-2">GV: {getTeacherNames(cls.teacherIds)}</p>
-                                <p className="text-gray-500 dark:text-gray-400">Sĩ số: {getActiveStudentCount(cls.studentIds)}</p>
-                                <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                                    {(cls.schedule || []).map((s, i) => (
-                                        <div key={i}>{`${dayMap[s.dayOfWeek]}: ${s.startTime} - ${s.endTime}`}</div>
-                                    ))}
+                <>
+                    {/* Desktop View */}
+                    <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredClasses.map(cls => (
+                            <div key={cls.id} className="card-base flex flex-col justify-between">
+                                <div>
+                                    <h2 className="text-xl font-bold text-primary">
+                                        <Link to={`/class/${cls.id}`} className="hover:underline">{cls.name}</Link>
+                                    </h2>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">ID: {cls.id}</p>
+                                    <p className="font-semibold">{cls.subject}</p>
+                                    <p className="text-gray-500 dark:text-gray-400 mt-2">GV: {getTeacherNames(cls.teacherIds)}</p>
+                                    <p className="text-gray-500 dark:text-gray-400">Sĩ số: {getActiveStudentCount(cls.studentIds)}</p>
+                                    <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                        {(cls.schedule || []).map((s, i) => (
+                                            <div key={i}>{`${dayMap[s.dayOfWeek]}: ${s.startTime} - ${s.endTime}`}</div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="mt-4 flex justify-end items-center gap-2">
+                                   {canManage && (
+                                       <>
+                                        <button onClick={() => handleOpenModal(cls)} className="text-indigo-600 hover:text-indigo-900 p-2 rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-900/50" title="Sửa">{ICONS.edit}</button>
+                                        <button onClick={() => handleDeleteClick(cls)} className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50" title="Xóa">{ICONS.delete}</button>
+                                       </>
+                                   )}
+                                    {canDoAttendance && (
+                                        <Link to={`/class/${cls.id}`} state={{ defaultTab: 'attendance' }}>
+                                            <Button>Điểm danh</Button>
+                                        </Link>
+                                    )}
+                                    <Link to={`/class/${cls.id}`}>
+                                        <Button variant="secondary">Xem chi tiết</Button>
+                                    </Link>
                                 </div>
                             </div>
-                            <div className="mt-4 flex justify-end items-center gap-2">
-                               {canManage && (
-                                   <>
-                                    <button onClick={() => handleOpenModal(cls)} className="text-indigo-600 hover:text-indigo-900 p-2 rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-900/50">{ICONS.edit}</button>
-                                    <button onClick={() => handleDeleteClick(cls)} className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50">{ICONS.delete}</button>
-                                   </>
-                               )}
-                                {canDoAttendance && (
-                                    <Link to={`/class/${cls.id}`} state={{ defaultTab: 'attendance' }}>
-                                        <Button>Điểm danh</Button>
+                        ))}
+                    </div>
+
+                    {/* Mobile View */}
+                    <div className="md:hidden space-y-4">
+                        {filteredClasses.map(cls => (
+                            <ListItemCard
+                                key={cls.id}
+                                title={
+                                    <Link to={`/class/${cls.id}`} className="font-semibold text-primary hover:underline">
+                                        {cls.name}
                                     </Link>
-                                )}
-                                <Link to={`/class/${cls.id}`}>
-                                    <Button variant="secondary">Xem chi tiết</Button>
-                                </Link>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                                }
+                                details={[
+                                    { label: "Mã Lớp", value: cls.id },
+                                    { label: "Môn", value: cls.subject },
+                                    { label: "Sĩ số", value: getActiveStudentCount(cls.studentIds) },
+                                    { label: "GV", value: getTeacherNames(cls.teacherIds) },
+                                ]}
+                                actions={
+                                    <div className="flex items-center justify-end gap-2">
+                                        {canDoAttendance && (
+                                            <Link to={`/class/${cls.id}`} state={{ defaultTab: 'attendance' }}>
+                                                <Button size="sm">Điểm danh</Button>
+                                            </Link>
+                                        )}
+                                        {canManage && (
+                                           <>
+                                                <button onClick={() => handleOpenModal(cls)} className="p-2 rounded-full text-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-900/50" title="Sửa">{ICONS.edit}</button>
+                                                <button onClick={() => handleDeleteClick(cls)} className="p-2 rounded-full text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50" title="Xóa">{ICONS.delete}</button>
+                                           </>
+                                        )}
+                                    </div>
+                                }
+                            />
+                        ))}
+                    </div>
+                </>
             )}
 
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingClass ? 'Chỉnh sửa Lớp học' : 'Thêm Lớp học mới'}>
