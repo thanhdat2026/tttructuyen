@@ -10,7 +10,6 @@ import { ICONS } from '../constants';
 import { PersonStatus, Student, UserRole, Class } from '../types';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import { Pagination } from '../components/common/Pagination';
-import { ListItemCard } from '../components/common/ListItemCard';
 import { ResetPasswordModal } from '../components/auth/ChangePasswordModal';
 import { PaymentModal } from '../components/finance/PaymentModal';
 
@@ -520,43 +519,51 @@ export const StudentsScreen: React.FC = () => {
             {/* Mobile Card View */}
             <div className="md:hidden space-y-4">
                 {paginatedStudents.map(student => (
-                    <ListItemCard 
-                        key={student.id}
-                        title={
-                            <Link to={`/student/${student.id}`} className="font-semibold text-primary hover:underline">
-                                {student.name}
-                            </Link>
-                        }
-                        details={[
-                            { label: "Mã HV", value: student.id },
-                            { 
-                                label: "Số dư", 
-                                value: (
-                                    <span
-                                        className={`font-semibold ${student.balance < 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}
-                                    >
-                                        {student.balance.toLocaleString('vi-VN')} ₫
-                                    </span>
-                                ) 
-                            }
-                        ]}
-                        status={{
-                            text: student.status === PersonStatus.ACTIVE ? 'Hoạt động' : 'Tạm nghỉ',
-                            colorClasses: student.status === PersonStatus.ACTIVE ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }}
-                        actions={canManage ? (
-                           <div className="flex items-center space-x-2">
+                    <div key={student.id} className="card-base p-4">
+                        <div className="flex justify-between items-start gap-3">
+                            <div className="flex-1">
+                                <Link to={`/student/${student.id}`} className="block group">
+                                    <h3 className="font-bold text-lg text-primary group-hover:underline">{student.name}</h3>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 font-mono">{student.id}</p>
+                                </Link>
+                            </div>
+                            <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold rounded-full shadow-sm ${student.status === PersonStatus.ACTIVE ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'} whitespace-nowrap mt-1`}>
+                                {student.status === PersonStatus.ACTIVE ? 'Hoạt động' : 'Tạm nghỉ'}
+                            </span>
+                        </div>
+                        
+                        <div className="mt-4 grid grid-cols-2 gap-4 text-sm border-t border-gray-100 dark:border-gray-700 pt-3">
+                            <div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Số điện thoại</p>
+                                <p className="font-medium text-gray-800 dark:text-gray-200">{student.phone || 'Chưa có'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Số dư</p>
+                                <p className={`font-bold text-base ${student.balance < 0 ? 'text-red-500' : 'text-green-600'}`}>
+                                    {student.balance.toLocaleString('vi-VN')} ₫
+                                </p>
+                            </div>
+                        </div>
+
+                        {canManage && (
+                            <div className="mt-3 border-t border-gray-100 dark:border-gray-700 pt-3 flex justify-end items-center space-x-1">
                                 {student.balance < 0 && (
-                                     <button onClick={() => setPaymentModalState({ isOpen: true, student: student })} className="p-2 rounded-full text-green-600 hover:bg-green-100 dark:hover:bg-green-900/50" title="Ghi nhận thanh toán">
-                                        {React.cloneElement(ICONS.finance as React.ReactElement<{ width?: number | string; height?: number | string }>, {width: 20, height: 20})}
+                                    <button onClick={() => setPaymentModalState({ isOpen: true, student: student })} className="p-2 rounded-full text-green-600 hover:bg-green-100 dark:hover:bg-green-900/50" title="Ghi nhận thanh toán">
+                                        {React.cloneElement(ICONS.finance, {width: 20, height: 20})}
                                     </button>
                                 )}
-                                <button onClick={() => setResetPasswordModalState({ isOpen: true, student: student })} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700" title="Đặt lại mật khẩu">{React.cloneElement(ICONS.key as React.ReactElement<{ width?: number | string; height?: number | string }>, {width: 20, height: 20})}</button>
-                                <button onClick={() => handleOpenModal(student)} className="p-2 rounded-full text-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-900/50" title="Sửa">{ICONS.edit}</button>
-                                <button onClick={() => handleDeleteClick(student)} className="p-2 rounded-full text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50" title="Xóa">{ICONS.delete}</button>
-                           </div>
-                        ) : undefined}
-                    />
+                                <button onClick={() => setResetPasswordModalState({ isOpen: true, student: student })} className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700" title="Đặt lại mật khẩu">
+                                    {React.cloneElement(ICONS.key, {width: 20, height: 20})}
+                                </button>
+                                <button onClick={() => handleOpenModal(student)} className="p-2 rounded-full text-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-900/50" title="Sửa">
+                                    {ICONS.edit}
+                                </button>
+                                <button onClick={() => handleDeleteClick(student)} className="p-2 rounded-full text-red-600 hover:bg-red-100 dark:hover:bg-red-900/50" title="Xóa">
+                                    {ICONS.delete}
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 ))}
             </div>
 
