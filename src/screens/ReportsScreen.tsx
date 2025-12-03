@@ -1,11 +1,10 @@
-
 import React, { useState, useMemo } from 'react';
 import { useData } from '../hooks/useDataContext';
 import { Card } from '../components/common/Card';
 import { ICONS } from '../constants';
 import { LineChart } from '../components/common/LineChart';
 import { PieChart } from '../components/common/PieChart';
-import { AttendanceStatus, FeeType, TransactionType } from '../types';
+import { AttendanceStatus, FeeType, TransactionType, Transaction } from '../types';
 import { ReportDetailModal } from '../components/reports/ReportDetailModal';
 import { AttendanceReportTab } from '../components/reports/AttendanceReportTab';
 import { TransactionHistoryReportTab } from '../components/reports/TransactionHistoryReportTab';
@@ -257,27 +256,30 @@ export const ReportsScreen: React.FC = () => {
 
     const handleShowTuitionCollectedDetails = () => {
         const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
-        const items = transactions
+        const collectedTransactions = transactions
             .filter(t => {
                 const isPayment = t.type === TransactionType.PAYMENT || t.type === TransactionType.ADJUSTMENT_CREDIT;
                 const isWithinMonth = t.date.startsWith(monthStr);
                 const isNotRefund = !t.description.toLowerCase().includes('hủy hóa đơn');
                 const studentIsInClass = filteredStudentIds ? filteredStudentIds.has(t.studentId) : true;
                 return isPayment && isWithinMonth && isNotRefund && t.amount > 0 && studentIsInClass;
-            })
-            .map(t => {
-                const studentName = students.find(s => s.id === t.studentId)?.name || 'Không rõ';
-                return {
-                    description: `${studentName} - ${t.description}`,
-                    date: t.date,
-                    amount: t.amount,
-                    type: 'credit' as const
-                }
             });
+        
+        const studentCount = new Set(collectedTransactions.map(t => t.studentId)).size;
+        
+        const items = collectedTransactions.map(t => {
+            const studentName = students.find(s => s.id === t.studentId)?.name || 'Không rõ';
+            return {
+                description: `${studentName} - ${t.description}`,
+                date: t.date,
+                amount: t.amount,
+                type: 'credit' as const
+            }
+        });
 
         setDetailModal({
             isOpen: true,
-            title: `Chi tiết Học phí đã thu (T${selectedMonth}/${selectedYear})`,
+            title: `Chi tiết Học phí đã thu (T${selectedMonth}/${selectedYear}) - ${studentCount} học viên`,
             items: items
         });
     };
