@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../../hooks/useDataContext';
 import { useAuth } from '../../hooks/useAuth';
@@ -56,7 +55,7 @@ const GenerateInvoicesModal: React.FC<{
                             {months.map(m => <option key={m} value={m}>Tháng {m}</option>)}
                         </select>
                         <select value={year} onChange={e => setYear(Number(e.target.value))} className="form-select">
-                            {years.map(y => <option key={y} value={y}>Năm {y}</option>)}
+                            {years.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
                     </div>
                 </div>
@@ -76,6 +75,10 @@ export const InvoicesTab: React.FC = () => {
     const [cancelConfirm, setCancelConfirm] = useState<Invoice | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [classFilter, setClassFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState<string>('all');
+    const [filterMonth, setFilterMonth] = useState<number>(0); // 0 = All months
+    const [filterYear, setFilterYear] = useState<number>(new Date().getFullYear());
+
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState<SortConfig<Invoice> | null>({ key: 'generatedDate', direction: 'descending' });
     const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
@@ -95,6 +98,7 @@ export const InvoicesTab: React.FC = () => {
     const filteredInvoices = useMemo(() => {
         let invoicesToFilter = state.invoices;
 
+        // 1. Filter by Class
         if (classFilter !== 'all') {
             const selectedClass = state.classes.find(c => c.id === classFilter);
             if (selectedClass) {
@@ -103,15 +107,33 @@ export const InvoicesTab: React.FC = () => {
             }
         }
 
-        if (!searchQuery) return invoicesToFilter;
-        
-        const lowerQuery = searchQuery.toLowerCase();
-        return invoicesToFilter.filter(inv => 
-            inv.id.toLowerCase().includes(lowerQuery) ||
-            inv.studentName.toLowerCase().includes(lowerQuery) ||
-            inv.month.includes(lowerQuery)
-        );
-    }, [state.invoices, state.classes, searchQuery, classFilter]);
+        // 2. Filter by Status
+        if (statusFilter !== 'all') {
+            invoicesToFilter = invoicesToFilter.filter(inv => inv.status === statusFilter);
+        }
+
+        // 3. Filter by Period (Month/Year)
+        // Note: inv.month is stored as "YYYY-MM"
+        const yearStr = String(filterYear);
+        if (filterMonth !== 0) {
+            const targetMonthStr = `${yearStr}-${String(filterMonth).padStart(2, '0')}`;
+            invoicesToFilter = invoicesToFilter.filter(inv => inv.month === targetMonthStr);
+        } else {
+            // If month is "All", we still filter by the selected year
+            invoicesToFilter = invoicesToFilter.filter(inv => inv.month.startsWith(yearStr));
+        }
+
+        // 4. Filter by Search Query
+        if (searchQuery) {
+            const lowerQuery = searchQuery.toLowerCase();
+            invoicesToFilter = invoicesToFilter.filter(inv => 
+                inv.id.toLowerCase().includes(lowerQuery) ||
+                inv.studentName.toLowerCase().includes(lowerQuery)
+            );
+        }
+
+        return invoicesToFilter;
+    }, [state.invoices, state.classes, searchQuery, classFilter, statusFilter, filterMonth, filterYear]);
 
     const sortedInvoices = useMemo(() => {
         let sortableItems = [...filteredInvoices];
@@ -142,7 +164,7 @@ export const InvoicesTab: React.FC = () => {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, classFilter, sortConfig]);
+    }, [searchQuery, classFilter, sortConfig, statusFilter, filterMonth, filterYear]);
 
     const getStatusBadge = (item: Invoice) => {
         switch (item.status) {
@@ -202,6 +224,10 @@ export const InvoicesTab: React.FC = () => {
         }
     };
 
+    const currentYearVal = new Date().getFullYear();
+    const years = Array.from({ length: 5 }, (_, i) => currentYearVal - i);
+    const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
     return (
         <div className="card-base">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
@@ -218,24 +244,55 @@ export const InvoicesTab: React.FC = () => {
                 )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <input
-                    type="text"
-                    placeholder="Tìm kiếm hóa đơn (mã, tên HV, tháng)..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    className="form-input"
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+                <div className="col-span-1 lg:col-span-2">
+                    <input
+                        type="text"
+                        placeholder="Tìm kiếm (mã HĐ, tên HV)..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="form-input w-full"
+                    />
+                </div>
                  <select
                     value={classFilter}
                     onChange={e => setClassFilter(e.target.value)}
                     className="form-select"
                 >
-                    <option value="all">Lọc theo lớp - Tất cả</option>
+                    <option value="all">Lớp - Tất cả</option>
                     {state.classes.map(c => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                 </select>
+                
+                <select
+                    value={statusFilter}
+                    onChange={e => setStatusFilter(e.target.value)}
+                    className="form-select"
+                >
+                    <option value="all">Trạng thái - Tất cả</option>
+                    <option value="UNPAID">Chưa thu</option>
+                    <option value="PAID">Đã thu</option>
+                    <option value="CANCELLED">Đã hủy</option>
+                </select>
+
+                <div className="flex gap-2">
+                    <select
+                        value={filterMonth}
+                        onChange={e => setFilterMonth(Number(e.target.value))}
+                        className="form-select w-1/2"
+                    >
+                        <option value={0}>Tất cả tháng</option>
+                        {months.map(m => <option key={m} value={m}>Tháng {m}</option>)}
+                    </select>
+                    <select
+                        value={filterYear}
+                        onChange={e => setFilterYear(Number(e.target.value))}
+                        className="form-select w-1/2"
+                    >
+                        {years.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                </div>
             </div>
             
             <div className="hidden md:block">
