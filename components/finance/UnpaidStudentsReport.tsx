@@ -75,7 +75,9 @@ export const UnpaidStudentsReport: React.FC = () => {
             return [];
         }
         const studentIdsInClass = new Set(selectedClass.studentIds);
-        const studentsInClass = students.filter(s => studentIdsInClass.has(s.id));
+        // Chỉ lấy học viên trong lớp ĐANG CÓ SỐ DƯ ÂM (CÒN NỢ)
+        const studentsInClass = students.filter(s => studentIdsInClass.has(s.id) && s.balance < 0);
+        
         // Sort students alphabetically by name for the report
         return studentsInClass.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
     }, [students, classes, classFilter]);
