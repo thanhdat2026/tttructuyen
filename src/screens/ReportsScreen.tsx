@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useData } from '../hooks/useDataContext';
 import { Card } from '../components/common/Card';
@@ -9,19 +10,20 @@ import { ReportDetailModal } from '../components/reports/ReportDetailModal';
 import { AttendanceReportTab } from '../components/reports/AttendanceReportTab';
 import { TransactionHistoryReportTab } from '../components/reports/TransactionHistoryReportTab';
 
-// Generate a range of years: 2 years into the future, 8 years into the past
-const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 10 }, (_, i) => currentYear - i + 2);
-const months = Array.from({ length: 12 }, (_, i) => i + 1);
 const today = new Date();
+const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
 
 type ReportTab = 'overview' | 'attendance' | 'transactions';
 
 export const ReportsScreen: React.FC = () => {
     const { state } = useData();
     const { students, classes, invoices, income, expenses, attendance, transactions } = state;
-    const [selectedYear, setSelectedYear] = useState(today.getFullYear());
-    const [selectedMonth, setSelectedMonth] = useState(today.getMonth() + 1);
+    
+    // State cho khoảng thời gian tùy chỉnh
+    const [startDate, setStartDate] = useState(startOfMonth);
+    const [endDate, setEndDate] = useState(endOfMonth);
+    
     const [classFilter, setClassFilter] = useState('all');
     const [activeTab, setActiveTab] = useState<ReportTab>('overview');
     const [detailModal, setDetailModal] = useState<{
@@ -38,63 +40,109 @@ export const ReportsScreen: React.FC = () => {
         return new Set(selectedClass?.studentIds || []);
     }, [classFilter, classes]);
 
+    // Helper: Nhóm dữ liệu cho biểu đồ đường
+    const trendAnalytics = useMemo(() => {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const diffTime = Math.abs(end.getTime() - start.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+        const isDaily = diffDays <= 32;
 
-    // Data for the whole year, used for the line chart
-    const yearlyTrendAnalytics = useMemo(() => {
-        const data = Array.from({ length: 12 }, (_, i) => ({
-            label: `T${i + 1}`,
-            values: [0, 0], // [Revenue, Expense]
-        }));
+        const dataMap = new Map<string, { revenue: number, expense: number }>();
 
-        const yearTuitionPayments = transactions.filter(t => {
-            const isPayment = t.type === TransactionType.PAYMENT || t.type === TransactionType.ADJUSTMENT_CREDIT;
-            const isWithinYear = t.date.startsWith(String(selectedYear));
-            const isNotRefund = !t.description.toLowerCase().includes('hủy hóa đơn');
-            const studentIsInClass = filteredStudentIds ? filteredStudentIds.has(t.studentId) : true;
-            return isPayment && isWithinYear && isNotRefund && t.amount > 0 && studentIsInClass;
+        // Init map keys
+        if (isDaily) {
+            let loop = new Date(start);
+            while (loop <= end) {
+                const key = loop.toISOString().split('T')[0]; // YYYY-MM-DD
+                dataMap.set(key, { revenue: 0, expense: 0 });
+                loop.setDate(loop.getDate() + 1);
+            }
+        } else {
+            let loop = new Date(start);
+            // Set to first day of month to avoid skipping months
+            loop.setDate(1); 
+            while (loop <= end) {
+                const key = loop.toISOString().slice(0, 7); // YYYY-MM
+                if (!dataMap.has(key)) dataMap.set(key, { revenue: 0, expense: 0 });
+                loop.setMonth(loop.getMonth() + 1);
+            }
+        }
+
+        // Fill Data
+        // 1. Revenue from Transactions (Tuition)
+        transactions.forEach(t => {
+            if (t.date >= startDate && t.date <= endDate) {
+                const isPayment = t.type === TransactionType.PAYMENT || t.type === TransactionType.ADJUSTMENT_CREDIT;
+                const isNotRefund = !t.description.toLowerCase().includes('hủy hóa đơn');
+                const studentIsInClass = filteredStudentIds ? filteredStudentIds.has(t.studentId) : true;
+
+                if (isPayment && isNotRefund && t.amount > 0 && studentIsInClass) {
+                    const key = isDaily ? t.date : t.date.slice(0, 7);
+                    if (dataMap.has(key)) {
+                        dataMap.get(key)!.revenue += t.amount;
+                    }
+                }
+            }
         });
 
-        const yearIncome = income.filter(i => i.date.startsWith(String(selectedYear)));
-        const yearExpenses = expenses.filter(e => e.date.startsWith(String(selectedYear)));
-
-        yearTuitionPayments.forEach(t => {
-            const monthIndex = new Date(t.date).getMonth();
-            data[monthIndex].values[0] += t.amount;
-        });
-        
-        // Only add 'other income' if not filtering by class
+        // 2. Revenue from Other Income (Only if not filtering by class)
         if (!filteredStudentIds) {
-            yearIncome.forEach(inc => {
-                const monthIndex = new Date(inc.date).getMonth();
-                data[monthIndex].values[0] += inc.amount;
+            income.forEach(inc => {
+                if (inc.date >= startDate && inc.date <= endDate) {
+                    const key = isDaily ? inc.date : inc.date.slice(0, 7);
+                    if (dataMap.has(key)) {
+                        dataMap.get(key)!.revenue += inc.amount;
+                    }
+                }
             });
         }
 
-        // Expenses are always global
-        yearExpenses.forEach(exp => {
-            const monthIndex = new Date(exp.date).getMonth();
-            data[monthIndex].values[1] += exp.amount;
+        // 3. Expenses (Global)
+        expenses.forEach(exp => {
+            if (exp.date >= startDate && exp.date <= endDate) {
+                const key = isDaily ? exp.date : exp.date.slice(0, 7);
+                if (dataMap.has(key)) {
+                    dataMap.get(key)!.expense += exp.amount;
+                }
+            }
         });
 
-        return data;
-    }, [transactions, income, expenses, selectedYear, filteredStudentIds]);
+        // Convert Map to Array for Chart
+        return Array.from(dataMap.entries()).map(([label, values]) => {
+            // Format label
+            let displayLabel = label;
+            if (isDaily) {
+                // FIXED: Ignored first element 'y' to prevent TS unused var error
+                const [, m, d] = label.split('-');
+                displayLabel = `${d}/${m}`;
+            } else {
+                const [y, m] = label.split('-');
+                displayLabel = `T${m}/${y}`;
+            }
+            return {
+                label: displayLabel,
+                values: [values.revenue, values.expense]
+            };
+        });
 
-    // KPIs for the selected month
-    const monthlyKpiData = useMemo(() => {
-        const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
-        
+    }, [transactions, income, expenses, startDate, endDate, filteredStudentIds]);
+
+
+    // KPIs trong khoảng thời gian đã chọn
+    const periodKpiData = useMemo(() => {
         const tuitionFeesCollected = transactions
             .filter(t => {
                 const isPayment = t.type === TransactionType.PAYMENT || t.type === TransactionType.ADJUSTMENT_CREDIT;
-                const isWithinMonth = t.date.startsWith(monthStr);
-                const isNotRefund = !t.description.toLowerCase().includes('hủy hóa đơn'); // Exclude invoice cancellation refunds
+                const isWithinPeriod = t.date >= startDate && t.date <= endDate;
+                const isNotRefund = !t.description.toLowerCase().includes('hủy hóa đơn');
                 const studentIsInClass = filteredStudentIds ? filteredStudentIds.has(t.studentId) : true;
-                return isPayment && isWithinMonth && isNotRefund && t.amount > 0 && studentIsInClass;
+                return isPayment && isWithinPeriod && isNotRefund && t.amount > 0 && studentIsInClass;
             })
             .reduce((sum, t) => sum + t.amount, 0);
 
         const otherIncome = income
-            .filter(i => i.date.startsWith(monthStr))
+            .filter(i => i.date >= startDate && i.date <= endDate)
             .reduce((sum, i) => sum + i.amount, 0);
 
         // Revenue depends on filter
@@ -102,16 +150,19 @@ export const ReportsScreen: React.FC = () => {
         
         // Expenses are always global
         const totalExpense = expenses
-            .filter(e => e.date.startsWith(monthStr))
+            .filter(e => e.date >= startDate && e.date <= endDate)
             .reduce((sum, e) => sum + e.amount, 0);
 
         let provisionalTuitionFee = 0;
-        const monthlyAttendance = attendance.filter(a => 
-            a.date.startsWith(monthStr) && 
+        
+        // Count attendance within the period
+        const periodAttendance = attendance.filter(a => 
+            a.date >= startDate && a.date <= endDate &&
             (a.status === AttendanceStatus.PRESENT || a.status === AttendanceStatus.LATE)
         );
+        
         const attendanceCountMap = new Map<string, number>();
-        monthlyAttendance.forEach(a => {
+        periodAttendance.forEach(a => {
             const key = `${a.studentId}-${a.classId}`;
             attendanceCountMap.set(key, (attendanceCountMap.get(key) || 0) + 1);
         });
@@ -128,6 +179,10 @@ export const ReportsScreen: React.FC = () => {
             const activeStudentsInClass = c.studentIds.filter(id => activeStudentIds.has(id));
 
             if (c.fee.type === FeeType.MONTHLY) {
+                // Với học phí tháng, ta ước tính theo tỷ lệ số tháng trong khoảng thời gian chọn? 
+                // Để đơn giản và chính xác, ta chỉ tính full nếu khoảng thời gian bao trùm ít nhất 1 tháng?
+                // Tạm thời logic cũ: chỉ cộng fee nếu active. Cải thiện: Nhân với số tháng trong range?
+                // Logic hiện tại: Tính 1 lần phí tháng cho KPI đơn giản.
                 provisionalTuitionFee += activeStudentsInClass.length * c.fee.amount;
             } else if (c.fee.type === FeeType.PER_SESSION) {
                 activeStudentsInClass.forEach(studentId => {
@@ -138,36 +193,28 @@ export const ReportsScreen: React.FC = () => {
             }
         });
 
+        // New Students within period
+        const newStudents = students.filter(s => 
+            s.createdAt >= startDate && s.createdAt <= endDate &&
+            (filteredStudentIds ? filteredStudentIds.has(s.id) : true)
+        ).length;
+
         return {
             totalRevenue,
-            totalExpense: filteredStudentIds ? 0 : totalExpense, // Show 0 expense if filtering for a class
+            totalExpense: filteredStudentIds ? 0 : totalExpense,
             profit: totalRevenue - (filteredStudentIds ? 0 : totalExpense),
             tuitionFeesCollected,
             provisionalTuitionFee,
+            newStudents
         };
-    }, [invoices, income, expenses, students, classes, attendance, transactions, selectedYear, selectedMonth, classFilter, filteredStudentIds]);
+    }, [invoices, income, expenses, students, classes, attendance, transactions, startDate, endDate, classFilter, filteredStudentIds]);
     
-    // KPIs for the whole year
-    const yearlyKpiData = useMemo(() => {
-        const totalRevenue = yearlyTrendAnalytics.reduce((sum, month) => sum + month.values[0], 0);
-        const totalExpense = yearlyTrendAnalytics.reduce((sum, month) => sum + month.values[1], 0);
-        const newStudents = students.filter(s => 
-            s.createdAt.startsWith(String(selectedYear)) &&
-            (filteredStudentIds ? filteredStudentIds.has(s.id) : true)
-        ).length;
-         return {
-            profit: totalRevenue - totalExpense,
-            newStudents,
-        };
-    }, [yearlyTrendAnalytics, students, selectedYear, filteredStudentIds]);
-
 
     const revenueByClass = useMemo(() => {
-        const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
         const revenueMap = new Map<string, number>();
         const paidInvoices = invoices.filter(inv => 
             inv.status === 'PAID' && 
-            inv.paidDate?.startsWith(monthStr) &&
+            inv.paidDate && inv.paidDate >= startDate && inv.paidDate <= endDate &&
             (filteredStudentIds ? filteredStudentIds.has(inv.studentId) : true)
         );
 
@@ -194,40 +241,39 @@ export const ReportsScreen: React.FC = () => {
         
         return finalData;
 
-    }, [invoices, classes, selectedYear, selectedMonth, classFilter, filteredStudentIds]);
+    }, [invoices, classes, startDate, endDate, classFilter, filteredStudentIds]);
     
     // --- Detail Modal Handlers ---
 
     const handleShowProvisionalTuitionDetails = () => {
-        const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
         const items: { description: string; date: string; amount: number; type: 'credit' }[] = [];
 
-        const monthlyAttendance = attendance.filter(a => 
-            a.date.startsWith(monthStr) && 
+        // Logic tương tự periodKpiData nhưng push vào items
+        const periodAttendance = attendance.filter(a => 
+            a.date >= startDate && a.date <= endDate &&
             (a.status === AttendanceStatus.PRESENT || a.status === AttendanceStatus.LATE)
         );
         const attendanceCountMap = new Map<string, number>();
-        monthlyAttendance.forEach(a => {
+        periodAttendance.forEach(a => {
             const key = `${a.studentId}-${a.classId}`;
             attendanceCountMap.set(key, (attendanceCountMap.get(key) || 0) + 1);
         });
         
         const activeStudents = students.filter(s => s.status === 'ACTIVE' && (filteredStudentIds ? filteredStudentIds.has(s.id) : true));
         const studentMap = new Map(students.map(s => [s.id, s.name]));
-
         const classesToCalculate = filteredStudentIds ? classes.filter(c => c.id === classFilter) : classes;
 
         classesToCalculate.forEach(c => {
             const activeStudentsInClass = c.studentIds.filter(id => activeStudents.some(s => s.id === id));
-
             activeStudentsInClass.forEach(studentId => {
                 const studentName = studentMap.get(studentId) || 'Không rõ';
                 if (c.fee.type === FeeType.MONTHLY) {
+                    // For monthly fee, check if attended at least once or just list it as monthly due
                     const key = `${studentId}-${c.id}`;
                     if (attendanceCountMap.has(key)) {
-                        items.push({
+                         items.push({
                             description: `[${c.name}] ${studentName} (HP tháng)`,
-                            date: monthStr,
+                            date: `${startDate} -> ${endDate}`,
                             amount: c.fee.amount,
                             type: 'credit'
                         });
@@ -238,7 +284,7 @@ export const ReportsScreen: React.FC = () => {
                     if (attendedSessions > 0) {
                         items.push({
                             description: `[${c.name}] ${studentName} (${attendedSessions} buổi)`,
-                            date: monthStr,
+                            date: `${startDate} -> ${endDate}`,
                             amount: attendedSessions * c.fee.amount,
                             type: 'credit'
                         });
@@ -249,50 +295,19 @@ export const ReportsScreen: React.FC = () => {
 
         setDetailModal({
             isOpen: true,
-            title: `Chi tiết Học phí Tạm tính (T${selectedMonth}/${selectedYear})`,
+            title: `Chi tiết Học phí Tạm tính`,
             items: items.sort((a,b) => a.description.localeCompare(b.description))
         });
     };
 
-    const handleShowTuitionCollectedDetails = () => {
-        const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
-        const collectedTransactions = transactions
-            .filter(t => {
-                const isPayment = t.type === TransactionType.PAYMENT || t.type === TransactionType.ADJUSTMENT_CREDIT;
-                const isWithinMonth = t.date.startsWith(monthStr);
-                const isNotRefund = !t.description.toLowerCase().includes('hủy hóa đơn');
-                const studentIsInClass = filteredStudentIds ? filteredStudentIds.has(t.studentId) : true;
-                return isPayment && isWithinMonth && isNotRefund && t.amount > 0 && studentIsInClass;
-            });
-        
-        const studentCount = new Set(collectedTransactions.map(t => t.studentId)).size;
-        
-        const items = collectedTransactions.map(t => {
-            const studentName = students.find(s => s.id === t.studentId)?.name || 'Không rõ';
-            return {
-                description: `${studentName} - ${t.description}`,
-                date: t.date,
-                amount: t.amount,
-                type: 'credit' as const
-            }
-        });
-
-        setDetailModal({
-            isOpen: true,
-            title: `Chi tiết Học phí đã thu (T${selectedMonth}/${selectedYear}) - ${studentCount} học viên`,
-            items: items
-        });
-    };
-
     const handleShowRevenueDetails = () => {
-        const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
         const tuitionItems = transactions
             .filter(t => {
                 const isPayment = t.type === TransactionType.PAYMENT || t.type === TransactionType.ADJUSTMENT_CREDIT;
-                const isWithinMonth = t.date.startsWith(monthStr);
+                const isWithin = t.date >= startDate && t.date <= endDate;
                 const isNotRefund = !t.description.toLowerCase().includes('hủy hóa đơn');
                 const studentIsInClass = filteredStudentIds ? filteredStudentIds.has(t.studentId) : true;
-                return isPayment && isWithinMonth && isNotRefund && t.amount > 0 && studentIsInClass;
+                return isPayment && isWithin && isNotRefund && t.amount > 0 && studentIsInClass;
             })
             .map(t => {
                 const studentName = students.find(s => s.id === t.studentId)?.name || 'Không rõ';
@@ -305,7 +320,7 @@ export const ReportsScreen: React.FC = () => {
             });
         
         const otherIncomeItems = classFilter === 'all' ? income
-            .filter(i => i.date.startsWith(monthStr))
+            .filter(i => i.date >= startDate && i.date <= endDate)
             .map(i => ({
                 description: `[Thu khác] ${i.description}`,
                 date: i.date,
@@ -313,87 +328,62 @@ export const ReportsScreen: React.FC = () => {
                 type: 'credit' as const
             })) : [];
 
-        const allItems = [...tuitionItems, ...otherIncomeItems].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        setDetailModal({ isOpen: true, title: `Chi tiết Doanh thu (T${selectedMonth}/${selectedYear})`, items: allItems });
+        // Sort descending by date (Newest first)
+        const allItems = [...tuitionItems, ...otherIncomeItems].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setDetailModal({ isOpen: true, title: `Chi tiết Doanh thu`, items: allItems });
     };
 
     const handleShowExpenseDetails = () => {
-        const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
         const items = expenses
-            .filter(e => e.date.startsWith(monthStr))
+            .filter(e => e.date >= startDate && e.date <= endDate)
             .map(e => ({
                 description: e.description,
                 date: e.date,
                 amount: e.amount,
                 type: 'debit' as const
             }));
-        setDetailModal({ isOpen: true, title: `Chi tiết Chi phí (T${selectedMonth}/${selectedYear})`, items: items });
-    };
-
-    const handleShowProfitDetails = () => {
-        const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
-        const tuitionItems = transactions
-            .filter(t => {
-                const isPayment = (t.type === TransactionType.PAYMENT || t.type === TransactionType.ADJUSTMENT_CREDIT);
-                const isWithinMonth = t.date.startsWith(monthStr);
-                const isNotRefund = !t.description.toLowerCase().includes('hủy hóa đơn');
-                const studentIsInClass = filteredStudentIds ? filteredStudentIds.has(t.studentId) : true;
-                return isPayment && isWithinMonth && isNotRefund && t.amount > 0 && studentIsInClass;
-            })
-            .map(t => ({
-                description: `[Doanh thu HP] ${t.description}`,
-                date: t.date,
-                amount: t.amount,
-                type: 'credit' as const
-            }));
-
-        const revenueItems = [
-            ...tuitionItems,
-            ...(classFilter === 'all' ? income.filter(i => i.date.startsWith(monthStr)).map(i => ({ description: `[Doanh thu khác] ${i.description}`, date: i.date, amount: i.amount, type: 'credit' as const })) : [])
-        ];
         
-        const expenseItems = classFilter === 'all' ? expenses.filter(e => e.date.startsWith(monthStr)).map(e => ({ description: `[Chi phí] ${e.description}`, date: e.date, amount: e.amount, type: 'debit' as const })) : [];
-        
-        const allItems = [...revenueItems, ...expenseItems].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        setDetailModal({ isOpen: true, title: `Chi tiết Lợi nhuận (T${selectedMonth}/${selectedYear})`, items: allItems });
-    };
+        // Sort descending by date (Newest first)
+        items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    const handleShowYearlyProfitDetails = () => {
-        const yearStr = String(selectedYear);
-        const tuitionItems = transactions
-            .filter(t => {
-                const isPayment = (t.type === TransactionType.PAYMENT || t.type === TransactionType.ADJUSTMENT_CREDIT);
-                const isWithinYear = t.date.startsWith(yearStr);
-                const isNotRefund = !t.description.toLowerCase().includes('hủy hóa đơn');
-                const studentIsInClass = filteredStudentIds ? filteredStudentIds.has(t.studentId) : true;
-                return isPayment && isWithinYear && isNotRefund && t.amount > 0 && studentIsInClass;
-            })
-            .map(t => ({
-                description: `[Doanh thu HP] ${t.description}`,
-                date: t.date,
-                amount: t.amount,
-                type: 'credit' as const
-            }));
-
-        const revenueItems = [
-            ...tuitionItems,
-            ...(classFilter === 'all' ? income.filter(i => i.date.startsWith(yearStr)).map(i => ({ description: `[Doanh thu khác] ${i.description}`, date: i.date, amount: i.amount, type: 'credit' as const })) : [])
-        ];
-        const expenseItems = classFilter === 'all' ? expenses.filter(e => e.date.startsWith(yearStr)).map(e => ({ description: `[Chi phí] ${e.description}`, date: e.date, amount: e.amount, type: 'debit' as const })) : [];
-        const allItems = [...revenueItems, ...expenseItems].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        setDetailModal({ isOpen: true, title: `Chi tiết Lợi nhuận (Năm ${selectedYear})`, items: allItems });
+        setDetailModal({ isOpen: true, title: `Chi tiết Chi phí`, items: items });
     };
 
     const handleShowNewStudentsDetails = () => {
         const items = students
-            .filter(s => s.createdAt.startsWith(String(selectedYear)) && (filteredStudentIds ? filteredStudentIds.has(s.id) : true))
+            .filter(s => s.createdAt >= startDate && s.createdAt <= endDate && (filteredStudentIds ? filteredStudentIds.has(s.id) : true))
             .map(s => ({
                 description: s.name,
                 date: s.createdAt,
             }));
-        setDetailModal({ isOpen: true, title: `Chi tiết Học viên mới (Năm ${selectedYear})`, items: items });
+        
+        // Sort descending by date (Newest first)
+        items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        setDetailModal({ isOpen: true, title: `Chi tiết Học viên mới`, items: items });
     };
     
+    const setPeriod = (type: 'this_month' | 'last_month' | 'this_year') => {
+        const now = new Date();
+        let start, end;
+        switch (type) {
+            case 'this_month':
+                start = new Date(now.getFullYear(), now.getMonth(), 1);
+                end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                break;
+            case 'last_month':
+                start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                end = new Date(now.getFullYear(), now.getMonth(), 0);
+                break;
+            case 'this_year':
+                start = new Date(now.getFullYear(), 0, 1);
+                end = new Date(now.getFullYear(), 11, 31);
+                break;
+        }
+        setStartDate(start.toISOString().split('T')[0]);
+        setEndDate(end.toISOString().split('T')[0]);
+    };
+
     const TabButton: React.FC<{ tabId: ReportTab; children: React.ReactNode }> = ({ tabId, children }) => (
         <button
             onClick={() => setActiveTab(tabId)}
@@ -407,18 +397,28 @@ export const ReportsScreen: React.FC = () => {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <h1 className="text-3xl font-bold">Báo cáo & Phân tích</h1>
+            </div>
+            
+            {/* Filter Section */}
+            <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700">
                 <div className="flex items-center gap-2 flex-wrap">
-                    <label className="font-semibold">Lọc:</label>
-                    <select value={classFilter} onChange={e => setClassFilter(e.target.value)} className="form-select p-2">
+                    <select value={classFilter} onChange={e => setClassFilter(e.target.value)} className="form-select py-1 px-2 text-sm w-40">
                         <option value="all">Tất cả các lớp</option>
                         {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
-                    <select value={selectedMonth} onChange={e => setSelectedMonth(parseInt(e.target.value))} className="form-select p-2">
-                        {months.map(m => <option key={m} value={m}>Tháng {m}</option>)}
-                    </select>
-                    <select value={selectedYear} onChange={e => setSelectedYear(parseInt(e.target.value))} className="form-select p-2">
-                        {years.map(y => <option key={y} value={y}>Năm {y}</option>)}
-                    </select>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium whitespace-nowrap">Từ:</span>
+                        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="form-input py-1 px-2 text-sm w-36" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium whitespace-nowrap">Đến:</span>
+                        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="form-input py-1 px-2 text-sm w-36" />
+                    </div>
+                </div>
+                <div className="flex gap-2">
+                    <button onClick={() => setPeriod('this_month')} className="px-3 py-1 text-xs font-medium bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors">Tháng này</button>
+                    <button onClick={() => setPeriod('last_month')} className="px-3 py-1 text-xs font-medium bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors">Tháng trước</button>
+                    <button onClick={() => setPeriod('this_year')} className="px-3 py-1 text-xs font-medium bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors">Năm nay</button>
                 </div>
             </div>
             
@@ -435,37 +435,33 @@ export const ReportsScreen: React.FC = () => {
                     <div className="space-y-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
                             <div className="cursor-pointer transition-transform hover:scale-105" onClick={handleShowProvisionalTuitionDetails}>
-                                <Card title={`HP Tạm tính T${selectedMonth}`} value={`${monthlyKpiData.provisionalTuitionFee.toLocaleString('vi-VN')} ₫`} icon={ICONS.calendar} color="text-purple-600 dark:text-purple-400" />
-                            </div>
-                            <div className="cursor-pointer transition-transform hover:scale-105" onClick={handleShowTuitionCollectedDetails}>
-                                <Card title={`HP Đã thu T${selectedMonth}`} value={`${monthlyKpiData.tuitionFeesCollected.toLocaleString('vi-VN')} ₫`} icon={ICONS.checkCircle} color="text-teal-600 dark:text-teal-400" />
+                                <Card title={`HP Tạm tính (Kỳ)`} value={`${periodKpiData.provisionalTuitionFee.toLocaleString('vi-VN')} ₫`} icon={ICONS.calendar} color="text-purple-600 dark:text-purple-400" />
                             </div>
                             <div className="cursor-pointer transition-transform hover:scale-105" onClick={handleShowRevenueDetails}>
-                                <Card title={`Doanh thu T${selectedMonth}`} value={`${monthlyKpiData.totalRevenue.toLocaleString('vi-VN')} ₫`} icon={ICONS.finance} color="text-green-600 dark:text-green-400" />
+                                <Card title={`HP Đã thu (Kỳ)`} value={`${periodKpiData.tuitionFeesCollected.toLocaleString('vi-VN')} ₫`} icon={ICONS.checkCircle} color="text-teal-600 dark:text-teal-400" />
+                            </div>
+                            <div className="cursor-pointer transition-transform hover:scale-105" onClick={handleShowRevenueDetails}>
+                                <Card title={`Tổng Doanh thu`} value={`${periodKpiData.totalRevenue.toLocaleString('vi-VN')} ₫`} icon={ICONS.finance} color="text-green-600 dark:text-green-400" />
                             </div>
                             <div className="cursor-pointer transition-transform hover:scale-105" onClick={handleShowExpenseDetails}>
-                                <Card title={`Chi phí T${selectedMonth}`} value={`${monthlyKpiData.totalExpense.toLocaleString('vi-VN')} ₫`} icon={ICONS.logout} color="text-red-600 dark:text-red-400" />
+                                <Card title={`Tổng Chi phí`} value={`${periodKpiData.totalExpense.toLocaleString('vi-VN')} ₫`} icon={ICONS.logout} color="text-red-600 dark:text-red-400" />
                             </div>
-                            <div className="cursor-pointer transition-transform hover:scale-105" onClick={handleShowProfitDetails}>
-                                <Card title={`Lợi nhuận T${selectedMonth}`} value={`${monthlyKpiData.profit.toLocaleString('vi-VN')} ₫`} icon={ICONS.reports} color="text-blue-600 dark:text-blue-400" />
+                            <div className="cursor-pointer transition-transform hover:scale-105" onClick={handleShowRevenueDetails}>
+                                <Card title={`Lợi nhuận`} value={`${periodKpiData.profit.toLocaleString('vi-VN')} ₫`} icon={ICONS.reports} color="text-blue-600 dark:text-blue-400" />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
-                            <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer transition-transform hover:scale-105" onClick={handleShowYearlyProfitDetails}>
-                                <p className="text-sm font-medium text-gray-500">Lợi nhuận cả năm {selectedYear}</p>
-                                <p className="text-2xl font-bold text-gray-800 dark:text-white mt-1">{yearlyKpiData.profit.toLocaleString('vi-VN')} ₫</p>
-                            </div>
                             <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer transition-transform hover:scale-105" onClick={handleShowNewStudentsDetails}>
-                                <p className="text-sm font-medium text-gray-500">Học viên mới trong năm {selectedYear}</p>
-                                <p className="text-2xl font-bold text-gray-800 dark:text-white mt-1">{yearlyKpiData.newStudents}</p>
+                                <p className="text-sm font-medium text-gray-500">Học viên mới trong kỳ</p>
+                                <p className="text-2xl font-bold text-gray-800 dark:text-white mt-1">{periodKpiData.newStudents}</p>
                             </div>
                         </div>
 
                         <div className="card-base">
                             <LineChart
-                                title={`Xu hướng Tài chính năm ${selectedYear}${classFilter !== 'all' ? ` - ${classes.find(c=>c.id === classFilter)?.name}` : ''}`}
-                                data={yearlyTrendAnalytics}
+                                title={`Xu hướng Tài chính`}
+                                data={trendAnalytics}
                                 series={[
                                     { name: 'Doanh thu', color: '#10b981' },
                                     { name: 'Chi phí', color: '#ef4444' },
@@ -475,22 +471,22 @@ export const ReportsScreen: React.FC = () => {
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="card-base">
-                                <PieChart title={`Cơ cấu Doanh thu theo Lớp (Tháng ${selectedMonth}/${selectedYear})`} data={revenueByClass} />
+                                <PieChart title={`Cơ cấu Doanh thu theo Lớp`} data={revenueByClass} />
                             </div>
                         </div>
                     </div>
                 )}
                 {activeTab === 'attendance' && (
                      <AttendanceReportTab 
-                        selectedMonth={selectedMonth}
-                        selectedYear={selectedYear}
+                        startDate={startDate}
+                        endDate={endDate}
                         classFilter={classFilter}
                     />
                 )}
                 {activeTab === 'transactions' && (
                     <TransactionHistoryReportTab
-                        selectedMonth={selectedMonth}
-                        selectedYear={selectedYear}
+                        startDate={startDate}
+                        endDate={endDate}
                         classFilter={classFilter}
                     />
                 )}

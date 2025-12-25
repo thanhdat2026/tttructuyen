@@ -20,52 +20,35 @@ declare global {
 }
 
 type FinanceTab = 'overview' | 'debt_report' | 'invoices' | 'payroll' | 'income' | 'expenses' | 'my_payroll';
-type Period = 'this_month' | 'last_month' | 'this_year';
 
-const getPeriodDates = (period: Period): { start: string, end: string } => {
-    const now = new Date();
-    let startDate, endDate;
-
-    switch (period) {
-        case 'this_month':
-            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            break;
-        case 'last_month':
-            startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            endDate = new Date(now.getFullYear(), now.getMonth(), 0);
-            break;
-        case 'this_year':
-            startDate = new Date(now.getFullYear(), 0, 1);
-            endDate = new Date(now.getFullYear(), 11, 31);
-            break;
-    }
-
-    return {
-        start: startDate.toISOString().split('T')[0],
-        end: endDate.toISOString().split('T')[0],
-    };
-};
-
-const OverviewTab: React.FC<{period: Period}> = ({period}) => {
+const OverviewTab: React.FC<{startDate: string, endDate: string}> = ({startDate, endDate}) => {
     const { state } = useData();
-    const { start, end } = getPeriodDates(period);
 
     const financialSummary = useMemo(() => {
-        // Period-specific calculations
+        // 1. Doanh thu ghi nhận (Accrual Revenue): Từ hóa đơn đã tạo trong khoảng thời gian
         const accrualRevenue = state.invoices
-            .filter(i => i.generatedDate >= start && i.generatedDate <= end && i.status !== 'CANCELLED')
+            .filter(i => i.generatedDate >= startDate && i.generatedDate <= endDate && i.status !== 'CANCELLED')
             .reduce((sum, i) => sum + i.amount, 0);
 
-        const cashRevenue = state.transactions
-            .filter(t => t.date >= start && t.date <= end && t.amount > 0)
+        // 2. Thực thu từ Học phí (Cash Tuition): Từ giao dịch thanh toán thực tế trong khoảng thời gian
+        const tuitionCollected = state.transactions
+            .filter(t => t.date >= startDate && t.date <= endDate && t.amount > 0)
             .reduce((sum, t) => sum + t.amount, 0);
         
+        // 3. Thực thu từ Nguồn khác (Other Income) trong khoảng thời gian
+        const otherIncome = state.income
+            .filter(i => i.date >= startDate && i.date <= endDate)
+            .reduce((sum, i) => sum + i.amount, 0);
+
+        // Tổng thực thu (Cash Revenue)
+        const cashRevenue = tuitionCollected + otherIncome;
+        
+        // 4. Tổng chi phí (Total Expenses): Bao gồm lương và chi phí khác trong khoảng thời gian
         const totalExpenses = state.expenses
-            .filter(e => e.date >= start && e.date <= end)
+            .filter(e => e.date >= startDate && e.date <= endDate)
             .reduce((sum, e) => sum + e.amount, 0);
         
-        // Overall (not period-specific) calculations
+        // 5. Công nợ & Số dư ví (Tính tại thời điểm hiện tại, không theo kỳ lịch sử)
         const totalReceivables = state.students
             .filter(s => s.balance < 0)
             .reduce((sum, s) => sum + s.balance, 0);
@@ -80,20 +63,33 @@ const OverviewTab: React.FC<{period: Period}> = ({period}) => {
             totalExpenses,
             cashFlow: cashRevenue - totalExpenses,
             totalReceivables: Math.abs(totalReceivables),
-            totalCredit
+            totalCredit,
+            otherIncome
         };
-    }, [state.invoices, state.transactions, state.expenses, state.students, start, end]);
+    }, [state.invoices, state.transactions, state.expenses, state.students, state.income, startDate, endDate]);
     
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card title={`Doanh thu ghi nhận`} value={`${financialSummary.accrualRevenue.toLocaleString('vi-VN')} ₫`} icon={ICONS.reports} color="text-blue-600" />
-                <Card title={`Thực thu trong kỳ`} value={`${financialSummary.cashRevenue.toLocaleString('vi-VN')} ₫`} icon={ICONS.finance} color="text-green-600" />
-                <Card title={`Dòng tiền`} value={`${financialSummary.cashFlow.toLocaleString('vi-VN')} ₫`} icon={ICONS.dashboard} color={financialSummary.cashFlow >= 0 ? "text-teal-600" : "text-red-600"} />
+                <Card title={`Doanh thu ghi nhận (Hóa đơn)`} value={`${financialSummary.accrualRevenue.toLocaleString('vi-VN')} ₫`} icon={ICONS.reports} color="text-blue-600 dark:text-blue-400" />
+                <Card 
+                    title={`Tổng Thực thu (Tiền mặt)`} 
+                    value={`${financialSummary.cashRevenue.toLocaleString('vi-VN')} ₫`} 
+                    icon={ICONS.finance} 
+                    color="text-green-600 dark:text-green-400" 
+                />
+                <Card 
+                    title={`Dòng tiền (Thu - Chi)`} 
+                    value={`${financialSummary.cashFlow.toLocaleString('vi-VN')} ₫`} 
+                    icon={ICONS.dashboard} 
+                    color={financialSummary.cashFlow >= 0 ? "text-teal-600 dark:text-teal-400" : "text-red-600 dark:text-red-400"} 
+                />
             </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card title={`Tổng phải thu (Công nợ)`} value={`${financialSummary.totalReceivables.toLocaleString('vi-VN')} ₫`} icon={ICONS.students} color="text-red-500" />
-                <Card title={`Tổng số dư KH`} value={`${financialSummary.totalCredit.toLocaleString('vi-VN')} ₫`} icon={ICONS.checkCircle} color="text-indigo-500" />
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <Card title={`Tổng chi phí`} value={`${financialSummary.totalExpenses.toLocaleString('vi-VN')} ₫`} icon={ICONS.logout} color="text-orange-600 dark:text-orange-400" />
+                <Card title={`Thu khác`} value={`${financialSummary.otherIncome.toLocaleString('vi-VN')} ₫`} icon={ICONS.plus} color="text-cyan-600 dark:text-cyan-400" />
+                <Card title={`Tổng nợ phải thu (Hiện tại)`} value={`${financialSummary.totalReceivables.toLocaleString('vi-VN')} ₫`} icon={ICONS.students} color="text-red-500 dark:text-red-400" />
+                <Card title={`Số dư ví học viên (Hiện tại)`} value={`${financialSummary.totalCredit.toLocaleString('vi-VN')} ₫`} icon={ICONS.checkCircle} color="text-indigo-500 dark:text-indigo-400" />
             </div>
         </div>
     )
@@ -104,13 +100,41 @@ export const FinanceScreen: React.FC = () => {
     const location = useLocation();
     
     const [activeTab, setActiveTab] = useState<FinanceTab>('overview');
-    const [period, setPeriod] = useState<Period>('this_month');
+    
+    // Default to current month
+    const today = new Date();
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+
+    const [startDate, setStartDate] = useState(startOfMonth);
+    const [endDate, setEndDate] = useState(endOfMonth);
     
     useEffect(() => {
         if (location.state?.defaultTab) {
             setActiveTab(location.state.defaultTab);
         }
     }, [location.state]);
+
+    const setPeriod = (type: 'this_month' | 'last_month' | 'this_year') => {
+        const now = new Date();
+        let start, end;
+        switch (type) {
+            case 'this_month':
+                start = new Date(now.getFullYear(), now.getMonth(), 1);
+                end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                break;
+            case 'last_month':
+                start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                end = new Date(now.getFullYear(), now.getMonth(), 0);
+                break;
+            case 'this_year':
+                start = new Date(now.getFullYear(), 0, 1);
+                end = new Date(now.getFullYear(), 11, 31);
+                break;
+        }
+        setStartDate(start.toISOString().split('T')[0]);
+        setEndDate(end.toISOString().split('T')[0]);
+    };
 
 
     const TabButton: React.FC<{ tabId: FinanceTab; children: React.ReactNode, hidden?: boolean }> = ({ tabId, children, hidden }) => {
@@ -141,24 +165,33 @@ export const FinanceScreen: React.FC = () => {
                 <TabButton tabId="my_payroll" hidden={role !== UserRole.TEACHER}>Bảng lương của tôi</TabButton>
             </div>
             
-            {(activeTab === 'overview' || activeTab === 'payroll') && (
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700">
-                    <label className="font-semibold whitespace-nowrap">Xem dữ liệu cho kỳ:</label>
-                    <select value={period} onChange={e => setPeriod(e.target.value as Period)} className="form-select">
-                        <option value="this_month">Tháng này</option>
-                        <option value="last_month">Tháng trước</option>
-                        <option value="this_year">Cả năm nay</option>
-                    </select>
+            {(activeTab === 'overview') && (
+                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium whitespace-nowrap">Từ:</span>
+                            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="form-input py-1 px-2 text-sm w-36" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium whitespace-nowrap">Đến:</span>
+                            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="form-input py-1 px-2 text-sm w-36" />
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <button onClick={() => setPeriod('this_month')} className="px-3 py-1 text-xs font-medium bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors">Tháng này</button>
+                        <button onClick={() => setPeriod('last_month')} className="px-3 py-1 text-xs font-medium bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors">Tháng trước</button>
+                        <button onClick={() => setPeriod('this_year')} className="px-3 py-1 text-xs font-medium bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors">Năm nay</button>
+                    </div>
                 </div>
             )}
 
             <div>
-                {activeTab === 'overview' && canManageFullFinance && <OverviewTab period={period} />}
+                {activeTab === 'overview' && canManageFullFinance && <OverviewTab startDate={startDate} endDate={endDate} />}
                 {activeTab === 'invoices' && canManageFullFinance && <InvoicesTab />}
                 {activeTab === 'debt_report' && canManageFullFinance && <UnpaidStudentsReport />}
                 {activeTab === 'income' && canManageFullFinance && <IncomeTab />}
                 {activeTab === 'expenses' && canManageFullFinance && <ExpenseTab />}
-                {activeTab === 'payroll' && canManageFullFinance && <PayrollTab period={period} />}
+                {activeTab === 'payroll' && canManageFullFinance && <PayrollTab period={'this_month'} />}
                 {activeTab === 'my_payroll' && role === UserRole.TEACHER && <TeacherPayrollTab />}
             </div>
         </div>
