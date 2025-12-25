@@ -12,7 +12,6 @@ import { PayrollTab } from '../components/finance/PayrollTab';
 import { InvoicesTab } from '../components/finance/InvoicesTab';
 import { IncomeTab } from '../components/finance/IncomeTab';
 import { ExpenseTab } from '../components/finance/ExpenseTab';
-import { Button } from '../components/common/Button';
 
 declare global {
     interface Window {
