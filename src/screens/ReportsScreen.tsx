@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useData } from '../hooks/useDataContext';
 import { Card } from '../components/common/Card';
@@ -9,9 +10,7 @@ import { ReportDetailModal } from '../components/reports/ReportDetailModal';
 import { AttendanceReportTab } from '../components/reports/AttendanceReportTab';
 import { TransactionHistoryReportTab } from '../components/reports/TransactionHistoryReportTab';
 
-// Generate a range of years: 2 years into the future, 8 years into the past
-const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 10 }, (_, i) => currentYear - i + 2);
+const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 const months = Array.from({ length: 12 }, (_, i) => i + 1);
 const today = new Date();
 
@@ -247,6 +246,8 @@ export const ReportsScreen: React.FC = () => {
             });
         });
 
+        // Provisional tuition is for the whole month, so alphabetical sort by description (Student Name) is often preferred.
+        // If exact date sorting is required for other lists, we keep this one alphabetical or by description.
         setDetailModal({
             isOpen: true,
             title: `Chi tiết Học phí Tạm tính (T${selectedMonth}/${selectedYear})`,
@@ -276,6 +277,9 @@ export const ReportsScreen: React.FC = () => {
                 type: 'credit' as const
             }
         });
+
+        // Sort descending by date (Newest first)
+        items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
         setDetailModal({
             isOpen: true,
@@ -313,7 +317,8 @@ export const ReportsScreen: React.FC = () => {
                 type: 'credit' as const
             })) : [];
 
-        const allItems = [...tuitionItems, ...otherIncomeItems].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        // Sort descending by date (Newest first)
+        const allItems = [...tuitionItems, ...otherIncomeItems].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setDetailModal({ isOpen: true, title: `Chi tiết Doanh thu (T${selectedMonth}/${selectedYear})`, items: allItems });
     };
 
@@ -327,6 +332,10 @@ export const ReportsScreen: React.FC = () => {
                 amount: e.amount,
                 type: 'debit' as const
             }));
+        
+        // Sort descending by date (Newest first)
+        items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
         setDetailModal({ isOpen: true, title: `Chi tiết Chi phí (T${selectedMonth}/${selectedYear})`, items: items });
     };
 
@@ -354,7 +363,8 @@ export const ReportsScreen: React.FC = () => {
         
         const expenseItems = classFilter === 'all' ? expenses.filter(e => e.date.startsWith(monthStr)).map(e => ({ description: `[Chi phí] ${e.description}`, date: e.date, amount: e.amount, type: 'debit' as const })) : [];
         
-        const allItems = [...revenueItems, ...expenseItems].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        // Sort descending by date (Newest first)
+        const allItems = [...revenueItems, ...expenseItems].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setDetailModal({ isOpen: true, title: `Chi tiết Lợi nhuận (T${selectedMonth}/${selectedYear})`, items: allItems });
     };
 
@@ -380,7 +390,9 @@ export const ReportsScreen: React.FC = () => {
             ...(classFilter === 'all' ? income.filter(i => i.date.startsWith(yearStr)).map(i => ({ description: `[Doanh thu khác] ${i.description}`, date: i.date, amount: i.amount, type: 'credit' as const })) : [])
         ];
         const expenseItems = classFilter === 'all' ? expenses.filter(e => e.date.startsWith(yearStr)).map(e => ({ description: `[Chi phí] ${e.description}`, date: e.date, amount: e.amount, type: 'debit' as const })) : [];
-        const allItems = [...revenueItems, ...expenseItems].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        
+        // Sort descending by date (Newest first)
+        const allItems = [...revenueItems, ...expenseItems].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setDetailModal({ isOpen: true, title: `Chi tiết Lợi nhuận (Năm ${selectedYear})`, items: allItems });
     };
 
@@ -391,6 +403,10 @@ export const ReportsScreen: React.FC = () => {
                 description: s.name,
                 date: s.createdAt,
             }));
+        
+        // Sort descending by date (Newest first)
+        items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
         setDetailModal({ isOpen: true, title: `Chi tiết Học viên mới (Năm ${selectedYear})`, items: items });
     };
     

@@ -1,0 +1,214 @@
+
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useData } from '../../hooks/useDataContext';
+import { useAuth } from '../../hooks/useAuth';
+import { useToast } from '../../hooks/useToast';
+import { Table, SortConfig, Column } from '../common/Table';
+import { Button } from '../common/Button';
+import { Modal } from '../common/Modal';
+import { ICONS } from '../../constants';
+import { Income, IncomeCategory, UserRole } from '../../types';
+import { CurrencyInput } from '../common/CurrencyInput';
+import { ConfirmationModal } from '../common/ConfirmationModal';
+import { Pagination } from '../common/Pagination';
+import { ListItemCard } from '../common/ListItemCard';
+
+const ITEMS_PER_PAGE = 10;
+
+const incomeCategoryMap: Record<IncomeCategory, string> = {
+    [IncomeCategory.SALE]: 'Bán hàng',
+    [IncomeCategory.EVENT]: 'Sự kiện',
+    [IncomeCategory.OTHER]: 'Khác',
+};
+
+const IncomeForm: React.FC<{
+    item?: Income;
+    onSubmit: (data: Omit<Income, 'id'>) => void;
+    onCancel: () => void;
+}> = ({ item, onSubmit, onCancel }) => {
+    const [formData, setFormData] = useState({
+        description: item?.description || '',
+        amount: item?.amount || 0,
+        category: item?.category || IncomeCategory.OTHER,
+        date: item?.date || new Date().toISOString().split('T')[0],
+    });
+    const descRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        descRef.current?.focus();
+    }, []);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+    
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSubmit(formData);
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+                <label className="block text-sm font-medium">Mô tả</label>
+                <input ref={descRef} type="text" name="description" value={formData.description} onChange={handleChange} className="form-input mt-1" required />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium">Số tiền (VND)</label>
+                    <CurrencyInput value={formData.amount} onChange={(val) => setFormData(p => ({...p, amount: val}))} className="form-input mt-1" required />
+                </div>
+                 <div>
+                    <label className="block text-sm font-medium">Ngày</label>
+                    <input type="date" name="date" value={formData.date} onChange={handleChange} className="form-input mt-1" required />
+                </div>
+            </div>
+            <div>
+                <label className="block text-sm font-medium">Hạng mục</label>
+                <select name="category" value={formData.category} onChange={handleChange} className="form-select mt-1">
+                    {Object.entries(incomeCategoryMap).map(([key, value]) => (
+                        <option key={key} value={key}>{value}</option>
+                    ))}
+                </select>
+            </div>
+             <div className="flex justify-end space-x-4 pt-4 border-t dark:border-gray-700">
+                <Button type="button" variant="secondary" onClick={onCancel}>Hủy</Button>
+                <Button type="submit">{item ? 'Lưu' : 'Thêm'}</Button>
+            </div>
+        </form>
+    )
+};
+
+export const IncomeTab: React.FC = () => {
+    const { state, addIncome, updateIncome, deleteIncome } = useData();
+    const { role } = useAuth();
+    const { toast } = useToast();
+    const [isModalOpen, setModalOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState<Income | undefined>(undefined);
+    const [itemToDelete, setItemToDelete] = useState<Income | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [sortConfig, setSortConfig] = useState<SortConfig<Income> | null>({ key: 'date', direction: 'descending' });
+
+    const canManage = role === UserRole.ADMIN || role === UserRole.ACCOUNTANT;
+
+    const handleSort = (key: keyof Income) => {
+        let direction: 'ascending' | 'descending' = 'ascending';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const filteredItems = useMemo(() => {
+        if (!searchQuery) return state.income;
+        const lowerQuery = searchQuery.toLowerCase();
+        return state.income.filter(item => item.description.toLowerCase().includes(lowerQuery));
+    }, [state.income, searchQuery]);
+
+    const sortedItems = useMemo(() => {
+        let sortableItems = [...filteredItems];
+        if (sortConfig) {
+            sortableItems.sort((a, b) => {
+                const aValue = a[sortConfig.key];
+                const bValue = b[sortConfig.key];
+                
+                if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
+                
+                // Tie-breaker: sort by ID descending (assuming new items have IDs that sort later)
+                // This ensures "newest first" when dates are equal
+                return b.id.localeCompare(a.id);
+            });
+        }
+        return sortableItems;
+    }, [filteredItems, sortConfig]);
+
+    const totalAmount = useMemo(() => {
+        return sortedItems.reduce((sum, item) => sum + item.amount, 0);
+    }, [sortedItems]);
+
+    const totalPages = Math.ceil(sortedItems.length / ITEMS_PER_PAGE);
+    const paginatedItems = sortedItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+    useEffect(() => { setCurrentPage(1); }, [searchQuery, sortConfig]);
+
+    const handleOpenModal = (item?: Income) => {
+        setEditingItem(item);
+        setModalOpen(true);
+    };
+    
+    const handleSubmit = async (data: Omit<Income, 'id'>) => {
+        try {
+            if (editingItem) {
+                await updateIncome({ ...data, id: editingItem.id });
+                toast.success('Đã cập nhật khoản thu.');
+            } else {
+                await addIncome(data);
+                toast.success('Đã thêm khoản thu mới.');
+            }
+            setModalOpen(false);
+            setEditingItem(undefined);
+        } catch (error) {
+            toast.error('Đã xảy ra lỗi.');
+        }
+    };
+
+    const handleDelete = async () => {
+        if (itemToDelete) {
+            try {
+                await deleteIncome(itemToDelete.id);
+                toast.success('Đã xóa khoản thu.');
+            } catch (error) {
+                toast.error('Lỗi khi xóa.');
+            } finally {
+                setItemToDelete(null);
+            }
+        }
+    };
+    
+    const columns: Column<Income>[] = [
+        { header: 'Ngày', accessor: 'date', sortable: true },
+        { header: 'Mô tả', accessor: 'description', sortable: true },
+        { header: 'Hạng mục', accessor: (item) => incomeCategoryMap[item.category], sortable: true, sortKey: 'category' },
+        { header: 'Số tiền', accessor: (item) => `${item.amount.toLocaleString('vi-VN')} ₫`, sortable: true, sortKey: 'amount' },
+    ];
+
+    return (
+        <div className="card-base">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+                <h2 className="text-xl font-semibold">Quản lý Thu khác</h2>
+                {canManage && (
+                    <Button onClick={() => handleOpenModal()}>{ICONS.plus} Thêm Khoản thu</Button>
+                )}
+            </div>
+            <input type="text" placeholder="Tìm kiếm..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="form-input mb-4"/>
+
+            <div className="hidden md:block">
+                <Table<Income> columns={columns} data={paginatedItems} sortConfig={sortConfig} onSort={handleSort} actions={canManage ? (item) => (
+                    <div className="flex items-center justify-end gap-2">
+                        <button onClick={() => handleOpenModal(item)} className="p-1.5 hover:bg-gray-100 rounded-md text-indigo-600" title="Sửa">{ICONS.edit}</button>
+                        <button onClick={() => setItemToDelete(item)} className="p-1.5 hover:bg-gray-100 rounded-md text-red-500" title="Xóa">{ICONS.delete}</button>
+                    </div>
+                ) : undefined}/>
+            </div>
+             <div className="md:hidden space-y-4">
+                {paginatedItems.map(item => <ListItemCard key={item.id} title={item.description} details={[{label: "Ngày", value: item.date}, {label: "Số tiền", value: `${item.amount.toLocaleString('vi-VN')} ₫`}]} actions={canManage ? (<><Button size="sm" variant="secondary" onClick={() => handleOpenModal(item)}>Sửa</Button><Button size="sm" variant="danger" onClick={() => setItemToDelete(item)}>Xóa</Button></>) : undefined} />)}
+            </div>
+
+            {paginatedItems.length > 0 && <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} totalItems={sortedItems.length} itemsPerPage={ITEMS_PER_PAGE} />}
+            
+            {sortedItems.length > 0 && (
+                <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg flex justify-between items-center border border-green-200 dark:border-green-800">
+                    <span className="font-semibold text-green-800 dark:text-green-300">Tổng thu (đang hiển thị):</span>
+                    <span className="text-xl font-bold text-green-700 dark:text-green-400">{totalAmount.toLocaleString('vi-VN')} ₫</span>
+                </div>
+            )}
+
+            <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} title={editingItem ? 'Sửa Khoản thu' : 'Thêm Khoản thu'}>
+                <IncomeForm item={editingItem} onSubmit={handleSubmit} onCancel={() => setModalOpen(false)} />
+            </Modal>
+            <ConfirmationModal isOpen={!!itemToDelete} onClose={() => setItemToDelete(null)} onConfirm={handleDelete} title="Xác nhận Xóa" message="Bạn có chắc muốn xóa khoản thu này?" />
+        </div>
+    );
+};
