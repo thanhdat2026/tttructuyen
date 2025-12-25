@@ -75,8 +75,7 @@ export const UnpaidStudentsReport: React.FC = () => {
             return [];
         }
         const studentIdsInClass = new Set(selectedClass.studentIds);
-        
-        // Chỉ lấy học viên trong lớp có số dư âm (còn nợ)
+        // Chỉ lấy học viên trong lớp ĐANG CÓ SỐ DƯ ÂM (CÒN NỢ)
         const studentsInClass = students.filter(s => studentIdsInClass.has(s.id) && s.balance < 0);
         
         // Sort students alphabetically by name for the report

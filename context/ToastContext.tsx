@@ -1,5 +1,4 @@
 
-
 import React, { createContext, useState, ReactNode, useCallback } from 'react';
 
 type ToastType = 'success' | 'error' | 'info';
