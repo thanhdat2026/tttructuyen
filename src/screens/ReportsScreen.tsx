@@ -115,7 +115,8 @@ export const ReportsScreen: React.FC = () => {
             // Format label
             let displayLabel = label;
             if (isDaily) {
-                const [y, m, d] = label.split('-');
+                // Sửa lỗi: Loại bỏ biến 'y' không sử dụng
+                const [, m, d] = label.split('-');
                 displayLabel = `${d}/${m}`;
             } else {
                 const [y, m] = label.split('-');
