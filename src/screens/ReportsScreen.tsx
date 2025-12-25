@@ -41,8 +41,6 @@ export const ReportsScreen: React.FC = () => {
     }, [classFilter, classes]);
 
     // Helper: Nhóm dữ liệu cho biểu đồ đường
-    // Nếu khoảng thời gian <= 31 ngày -> Nhóm theo ngày
-    // Nếu khoảng thời gian > 31 ngày -> Nhóm theo tháng
     const trendAnalytics = useMemo(() => {
         const start = new Date(startDate);
         const end = new Date(endDate);
@@ -115,7 +113,7 @@ export const ReportsScreen: React.FC = () => {
             // Format label
             let displayLabel = label;
             if (isDaily) {
-                // Sửa lỗi: Loại bỏ biến 'y' không sử dụng
+                // FIXED: Ignored first element 'y' to prevent TS unused var error
                 const [, m, d] = label.split('-');
                 displayLabel = `${d}/${m}`;
             } else {
