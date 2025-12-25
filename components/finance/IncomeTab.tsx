@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useData } from '../../hooks/useDataContext';
 import { useAuth } from '../../hooks/useAuth';
@@ -112,21 +111,13 @@ export const IncomeTab: React.FC = () => {
             sortableItems.sort((a, b) => {
                 const aValue = a[sortConfig.key];
                 const bValue = b[sortConfig.key];
-                
                 if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
                 if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
-                
-                // Tie-breaker: sort by ID descending (assuming new items have IDs that sort later)
-                // This ensures "newest first" when dates are equal
-                return b.id.localeCompare(a.id);
+                return 0;
             });
         }
         return sortableItems;
     }, [filteredItems, sortConfig]);
-
-    const totalAmount = useMemo(() => {
-        return sortedItems.reduce((sum, item) => sum + item.amount, 0);
-    }, [sortedItems]);
 
     const totalPages = Math.ceil(sortedItems.length / ITEMS_PER_PAGE);
     const paginatedItems = sortedItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -186,10 +177,7 @@ export const IncomeTab: React.FC = () => {
 
             <div className="hidden md:block">
                 <Table<Income> columns={columns} data={paginatedItems} sortConfig={sortConfig} onSort={handleSort} actions={canManage ? (item) => (
-                    <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => handleOpenModal(item)} className="p-1.5 hover:bg-gray-100 rounded-md text-indigo-600" title="Sửa">{ICONS.edit}</button>
-                        <button onClick={() => setItemToDelete(item)} className="p-1.5 hover:bg-gray-100 rounded-md text-red-500" title="Xóa">{ICONS.delete}</button>
-                    </div>
+                    <><button onClick={() => handleOpenModal(item)}>{ICONS.edit}</button><button onClick={() => setItemToDelete(item)} className="text-red-500">{ICONS.delete}</button></>
                 ) : undefined}/>
             </div>
              <div className="md:hidden space-y-4">
@@ -198,13 +186,6 @@ export const IncomeTab: React.FC = () => {
 
             {paginatedItems.length > 0 && <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} totalItems={sortedItems.length} itemsPerPage={ITEMS_PER_PAGE} />}
             
-            {sortedItems.length > 0 && (
-                <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg flex justify-between items-center border border-green-200 dark:border-green-800">
-                    <span className="font-semibold text-green-800 dark:text-green-300">Tổng thu (đang hiển thị):</span>
-                    <span className="text-xl font-bold text-green-700 dark:text-green-400">{totalAmount.toLocaleString('vi-VN')} ₫</span>
-                </div>
-            )}
-
             <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} title={editingItem ? 'Sửa Khoản thu' : 'Thêm Khoản thu'}>
                 <IncomeForm item={editingItem} onSubmit={handleSubmit} onCancel={() => setModalOpen(false)} />
             </Modal>

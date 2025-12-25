@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { useData } from '../../hooks/useDataContext';
 import { downloadAsCSV } from '../../services/csvExport';
@@ -13,12 +12,12 @@ import { PrintableAttendanceReport, AttendanceReportData } from './PrintableAtte
 const ITEMS_PER_PAGE = 15;
 
 interface AttendanceReportTabProps { 
-    startDate: string; 
-    endDate: string; 
+    selectedMonth: number; 
+    selectedYear: number; 
     classFilter: string; 
 }
 
-export const AttendanceReportTab: React.FC<AttendanceReportTabProps> = ({ startDate, endDate, classFilter }) => {
+export const AttendanceReportTab: React.FC<AttendanceReportTabProps> = ({ selectedMonth, selectedYear, classFilter }) => {
     const { state } = useData();
     const { students, classes, attendance } = state;
     const [searchQuery, setSearchQuery] = useState('');
@@ -28,6 +27,8 @@ export const AttendanceReportTab: React.FC<AttendanceReportTabProps> = ({ startD
     const [isExportingImage, setIsExportingImage] = useState(false);
 
     const reportData = useMemo(() => {
+        const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
+        
         let relevantStudents = students.filter(s => s.status === PersonStatus.ACTIVE);
         if (classFilter !== 'all') {
             const classStudentIds = new Set(classes.find(c => c.id === classFilter)?.studentIds || []);
@@ -39,14 +40,14 @@ export const AttendanceReportTab: React.FC<AttendanceReportTabProps> = ({ startD
             relevantStudents = relevantStudents.filter(s => s.name.toLowerCase().includes(lowerQuery) || s.id.toLowerCase().includes(lowerQuery));
         }
 
-        const periodAttendance = attendance.filter(a => 
-            a.date >= startDate && a.date <= endDate &&
+        const monthlyAttendance = attendance.filter(a => 
+            a.date.startsWith(monthStr) &&
             (classFilter === 'all' || a.classId === classFilter) &&
             (a.status === AttendanceStatus.PRESENT || a.status === AttendanceStatus.LATE)
         );
 
         const attendanceCounts = new Map<string, number>();
-        periodAttendance.forEach(a => {
+        monthlyAttendance.forEach(a => {
             attendanceCounts.set(a.studentId, (attendanceCounts.get(a.studentId) || 0) + 1);
         });
 
@@ -57,7 +58,7 @@ export const AttendanceReportTab: React.FC<AttendanceReportTabProps> = ({ startD
             attendanceCount: attendanceCounts.get(student.id) || 0
         }));
 
-    }, [students, classes, attendance, startDate, endDate, classFilter, searchQuery]);
+    }, [students, classes, attendance, selectedYear, selectedMonth, classFilter, searchQuery]);
     
     const sortedData = useMemo(() => {
         let sortableItems = [...reportData];
@@ -101,7 +102,7 @@ export const AttendanceReportTab: React.FC<AttendanceReportTabProps> = ({ startD
     
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, classFilter, startDate, endDate]);
+    }, [searchQuery, classFilter, selectedMonth, selectedYear]);
     
     const handleSort = (key: keyof AttendanceReportData) => {
         let direction: 'ascending' | 'descending' = 'ascending';
@@ -116,8 +117,8 @@ export const AttendanceReportTab: React.FC<AttendanceReportTabProps> = ({ startD
             id: 'Mã HV',
             name: 'Họ tên',
             classNames: 'Các lớp học',
-            attendanceCount: `Số buổi có mặt (${startDate} - ${endDate})`
-        }, `BaoCaoChuyenCan_${startDate}_${endDate}.csv`);
+            attendanceCount: `Số buổi có mặt (T${selectedMonth}/${selectedYear})`
+        }, `BaoCaoChuyenCan_T${selectedMonth}_${selectedYear}.csv`);
     };
     
     const handleExportImage = () => {
@@ -125,7 +126,7 @@ export const AttendanceReportTab: React.FC<AttendanceReportTabProps> = ({ startD
             setIsExportingImage(true);
             window.html2canvas(reportRef.current, { scale: 2, useCORS: true }).then((canvas: any) => {
                 const link = document.createElement('a');
-                link.download = `BaoCaoChuyenCan_${startDate}_${endDate}.png`;
+                link.download = `BaoCaoChuyenCan_T${selectedMonth}_${selectedYear}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             }).catch((err: any) => {
@@ -148,12 +149,12 @@ export const AttendanceReportTab: React.FC<AttendanceReportTabProps> = ({ startD
             <div ref={reportRef} style={{ position: 'absolute', left: '-9999px', width: '210mm' }}>
                 <PrintableAttendanceReport
                     data={sortedData}
-                    title={`Thống kê Chuyên cần (${startDate} đến ${endDate})`}
+                    title={`Thống kê Chuyên cần Tháng ${selectedMonth}/${selectedYear}`}
                 />
             </div>
             <div className="card-base">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-                    <h2 className="text-xl font-semibold">Thống kê Chuyên cần</h2>
+                    <h2 className="text-xl font-semibold">Thống kê Chuyên cần Tháng {selectedMonth}/{selectedYear}</h2>
                     <div className="flex flex-wrap gap-2">
                         <Button onClick={handleExportImage} variant="secondary" isLoading={isExportingImage}>
                             {ICONS.download} Xuất ảnh
@@ -183,7 +184,7 @@ export const AttendanceReportTab: React.FC<AttendanceReportTabProps> = ({ startD
                             title={item.name}
                             details={[
                                 { label: 'Mã HV', value: item.id },
-                                { label: `Số buổi có mặt`, value: <span className="font-bold text-lg text-primary">{item.attendanceCount}</span> }
+                                { label: `Số buổi có mặt (T${selectedMonth})`, value: <span className="font-bold text-lg text-primary">{item.attendanceCount}</span> }
                             ]}
                         />
                     ))}

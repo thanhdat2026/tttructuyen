@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../../hooks/useDataContext';
 import { Table, SortConfig, Column } from '../common/Table';
@@ -17,8 +16,8 @@ interface TransactionWithDetails extends Transaction {
 }
 
 interface TransactionHistoryReportTabProps {
-    startDate: string;
-    endDate: string;
+    selectedMonth: number;
+    selectedYear: number;
     classFilter: string;
 }
 
@@ -29,7 +28,7 @@ const transactionTypeMap: Record<TransactionType, string> = {
     [TransactionType.ADJUSTMENT_DEBIT]: 'Điều chỉnh Giảm',
 };
 
-export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabProps> = ({ startDate, endDate, classFilter }) => {
+export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabProps> = ({ selectedMonth, selectedYear, classFilter }) => {
     const { state } = useData();
     const { transactions, students, classes } = state;
     const [searchQuery, setSearchQuery] = useState('');
@@ -37,7 +36,9 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
     const [sortConfig, setSortConfig] = useState<SortConfig<TransactionWithDetails> | null>({ key: 'date', direction: 'descending' });
 
     const reportData = useMemo(() => {
-        let relevantTransactions = transactions.filter(t => t.date >= startDate && t.date <= endDate);
+        const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
+        
+        let relevantTransactions = transactions.filter(t => t.date.startsWith(monthStr));
 
         // Fix: Explicitly type the studentMap to ensure correct type inference from .get()
         const studentMap: Map<string, Student> = new Map(students.map((s: Student) => [s.id, s]));
@@ -67,7 +68,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
 
         return processedData;
 
-    }, [transactions, students, classes, startDate, endDate, classFilter, searchQuery]);
+    }, [transactions, students, classes, selectedYear, selectedMonth, classFilter, searchQuery]);
     
     const sortedData = useMemo(() => {
         let sortableItems = [...reportData];
@@ -94,7 +95,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
     
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, classFilter, startDate, endDate]);
+    }, [searchQuery, classFilter, selectedMonth, selectedYear]);
 
     const handleSort = (key: keyof TransactionWithDetails) => {
         let direction: 'ascending' | 'descending' = 'ascending';
@@ -120,7 +121,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
             description: 'Diễn giải',
             type: 'Loại Giao dịch',
             amount: `Số tiền`
-        }, `LichSuGiaoDich_${startDate}_${endDate}.csv`);
+        }, `LichSuGiaoDich_T${selectedMonth}_${selectedYear}.csv`);
     };
 
     const columns: Column<TransactionWithDetails>[] = [
@@ -139,7 +140,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
     return (
         <div className="card-base">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-                <h2 className="text-xl font-semibold">Lịch sử Giao dịch</h2>
+                <h2 className="text-xl font-semibold">Lịch sử Giao dịch Tháng {selectedMonth}/{selectedYear}</h2>
                 <Button onClick={handleExport} variant="secondary">{ICONS.export} Xuất CSV</Button>
             </div>
             <input 

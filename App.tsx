@@ -13,7 +13,7 @@ import { ToastContainer } from './components/common/Toast';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { ParentHeader } from './components/layout/ParentHeader';
-import { BottomNav } from './components/layout/BottomNav';
+import { BottomNav } from './components/layout/BottomNav'; // Import BottomNav
 
 // Screens
 import { DashboardScreen } from './screens/DashboardScreen';
@@ -68,9 +68,9 @@ const AppLayout: React.FC = () => {
     const location = useLocation();
     const { error, setError } = useData();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-    const isAttendanceHub = location.pathname === ROUTES.ATTENDANCE_HUB;
     
+    const isAttendanceHub = location.pathname === ROUTES.ATTENDANCE_HUB;
+
     const pageTitle = useMemo(() => {
         const path = location.pathname;
         if (path.startsWith(ROUTES.CLASS_DETAIL.split('/:')[0])) return 'Chi tiết Lớp học';

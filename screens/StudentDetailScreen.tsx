@@ -130,24 +130,23 @@ const AttendanceSummaryWidget: React.FC<{
             const total = classAttendance.length;
             const percentage = total > 0 ? (((present + late) / total) * 100).toFixed(0) : 'N/A';
             
-            const isEnrolled = cls.studentIds.includes(studentId);
-            // Show class if: 
-            // 1. Currently enrolled (always show to see 0 attendance if new)
-            // 2. OR has data for the selected month (historical class)
-            const shouldShow = isEnrolled || total > 0 || filterMonth === 0;
+            // Only show classes that have attendance data for the filtered period, or are currently enrolled
+            const hasData = total > 0;
             
             return {
                 classId: cls.id,
                 className: cls.name,
-                isEnrolled,
                 present,
                 absent,
                 late,
                 percentage,
-                shouldShow
+                hasData
             };
-        }).filter(s => s.shouldShow);
-    }, [filteredAttendance, enrolledClasses, filterMonth, studentId]);
+        }).filter(s => s.hasData || filterMonth === 0); // In monthly view, hide classes with no data to reduce clutter? 
+        // Actually, let's show all related classes but with 0s if no data for that month,
+        // unless it's an old class with NO data for this month.
+        // Let's keep it simple: show all related classes.
+    }, [filteredAttendance, enrolledClasses, filterMonth]);
 
     if (summary.length === 0) {
         return (
@@ -163,10 +162,7 @@ const AttendanceSummaryWidget: React.FC<{
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {summary.map(s => (
                     <div key={s.classId} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                        <h3 className="font-semibold text-primary">
-                            {s.className}
-                            {!s.isEnrolled && <span className="text-xs text-gray-500 font-normal ml-2">(Lớp cũ)</span>}
-                        </h3>
+                        <h3 className="font-semibold text-primary">{s.className}</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mt-2 text-center">
                             <div>
                                 <p className="font-bold text-lg text-green-600">{s.present}</p>
@@ -461,8 +457,7 @@ export const StudentDetailScreen: React.FC = () => {
         </button>
     );
 
-    const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: 10 }, (_, i) => currentYear - i + 2);
+    const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
     const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
     return (
@@ -524,11 +519,11 @@ export const StudentDetailScreen: React.FC = () => {
                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
                             <span className="text-sm font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">Lọc dữ liệu điểm danh:</span>
                             <div className="flex gap-2 w-full sm:w-auto">
-                                <select value={filterMonth} onChange={e => setFilterMonth(Number(e.target.value))} className="form-select text-sm py-2 w-1/2 sm:w-auto">
-                                    <option value={0}>Tất cả</option>
+                                <select value={filterMonth} onChange={e => setFilterMonth(Number(e.target.value))} className="form-select text-sm py-1.5 w-1/2 sm:w-auto">
+                                    <option value={0}>Tất cả các tháng</option>
                                     {months.map(m => <option key={m} value={m}>Tháng {m}</option>)}
                                 </select>
-                                <select value={filterYear} onChange={e => setFilterYear(Number(e.target.value))} className="form-select text-sm py-2 w-1/2 sm:w-auto">
+                                <select value={filterYear} onChange={e => setFilterYear(Number(e.target.value))} className="form-select text-sm py-1.5 w-1/2 sm:w-auto">
                                     {years.map(y => <option key={y} value={y}>Năm {y}</option>)}
                                 </select>
                             </div>

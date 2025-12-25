@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 export interface SortConfig<T> {
@@ -57,6 +56,16 @@ export function Table<T extends { id: string }>({ columns, data, actions, sortCo
       onSelectionChange(newSelectedIds);
     }
   };
+
+  const handleRowClick = (e: React.MouseEvent<HTMLTableRowElement>, id: string) => {
+    if (onSelectionChange) {
+        // Prevent row click from triggering if a button, link, or input inside the row was clicked
+        if (e.target instanceof HTMLElement && e.target.closest('a, button, input')) {
+            return;
+        }
+        handleSelectOne(id);
+    }
+  };
   
   const totalSelectableCount = fullDataIds ? fullDataIds.length : data.length;
   const isAllSelected = selectedIds && totalSelectableCount > 0 && selectedIds.length === totalSelectableCount;
@@ -92,12 +101,16 @@ export function Table<T extends { id: string }>({ columns, data, actions, sortCo
                 </th>
               );
             })}
-            {actions && <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>}
+            {actions && <th scope="col" className="relative px-6 py-3"><span className="sr-only">Hành động</span></th>}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
           {data.map((item) => (
-            <tr key={item.id} className={`transition-colors duration-150 ${selectedIds?.includes(item.id) ? 'bg-indigo-50 dark:bg-slate-700' : 'hover:bg-slate-50/50 dark:hover:bg-slate-700/50'}`}>
+            <tr 
+              key={item.id} 
+              onClick={(e) => handleRowClick(e, item.id)}
+              className={`transition-colors duration-150 ${onSelectionChange ? 'cursor-pointer' : ''} ${selectedIds?.includes(item.id) ? 'bg-indigo-50 dark:bg-slate-700' : 'hover:bg-slate-50/50 dark:hover:bg-slate-700/50'}`}
+            >
               {onSelectionChange && selectedIds && (
                  <td className="px-6 py-4 whitespace-nowrap">
                     <input
