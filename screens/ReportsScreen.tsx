@@ -10,9 +10,16 @@ import { ReportDetailModal } from '../components/reports/ReportDetailModal';
 import { AttendanceReportTab } from '../components/reports/AttendanceReportTab';
 import { TransactionHistoryReportTab } from '../components/reports/TransactionHistoryReportTab';
 
+const toLocalDateString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const today = new Date();
-const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+const startOfMonth = toLocalDateString(new Date(today.getFullYear(), today.getMonth(), 1));
+const endOfMonth = toLocalDateString(new Date(today.getFullYear(), today.getMonth() + 1, 0));
 
 type ReportTab = 'overview' | 'attendance' | 'transactions';
 
@@ -54,7 +61,7 @@ export const ReportsScreen: React.FC = () => {
         if (isDaily) {
             let loop = new Date(start);
             while (loop <= end) {
-                const key = loop.toISOString().split('T')[0]; // YYYY-MM-DD
+                const key = toLocalDateString(loop);
                 dataMap.set(key, { revenue: 0, expense: 0 });
                 loop.setDate(loop.getDate() + 1);
             }
@@ -380,8 +387,8 @@ export const ReportsScreen: React.FC = () => {
                 end = new Date(now.getFullYear(), 11, 31);
                 break;
         }
-        setStartDate(start.toISOString().split('T')[0]);
-        setEndDate(end.toISOString().split('T')[0]);
+        setStartDate(toLocalDateString(start));
+        setEndDate(toLocalDateString(end));
     };
 
     const TabButton: React.FC<{ tabId: ReportTab; children: React.ReactNode }> = ({ tabId, children }) => (

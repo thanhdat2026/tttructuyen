@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+
+import React, { useMemo, useState } from 'react';
 import { Card } from '../components/common/Card';
 import { ICONS, ROUTES } from '../constants';
 import { useData } from '../hooks/useDataContext';
@@ -7,28 +8,16 @@ import { PersonStatus, UserRole, Teacher, Announcement, Class, Student, Attendan
 import { Link } from 'react-router-dom';
 import { Button } from '../components/common/Button';
 
-const AnnouncementsWidget: React.FC<{announcements: Announcement[]}> = ({announcements}) => (
-    <div className="card-base h-full">
-        <h2 className="text-xl font-bold mb-4">Thông báo gần đây</h2>
-        <div className="space-y-4 max-h-96 overflow-y-auto">
-            {announcements.length > 0 ? (
-                announcements.slice(0, 5).map(ann => (
-                    <div key={ann.id} className="p-3 bg-indigo-50 dark:bg-slate-700/50 rounded-lg">
-                        <h3 className="font-semibold text-indigo-800 dark:text-indigo-300">{ann.title}</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{ann.content.substring(0, 100)}...</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 text-right mt-2">{ann.createdAt} - {ann.createdBy}</p>
-                    </div>
-                ))
-            ) : (
-                <p className="text-gray-500 dark:text-gray-400">Chưa có thông báo nào.</p>
-            )}
-        </div>
-    </div>
-);
+const toLocalDateString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
 
 const TodaysScheduleWidget: React.FC<{ classes: Class[], teachers: Teacher[] }> = ({ classes, teachers }) => {
     const today = new Date();
-    const todayDateString = today.toISOString().split('T')[0];
+    const todayDateString = toLocalDateString(today);
     const dayOfWeekEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][today.getDay()];
 
     const sessionsToday = useMemo(() => {
@@ -61,7 +50,7 @@ const TodaysScheduleWidget: React.FC<{ classes: Class[], teachers: Teacher[] }> 
                                     {session.singleSchedule.startTime} - {session.singleSchedule.endTime} • GV: {getTeacherNames(session.teacherIds)}
                                 </p>
                             </div>
-                            <Link to={ROUTES.ATTENDANCE_DETAIL.replace(':classId', session.id).replace(':date', todayDateString)} className="w-full sm:w-auto">
+                            <Link to={ROUTES.ATTENDANCE_DETAIL.replace(':classId', session.id).replace(':date', todayDateString)} state={{ returnTo: ROUTES.DASHBOARD }} className="w-full sm:w-auto">
                                 <Button variant="secondary" className="w-full">Điểm danh</Button>
                             </Link>
                         </div>
@@ -76,43 +65,21 @@ const TodaysScheduleWidget: React.FC<{ classes: Class[], teachers: Teacher[] }> 
     );
 };
 
-const HighDebtWidget: React.FC<{ students: Student[] }> = ({ students }) => {
-    const highDebtStudents = useMemo(() => {
-        return students
-            .filter(s => s.balance < 0)
-            .sort((a, b) => a.balance - b.balance) // most negative first
-            .slice(0, 5);
-    }, [students]);
 
-    return (
-        <Link to="/finance" state={{ defaultTab: 'debt_report' }} className="block hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors">
-            <div className="card-base">
-                <h2 className="text-xl font-bold mb-4">Cảnh báo: Học viên nợ nhiều</h2>
-                <div className="space-y-3">
-                    {highDebtStudents.length > 0 ? (
-                        highDebtStudents.map(student => (
-                            <div key={student.id} className="flex justify-between items-center text-sm">
-                                <span className="font-semibold">{student.name}</span>
-                                <span className="font-bold text-red-500 dark:text-red-400">{Math.abs(student.balance).toLocaleString('vi-VN')} ₫</span>
-                            </div>
-                        ))
-                    ) : (
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">Không có học viên nào có công nợ.</p>
-                    )}
-                </div>
-            </div>
-        </Link>
-    );
-};
+const AlertsAndAnnouncementsWidget: React.FC<{
+    students: Student[];
+    attendance: AttendanceRecord[];
+    announcements: Announcement[];
+}> = ({ students, attendance, announcements }) => {
+    const [activeTab, setActiveTab] = useState<'alerts' | 'announcements'>('alerts');
 
-const HighAbsenceWidget: React.FC<{ students: Student[], attendance: AttendanceRecord[] }> = ({ students, attendance }) => {
+    const highDebtStudents = useMemo(() => students.filter(s => s.balance < 0).sort((a, b) => a.balance - b.balance).slice(0, 5), [students]);
+
     const highAbsenceStudents = useMemo(() => {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
-
+        const thirtyDaysAgoStr = toLocalDateString(thirtyDaysAgo);
         const absenceCounts = new Map<string, number>();
-        
         const activeStudentIds = new Set(students.filter(s => s.status === PersonStatus.ACTIVE).map(s => s.id));
 
         attendance.forEach(record => {
@@ -130,25 +97,113 @@ const HighAbsenceWidget: React.FC<{ students: Student[], attendance: AttendanceR
             .slice(0, 5);
     }, [students, attendance]);
 
+    const highLateArrivalsStudents = useMemo(() => {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const thirtyDaysAgoStr = toLocalDateString(thirtyDaysAgo);
+        const lateCounts = new Map<string, number>();
+        const activeStudentIds = new Set(students.filter(s => s.status === PersonStatus.ACTIVE).map(s => s.id));
+
+        attendance.forEach(record => {
+            if (activeStudentIds.has(record.studentId) && record.status === AttendanceStatus.LATE && record.date >= thirtyDaysAgoStr) {
+                lateCounts.set(record.studentId, (lateCounts.get(record.studentId) || 0) + 1);
+            }
+        });
+        
+        const studentMap = new Map(students.map(s => [s.id, s.name]));
+
+        return Array.from(lateCounts.entries())
+            .map(([studentId, count]) => ({ studentId, studentName: studentMap.get(studentId), count }))
+            .filter(item => item.studentName && item.count > 0)
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
+    }, [students, attendance]);
+
+
+    const TabButton: React.FC<{ tab: 'alerts' | 'announcements', label: string }> = ({ tab, label }) => (
+        <button
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 text-sm font-semibold transition-colors border-b-2 ${
+                activeTab === tab 
+                ? 'border-primary text-primary' 
+                : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+        >
+            {label}
+        </button>
+    );
+
+    const AlertItem: React.FC<{ linkTo: string; linkState?: object; title: string; items: { id: string; name: string | undefined; value: React.ReactNode }[]; emptyText: string }> = ({ linkTo, linkState, title, items, emptyText }) => (
+        <div>
+            <Link to={linkTo} state={linkState}>
+                <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-2 hover:text-primary transition-colors">{title}</h3>
+            </Link>
+            {items.length > 0 ? (
+                <ul className="space-y-2 text-sm">
+                    {items.map(item => (
+                        <li key={item.id} className="flex justify-between items-center p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                            <span>{item.name}</span>
+                            <span className="font-semibold">{item.value}</span>
+                        </li>
+                    ))}
+                </ul>
+            ) : (
+                <p className="text-sm text-gray-500 px-2">{emptyText}</p>
+            )}
+        </div>
+    );
+
     return (
-        <Link to="/reports" state={{ defaultReport: 'attendance' }} className="block hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition-colors">
-            <div className="card-base">
-                <h2 className="text-xl font-bold mb-4">Cảnh báo: Học viên vắng nhiều</h2>
-                <p className="text-xs text-gray-400 -mt-3 mb-3">(Trong 30 ngày qua)</p>
-                <div className="space-y-3">
-                    {highAbsenceStudents.length > 0 ? (
-                        highAbsenceStudents.map(item => (
-                            <div key={item.studentId} className="flex justify-between items-center text-sm">
-                                <span className="font-semibold">{item.studentName}</span>
-                                <span className="font-bold text-yellow-600 dark:text-yellow-400">{item.count} buổi</span>
-                            </div>
-                        ))
-                    ) : (
-                        <p className="text-gray-500 dark:text-gray-400 text-sm">Không có học viên nào vắng trong 30 ngày qua.</p>
-                    )}
-                </div>
+        <div className="card-base h-full flex flex-col">
+            <div className="flex border-b border-gray-200 dark:border-gray-700 mb-4 flex-shrink-0">
+                <TabButton tab="alerts" label="Cảnh báo" />
+                <TabButton tab="announcements" label="Thông báo" />
             </div>
-        </Link>
+            
+            <div className="flex-grow overflow-y-auto">
+                {activeTab === 'alerts' && (
+                    <div className="space-y-6">
+                       <AlertItem 
+                            linkTo="/finance" 
+                            linkState={{ defaultTab: 'debt_report' }}
+                            title="Học viên nợ nhiều"
+                            items={highDebtStudents.map(s => ({ id: s.id, name: s.name, value: <span className="text-red-500">{Math.abs(s.balance).toLocaleString('vi-VN')} ₫</span> }))}
+                            emptyText="Không có học viên nào có công nợ."
+                       />
+                       <AlertItem 
+                            linkTo="/reports" 
+                            linkState={{ defaultReport: 'attendance' }}
+                            title="Học viên vắng nhiều (30 ngày qua)"
+                            items={highAbsenceStudents.map(s => ({ id: s.studentId, name: s.studentName, value: <span className="text-yellow-600">{s.count} buổi</span> }))}
+                            emptyText="Không có học viên nào vắng trong 30 ngày qua."
+                       />
+                       <AlertItem 
+                            linkTo="/reports" 
+                            linkState={{ defaultReport: 'attendance' }}
+                            title="Học viên đi muộn (30 ngày qua)"
+                            items={highLateArrivalsStudents.map(s => ({ id: s.studentId, name: s.studentName, value: <span className="text-orange-600">{s.count} buổi</span> }))}
+                            emptyText="Không có học viên nào đi muộn trong 30 ngày qua."
+                       />
+                    </div>
+                )}
+
+                {activeTab === 'announcements' && (
+                     <div className="space-y-4">
+                        {announcements.length > 0 ? (
+                            announcements.slice(0, 5).map(ann => (
+                                <div key={ann.id} className="p-3 bg-indigo-50 dark:bg-slate-700/50 rounded-lg">
+                                    <h3 className="font-semibold text-indigo-800 dark:text-indigo-300">{ann.title}</h3>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{ann.content.substring(0, 100)}...</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 text-right mt-2">{ann.createdAt} - {ann.createdBy}</p>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-gray-500 dark:text-gray-400">Chưa có thông báo nào.</p>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
     );
 };
 
@@ -197,7 +252,7 @@ const AdminDashboard: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card title="Học viên đang học" value={totalStudents} icon={ICONS.students} color="text-blue-600 dark:text-blue-400" />
                 <Card title="Lớp học hoạt động" value={activeClasses} icon={ICONS.classes} color="text-green-600 dark:text-green-400" />
                 {canViewFinancials && (
@@ -208,14 +263,16 @@ const AdminDashboard: React.FC = () => {
                 )}
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="lg:col-span-1">
                      <TodaysScheduleWidget classes={classes} teachers={teachers} />
                 </div>
-                <div className="lg:col-span-1 space-y-6">
-                    <HighDebtWidget students={students} />
-                    <HighAbsenceWidget students={students} attendance={attendance} />
-                    <AnnouncementsWidget announcements={announcements} />
+                <div className="lg:col-span-1">
+                    <AlertsAndAnnouncementsWidget 
+                        students={students} 
+                        attendance={attendance} 
+                        announcements={announcements} 
+                    />
                 </div>
             </div>
         </div>
@@ -227,7 +284,7 @@ const TeacherDashboard: React.FC = () => {
     const { user } = useAuth();
     const { classes, announcements, students } = state;
     const today = new Date();
-    const todayDateString = today.toISOString().split('T')[0];
+    const todayDateString = toLocalDateString(today);
     const dayOfWeekEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][today.getDay()];
 
     const dayMap: Record<string, string> = {
@@ -272,31 +329,31 @@ const TeacherDashboard: React.FC = () => {
             <div className="lg:col-span-2 space-y-6">
                 <h1 className="text-2xl font-bold">Lớp học của tôi</h1>
                 {assignedClasses.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
                         {assignedClasses.map(cls => {
                             const hasSessionToday = (cls.schedule || []).some(s => s.dayOfWeek === dayOfWeekEn);
                             return (
-                                <div key={cls.id} className="card-base flex flex-col justify-between">
-                                    <div>
-                                        <h2 className="text-xl font-bold text-primary">
-                                            <Link to={`/class/${cls.id}`} className="hover:underline">{cls.name}</Link>
-                                        </h2>
-                                        <p className="font-semibold">{cls.subject}</p>
-                                        <p className="text-gray-500 dark:text-gray-400">Sĩ số: {getActiveStudentCount(cls.studentIds)}</p>
-                                        <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                <div key={cls.id} className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                    <div className="flex-grow">
+                                        <Link to={`/class/${cls.id}`} className="font-bold text-lg text-primary hover:underline">{cls.name}</Link>
+                                        <p className="text-sm text-gray-600 dark:text-gray-300">{cls.subject} • Sĩ số: {getActiveStudentCount(cls.studentIds)}</p>
+                                        <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 flex flex-wrap gap-x-3 gap-y-1">
                                             {(cls.schedule || []).map((s, i) => (
-                                                <div key={i}>{`${dayMap[s.dayOfWeek]}: ${s.startTime} - ${s.endTime}`}</div>
+                                                <span key={i}>{`${dayMap[s.dayOfWeek]}: ${s.startTime}-${s.endTime}`}</span>
                                             ))}
-                                            {(cls.schedule || []).length === 0 && <p className="text-xs italic text-gray-500">Chưa có lịch học</p>}
                                         </div>
                                     </div>
-                                    {hasSessionToday && (
-                                        <div className="mt-4 flex justify-end">
-                                            <Link to={ROUTES.ATTENDANCE_DETAIL.replace(':classId', cls.id).replace(':date', todayDateString)}>
-                                                <Button>Điểm danh hôm nay</Button>
-                                            </Link>
-                                        </div>
-                                    )}
+                                    <div className="flex-shrink-0 w-full sm:w-auto">
+                                        <Link 
+                                          to={hasSessionToday ? ROUTES.ATTENDANCE_DETAIL.replace(':classId', cls.id).replace(':date', todayDateString) : `/class/${cls.id}`}
+                                          state={{ defaultTab: 'attendance', returnTo: ROUTES.DASHBOARD }} 
+                                          className="w-full"
+                                        >
+                                             <Button variant="secondary" className="w-full">
+                                                {hasSessionToday ? 'Điểm danh hôm nay' : 'Xem điểm danh'}
+                                            </Button>
+                                        </Link>
+                                    </div>
                                 </div>
                             );
                         })}
@@ -308,7 +365,22 @@ const TeacherDashboard: React.FC = () => {
                 )}
             </div>
             <div className="lg:col-span-1">
-                <AnnouncementsWidget announcements={relevantAnnouncements} />
+                <div className="card-base h-full">
+                    <h2 className="text-xl font-bold mb-4">Thông báo</h2>
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                        {relevantAnnouncements.length > 0 ? (
+                            relevantAnnouncements.slice(0, 5).map(ann => (
+                                <div key={ann.id} className="p-3 bg-indigo-50 dark:bg-slate-700/50 rounded-lg">
+                                    <h3 className="font-semibold text-indigo-800 dark:text-indigo-300">{ann.title}</h3>
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{ann.content.substring(0, 100)}...</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 text-right mt-2">{ann.createdAt} - {ann.createdBy}</p>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-gray-500 dark:text-gray-400">Chưa có thông báo nào.</p>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
     );

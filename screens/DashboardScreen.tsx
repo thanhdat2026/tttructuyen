@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { Card } from '../components/common/Card';
 import { ICONS, ROUTES } from '../constants';
@@ -7,9 +8,16 @@ import { PersonStatus, UserRole, Teacher, Announcement, Class, Student, Attendan
 import { Link } from 'react-router-dom';
 import { Button } from '../components/common/Button';
 
+const toLocalDateString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 const TodaysScheduleWidget: React.FC<{ classes: Class[], teachers: Teacher[] }> = ({ classes, teachers }) => {
     const today = new Date();
-    const todayDateString = today.toISOString().split('T')[0];
+    const todayDateString = toLocalDateString(today);
     const dayOfWeekEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][today.getDay()];
 
     const sessionsToday = useMemo(() => {
@@ -70,7 +78,7 @@ const AlertsAndAnnouncementsWidget: React.FC<{
     const highAbsenceStudents = useMemo(() => {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+        const thirtyDaysAgoStr = toLocalDateString(thirtyDaysAgo);
         const absenceCounts = new Map<string, number>();
         const activeStudentIds = new Set(students.filter(s => s.status === PersonStatus.ACTIVE).map(s => s.id));
 
@@ -92,7 +100,7 @@ const AlertsAndAnnouncementsWidget: React.FC<{
     const highLateArrivalsStudents = useMemo(() => {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+        const thirtyDaysAgoStr = toLocalDateString(thirtyDaysAgo);
         const lateCounts = new Map<string, number>();
         const activeStudentIds = new Set(students.filter(s => s.status === PersonStatus.ACTIVE).map(s => s.id));
 
@@ -276,7 +284,7 @@ const TeacherDashboard: React.FC = () => {
     const { user } = useAuth();
     const { classes, announcements, students } = state;
     const today = new Date();
-    const todayDateString = today.toISOString().split('T')[0];
+    const todayDateString = toLocalDateString(today);
     const dayOfWeekEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][today.getDay()];
 
     const dayMap: Record<string, string> = {

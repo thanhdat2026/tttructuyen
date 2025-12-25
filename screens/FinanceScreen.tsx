@@ -19,6 +19,13 @@ declare global {
     }
 }
 
+const toLocalDateString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 type FinanceTab = 'overview' | 'debt_report' | 'invoices' | 'payroll' | 'income' | 'expenses' | 'my_payroll';
 
 const OverviewTab: React.FC<{startDate: string, endDate: string}> = ({startDate, endDate}) => {
@@ -103,8 +110,8 @@ export const FinanceScreen: React.FC = () => {
     
     // Default to current month
     const today = new Date();
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+    const startOfMonth = toLocalDateString(new Date(today.getFullYear(), today.getMonth(), 1));
+    const endOfMonth = toLocalDateString(new Date(today.getFullYear(), today.getMonth() + 1, 0));
 
     const [startDate, setStartDate] = useState(startOfMonth);
     const [endDate, setEndDate] = useState(endOfMonth);
@@ -132,8 +139,8 @@ export const FinanceScreen: React.FC = () => {
                 end = new Date(now.getFullYear(), 11, 31);
                 break;
         }
-        setStartDate(start.toISOString().split('T')[0]);
-        setEndDate(end.toISOString().split('T')[0]);
+        setStartDate(toLocalDateString(start));
+        setEndDate(toLocalDateString(end));
     };
 
 
