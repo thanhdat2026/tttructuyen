@@ -8,11 +8,6 @@ interface PrintableClassDebtReportProps {
     settings: CenterSettings;
 }
 
-const formatCurrencyWithSign = (amount: number) => {
-    const roundedAmount = Math.round(amount);
-    return `${roundedAmount.toLocaleString('vi-VN')} ₫`;
-};
-
 const formatCurrency = (amount: number) => `${Math.abs(Math.round(amount)).toLocaleString('vi-VN')} ₫`;
 
 export const PrintableClassDebtReport = forwardRef<HTMLDivElement, PrintableClassDebtReportProps>(({ students, className, settings }, ref) => {
