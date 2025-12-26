@@ -186,10 +186,6 @@ export const ReportsScreen: React.FC = () => {
             const activeStudentsInClass = c.studentIds.filter(id => activeStudentIds.has(id));
 
             if (c.fee.type === FeeType.MONTHLY) {
-                // Với học phí tháng, ta ước tính theo tỷ lệ số tháng trong khoảng thời gian chọn? 
-                // Để đơn giản và chính xác, ta chỉ tính full nếu khoảng thời gian bao trùm ít nhất 1 tháng?
-                // Tạm thời logic cũ: chỉ cộng fee nếu active. Cải thiện: Nhân với số tháng trong range?
-                // Logic hiện tại: Tính 1 lần phí tháng cho KPI đơn giản.
                 provisionalTuitionFee += activeStudentsInClass.length * c.fee.amount;
             } else if (c.fee.type === FeeType.PER_SESSION) {
                 activeStudentsInClass.forEach(studentId => {
@@ -208,8 +204,8 @@ export const ReportsScreen: React.FC = () => {
 
         return {
             totalRevenue,
-            totalExpense: filteredStudentIds ? 0 : totalExpense,
-            profit: totalRevenue - (filteredStudentIds ? 0 : totalExpense),
+            totalExpense: totalExpense,
+            profit: totalRevenue - totalExpense,
             tuitionFeesCollected,
             provisionalTuitionFee,
             newStudents
@@ -275,7 +271,6 @@ export const ReportsScreen: React.FC = () => {
             activeStudentsInClass.forEach(studentId => {
                 const studentName = studentMap.get(studentId) || 'Không rõ';
                 if (c.fee.type === FeeType.MONTHLY) {
-                    // For monthly fee, check if attended at least once or just list it as monthly due
                     const key = `${studentId}-${c.id}`;
                     if (attendanceCountMap.has(key)) {
                          items.push({
@@ -350,7 +345,6 @@ export const ReportsScreen: React.FC = () => {
                 type: 'debit' as const
             }));
         
-        // Sort descending by date (Newest first)
         items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
         setDetailModal({ isOpen: true, title: `Chi tiết Chi phí`, items: items });
@@ -364,7 +358,6 @@ export const ReportsScreen: React.FC = () => {
                 date: s.createdAt,
             }));
         
-        // Sort descending by date (Newest first)
         items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
         setDetailModal({ isOpen: true, title: `Chi tiết Học viên mới`, items: items });

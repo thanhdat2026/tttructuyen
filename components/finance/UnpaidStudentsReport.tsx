@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { useData } from '../../hooks/useDataContext';
 import { useAuth } from '../../hooks/useAuth';
@@ -66,7 +67,7 @@ export const UnpaidStudentsReport: React.FC = () => {
             }));
     }, [students, classes, classFilter, searchQuery]);
     
-    const allStudentsInSelectedClass = useMemo(() => {
+    const indebtedStudentsInSelectedClass = useMemo(() => {
         if (classFilter === 'all') {
             return [];
         }
@@ -75,7 +76,9 @@ export const UnpaidStudentsReport: React.FC = () => {
             return [];
         }
         const studentIdsInClass = new Set(selectedClass.studentIds);
-        const studentsInClass = students.filter(s => studentIdsInClass.has(s.id));
+        // Lấy các học viên CÓ NỢ trong lớp để tạo báo cáo công nợ lớp.
+        const studentsInClass = students.filter(s => studentIdsInClass.has(s.id) && s.balance < 0);
+        
         // Sort students alphabetically by name for the report
         return studentsInClass.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
     }, [students, classes, classFilter]);
@@ -161,7 +164,7 @@ export const UnpaidStudentsReport: React.FC = () => {
                         </Button>
                         <Button 
                             onClick={() => setIsClassReportModalOpen(true)} 
-                            disabled={classFilter === 'all' || allStudentsInSelectedClass.length === 0}
+                            disabled={classFilter === 'all' || indebtedStudentsInSelectedClass.length === 0}
                             variant="secondary"
                         >
                             {ICONS.download} In Báo Cáo Lớp
@@ -270,7 +273,7 @@ export const UnpaidStudentsReport: React.FC = () => {
             <ClassDebtReportModal 
                 isOpen={isClassReportModalOpen}
                 onClose={() => setIsClassReportModalOpen(false)}
-                students={allStudentsInSelectedClass}
+                students={indebtedStudentsInSelectedClass}
                 className={classes.find(c => c.id === classFilter)?.name || ''}
             />
         </>
