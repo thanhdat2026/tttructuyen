@@ -65,6 +65,8 @@ export const updateSettings = (payload: CenterSettings) => patchData({ op: 'upda
 export const updateUserPassword = (payload: { userId: string; role: UserRole; newPassword: string; }) => patchData({ op: 'updateUserPassword', payload });
 
 export const addProgressReport = (payload: Omit<ProgressReport, 'id'>) => patchData({ op: 'addProgressReport', payload });
+export const updateProgressReport = (payload: ProgressReport) => patchData({ op: 'updateProgressReport', payload });
+export const deleteProgressReport = (reportId: string) => patchData({ op: 'deleteProgressReport', payload: { reportId } });
 
 export const addIncome = (payload: Omit<Income, 'id'>) => patchData({ op: 'addIncome', payload });
 export const updateIncome = (payload: Income) => patchData({ op: 'updateIncome', payload });

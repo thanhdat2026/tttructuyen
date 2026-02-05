@@ -59,6 +59,8 @@ interface DataContextType {
     deleteClass: (classId: string) => Promise<void>;
     updateAttendance: (records: AttendanceRecord[]) => Promise<void>;
     addProgressReport: (data: Omit<ProgressReport, 'id'>) => Promise<void>;
+    updateProgressReport: (data: ProgressReport) => Promise<void>;
+    deleteProgressReport: (reportId: string) => Promise<void>;
     generateInvoices: (payload: { month: number, year: number }) => Promise<void>;
     cancelInvoice: (invoiceId: string) => Promise<void>;
     addAdjustment: (payload: { studentId: string; amount: number; date: string; description: string; type: 'CREDIT' | 'DEBIT' }) => Promise<void>;
@@ -161,6 +163,8 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     deleteAttendanceByMonth: handleStateUpdateOperation(api.deleteAttendanceByMonth),
     
     addProgressReport: handleStateUpdateOperation(api.addProgressReport),
+    updateProgressReport: handleStateUpdateOperation(api.updateProgressReport),
+    deleteProgressReport: handleStateUpdateOperation(api.deleteProgressReport),
     
     generateInvoices: handleStateUpdateOperation(api.generateInvoices),
     cancelInvoice: handleStateUpdateOperation(api.cancelInvoice),

@@ -489,6 +489,15 @@ export function applyOperation(
             data.progressReports.push({ ...payload, id: generateUniqueId('PR') });
             break;
         }
+        case 'updateProgressReport': {
+            const { id, ...updates } = payload;
+            data.progressReports = data.progressReports.map(r => r.id === id ? { ...r, ...updates } : r);
+            break;
+        }
+        case 'deleteProgressReport': {
+            data.progressReports = data.progressReports.filter(r => r.id !== payload.reportId);
+            break;
+        }
         case 'addIncome': {
             data.income.push({ ...payload, id: generateUniqueId('INC') });
             break;

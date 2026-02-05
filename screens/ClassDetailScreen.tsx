@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useData } from '../hooks/useDataContext';
@@ -16,13 +17,15 @@ const ProgressReportForm: React.FC<{
     classStudents: Student[];
     creatorId: string;
     classId: string;
+    report?: ProgressReport;
     onSubmit: (report: Omit<ProgressReport, 'id'>) => void;
     onCancel: () => void;
-}> = ({ classStudents, creatorId, classId, onSubmit, onCancel }) => {
+}> = ({ classStudents, creatorId, classId, report, onSubmit, onCancel }) => {
     const [formData, setFormData] = useState({
-        studentId: classStudents[0]?.id || '',
-        score: 0,
-        comments: '',
+        studentId: report?.studentId || classStudents[0]?.id || '',
+        score: report?.score || 0,
+        comments: report?.comments || '',
+        date: report?.date || new Date().toISOString().split('T')[0],
     });
     const scoreInputRef = useRef<HTMLInputElement>(null);
 
@@ -40,8 +43,7 @@ const ProgressReportForm: React.FC<{
         onSubmit({
             ...formData,
             classId,
-            createdBy: creatorId,
-            date: new Date().toISOString().split('T')[0],
+            createdBy: report ? report.createdBy : creatorId,
         });
     };
 
@@ -49,7 +51,7 @@ const ProgressReportForm: React.FC<{
         <form onSubmit={handleSubmit} className="space-y-4">
             <div>
                 <label className="block text-sm font-medium">Học viên</label>
-                <select name="studentId" value={formData.studentId} onChange={handleChange} className="form-select mt-1">
+                <select name="studentId" value={formData.studentId} onChange={handleChange} className="form-select mt-1" disabled={!!report}>
                     {classStudents.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
             </div>
@@ -61,9 +63,13 @@ const ProgressReportForm: React.FC<{
                 <label className="block text-sm font-medium">Nhận xét của giáo viên</label>
                 <textarea name="comments" value={formData.comments} onChange={handleChange} rows={5} className="form-textarea mt-1" required />
             </div>
+            <div>
+                <label className="block text-sm font-medium">Ngày báo cáo</label>
+                <input type="date" name="date" value={formData.date} onChange={handleChange} className="form-input mt-1" required />
+            </div>
              <div className="flex justify-end space-x-4 pt-4 border-t dark:border-gray-700">
                 <Button type="button" variant="secondary" onClick={onCancel}>Hủy</Button>
-                <Button type="submit">Lưu Báo cáo</Button>
+                <Button type="submit">{report ? 'Cập nhật' : 'Lưu Báo cáo'}</Button>
             </div>
         </form>
     );
@@ -312,15 +318,20 @@ export const ClassDetailScreen: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const location = useLocation();
     const navigate = useNavigate();
-    const { state, addProgressReport, deleteClass } = useData();
+    const { state, addProgressReport, updateProgressReport, deleteProgressReport, deleteClass } = useData();
     const { user, role } = useAuth();
     const { toast } = useToast();
     const { classes, students, teachers, progressReports, attendance } = state;
     const [isReportModalOpen, setReportModalOpen] = useState(false);
+    const [editingReport, setEditingReport] = useState<ProgressReport | undefined>(undefined);
     const [activeTab, setActiveTab] = useState<ClassDetailTab>('students');
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [deleteReportConfirm, setDeleteReportConfirm] = useState<{ isOpen: boolean; report: ProgressReport | null }>({ isOpen: false, report: null });
 
     const canManage = role === UserRole.ADMIN || role === UserRole.MANAGER;
+    // Allow teachers to manage reports if they are assigned to this class
+    const isAssignedTeacher = role === UserRole.TEACHER && classes.find(c => c.id === id)?.teacherIds.includes(user?.id || '');
+    const canManageReports = canManage || isAssignedTeacher;
 
     useEffect(() => {
         if (location.state?.defaultTab) {
@@ -429,13 +440,32 @@ export const ClassDetailScreen: React.FC = () => {
         { header: 'Nhận xét', accessor: 'comments' as keyof ProgressReport },
     ];
     
-    const handleAddReport = async (reportData: Omit<ProgressReport, 'id'>) => {
+    const handleSaveReport = async (reportData: Omit<ProgressReport, 'id'>) => {
         try {
-            await addProgressReport(reportData);
-            toast.success(`Đã thêm báo cáo cho học viên ${getStudentName(reportData.studentId)}.`);
+            if (editingReport) {
+                await updateProgressReport({ ...reportData, id: editingReport.id });
+                toast.success(`Đã cập nhật báo cáo cho học viên ${getStudentName(reportData.studentId)}.`);
+            } else {
+                await addProgressReport(reportData);
+                toast.success(`Đã thêm báo cáo cho học viên ${getStudentName(reportData.studentId)}.`);
+            }
             setReportModalOpen(false);
+            setEditingReport(undefined);
         } catch (error) {
             toast.error('Đã xảy ra lỗi. Vui lòng thử lại.');
+        }
+    };
+
+    const handleDeleteReport = async () => {
+        if (deleteReportConfirm.report) {
+            try {
+                await deleteProgressReport(deleteReportConfirm.report.id);
+                toast.success('Đã xóa báo cáo tiến độ.');
+            } catch (error) {
+                toast.error('Lỗi khi xóa báo cáo.');
+            } finally {
+                setDeleteReportConfirm({ isOpen: false, report: null });
+            }
         }
     };
 
@@ -540,8 +570,8 @@ export const ClassDetailScreen: React.FC = () => {
                             <h2 className="text-xl font-semibold">Sổ liên lạc - Báo cáo Tiến độ</h2>
                             <div className="relative group w-full md:w-auto">
                                 <Button 
-                                    onClick={() => setReportModalOpen(true)}
-                                    disabled={classStudents.length === 0 || role === UserRole.VIEWER}
+                                    onClick={() => { setEditingReport(undefined); setReportModalOpen(true); }}
+                                    disabled={classStudents.length === 0 || (!canManageReports)}
                                     className="w-full"
                                 >
                                     {ICONS.plus} Thêm Báo cáo
@@ -559,6 +589,24 @@ export const ClassDetailScreen: React.FC = () => {
                                 data={sortedClassProgressReports}
                                 sortConfig={reportSortConfig}
                                 onSort={handleReportSort}
+                                actions={canManageReports ? (report) => (
+                                    <div className="flex justify-end gap-2">
+                                        <button 
+                                            onClick={() => { setEditingReport(report); setReportModalOpen(true); }}
+                                            className="text-indigo-600 hover:text-indigo-900"
+                                            title="Sửa báo cáo"
+                                        >
+                                            {ICONS.edit}
+                                        </button>
+                                        <button 
+                                            onClick={() => setDeleteReportConfirm({ isOpen: true, report })}
+                                            className="text-red-600 hover:text-red-900"
+                                            title="Xóa báo cáo"
+                                        >
+                                            {ICONS.delete}
+                                        </button>
+                                    </div>
+                                ) : undefined}
                             />
                         </div>
                          <div className="md:hidden space-y-4">
@@ -570,6 +618,12 @@ export const ClassDetailScreen: React.FC = () => {
                                         { label: "Ngày", value: report.date },
                                         { label: "Nhận xét", value: <i className="block whitespace-normal">{report.comments}</i> },
                                     ]}
+                                    actions={canManageReports ? (
+                                        <div className="flex justify-end gap-3 mt-2">
+                                            <Button size="sm" variant="secondary" onClick={() => { setEditingReport(report); setReportModalOpen(true); }}>Sửa</Button>
+                                            <Button size="sm" variant="danger" onClick={() => setDeleteReportConfirm({ isOpen: true, report })}>Xóa</Button>
+                                        </div>
+                                    ) : undefined}
                                 />
                             ))}
                          </div>
@@ -581,15 +635,25 @@ export const ClassDetailScreen: React.FC = () => {
                 )}
             </div>
             
-            <Modal isOpen={isReportModalOpen} onClose={() => setReportModalOpen(false)} title="Thêm Báo cáo Tiến độ">
+            <Modal isOpen={isReportModalOpen} onClose={() => { setReportModalOpen(false); setEditingReport(undefined); }} title={editingReport ? "Cập nhật Báo cáo Tiến độ" : "Thêm Báo cáo Tiến độ"}>
                 <ProgressReportForm
                     classStudents={classStudents}
                     classId={cls.id}
                     creatorId={user.id}
-                    onSubmit={handleAddReport}
-                    onCancel={() => setReportModalOpen(false)}
+                    report={editingReport}
+                    onSubmit={handleSaveReport}
+                    onCancel={() => { setReportModalOpen(false); setEditingReport(undefined); }}
                 />
             </Modal>
+            
+            <ConfirmationModal
+                isOpen={deleteReportConfirm.isOpen}
+                onClose={() => setDeleteReportConfirm({ isOpen: false, report: null })}
+                onConfirm={handleDeleteReport}
+                title="Xác nhận Xóa Báo cáo"
+                message={<p>Bạn có chắc chắn muốn xóa báo cáo này của học viên <strong>{deleteReportConfirm.report ? getStudentName(deleteReportConfirm.report.studentId) : ''}</strong>?</p>}
+            />
+
             <ConfirmationModal
                 isOpen={deleteConfirmOpen}
                 onClose={() => setDeleteConfirmOpen(false)}

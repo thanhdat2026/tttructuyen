@@ -1,2 +1,19 @@
 https://aistudio.google.com/apps/drive/1YtfiEQmVxL8DOTkRcWEzn5TP9pJFAkll?showPreview=true&showAssistant=true
 tk lienhe@thaydat.edu.vn
+Bước 1: Chọn lọc thay đổi
+Lệnh này xác định những file nào bạn muốn "đóng gói".
+
+Bash
+git add .
+(Dấu chấm nghĩa là lấy tất cả thay đổi. Nếu muốn chọn file cụ thể, hãy thay dấu chấm bằng tên file).
+
+Bước 2: Dán nhãn (Commit)
+Ghi chú lại bạn đã thay đổi những gì. Việc này cực kỳ quan trọng để sau này bạn biết mình đã làm gì vào lúc đó.
+
+Bash
+git commit -m "Nội dung ghi chú của bạn"
+Bước 3: Đẩy lên GitHub (Push)
+Đưa gói hàng đã đóng lên "đám mây".
+
+Bash
+git push origin main

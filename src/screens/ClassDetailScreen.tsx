@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useData } from '../hooks/useDataContext';
@@ -9,19 +10,22 @@ import { Modal } from '../components/common/Modal';
 import { Student, ProgressReport, AttendanceRecord, PersonStatus, UserRole, AttendanceStatus } from '../types';
 import { ICONS, ROUTES } from '../constants';
 import { ListItemCard } from '../components/common/ListItemCard';
+import { ConfirmationModal } from '../components/common/ConfirmationModal';
 
 
 const ProgressReportForm: React.FC<{
     classStudents: Student[];
     creatorId: string;
     classId: string;
+    report?: ProgressReport;
     onSubmit: (report: Omit<ProgressReport, 'id'>) => void;
     onCancel: () => void;
-}> = ({ classStudents, creatorId, classId, onSubmit, onCancel }) => {
+}> = ({ classStudents, creatorId, classId, report, onSubmit, onCancel }) => {
     const [formData, setFormData] = useState({
-        studentId: classStudents[0]?.id || '',
-        score: 0,
-        comments: '',
+        studentId: report?.studentId || classStudents[0]?.id || '',
+        score: report?.score || 0,
+        comments: report?.comments || '',
+        date: report?.date || new Date().toISOString().split('T')[0],
     });
     const scoreInputRef = useRef<HTMLInputElement>(null);
 
@@ -39,8 +43,7 @@ const ProgressReportForm: React.FC<{
         onSubmit({
             ...formData,
             classId,
-            createdBy: creatorId,
-            date: new Date().toISOString().split('T')[0],
+            createdBy: report ? report.createdBy : creatorId,
         });
     };
 
@@ -48,7 +51,7 @@ const ProgressReportForm: React.FC<{
         <form onSubmit={handleSubmit} className="space-y-4">
             <div>
                 <label className="block text-sm font-medium">Học viên</label>
-                <select name="studentId" value={formData.studentId} onChange={handleChange} className="form-select mt-1">
+                <select name="studentId" value={formData.studentId} onChange={handleChange} className="form-select mt-1" disabled={!!report}>
                     {classStudents.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
             </div>
@@ -60,9 +63,13 @@ const ProgressReportForm: React.FC<{
                 <label className="block text-sm font-medium">Nhận xét của giáo viên</label>
                 <textarea name="comments" value={formData.comments} onChange={handleChange} rows={5} className="form-textarea mt-1" required />
             </div>
+            <div>
+                <label className="block text-sm font-medium">Ngày báo cáo</label>
+                <input type="date" name="date" value={formData.date} onChange={handleChange} className="form-input mt-1" required />
+            </div>
              <div className="flex justify-end space-x-4 pt-4 border-t dark:border-gray-700">
                 <Button type="button" variant="secondary" onClick={onCancel}>Hủy</Button>
-                <Button type="submit">Lưu Báo cáo</Button>
+                <Button type="submit">{report ? 'Cập nhật' : 'Lưu Báo cáo'}</Button>
             </div>
         </form>
     );
@@ -74,26 +81,52 @@ type ClassDetailTab = 'students' | 'attendance' | 'reports' | 'announcements';
 const AttendanceTab: React.FC<{ cls: any, attendance: AttendanceRecord[] }> = ({ cls, attendance }) => {
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const navigate = useNavigate();
+    const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
 
-    const attendanceHistory = useMemo(() => {
-        const historyMap = new Map<string, { present: number, absent: number, late: number, total: number }>();
+    const monthlyAttendanceHistory = useMemo(() => {
+        // First, get daily summaries like before
+        const dailyHistoryMap = new Map<string, { present: number, absent: number, late: number, total: number }>();
         const classAttendance = attendance.filter(a => a.classId === cls.id);
 
         classAttendance.forEach(a => {
-            if (!historyMap.has(a.date)) {
-                historyMap.set(a.date, { present: 0, absent: 0, late: 0, total: 0 });
+            if (!dailyHistoryMap.has(a.date)) {
+                dailyHistoryMap.set(a.date, { present: 0, absent: 0, late: 0, total: 0 });
             }
-            const summary = historyMap.get(a.date)!;
+            const summary = dailyHistoryMap.get(a.date)!;
             summary.total++;
             if (a.status === AttendanceStatus.PRESENT) summary.present++;
             if (a.status === AttendanceStatus.ABSENT) summary.absent++;
             if (a.status === AttendanceStatus.LATE) summary.late++;
         });
 
-        return Array.from(historyMap.entries())
+        const dailySummaries = Array.from(dailyHistoryMap.entries())
             .map(([date, summary]) => ({ date, summary }))
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            .sort((a, b) => b.date.localeCompare(a.date)); // Sort dates within month descending
+
+        // Now group daily summaries by month
+        const monthlyMap = new Map<string, { date: string; summary: any }[]>(); // Map<"YYYY-MM", [dailySummary, ...]>
+        dailySummaries.forEach(daySummary => {
+            const month = daySummary.date.substring(0, 7); // "YYYY-MM"
+            if (!monthlyMap.has(month)) {
+                monthlyMap.set(month, []);
+            }
+            monthlyMap.get(month)!.push(daySummary);
+        });
+
+        // Format for rendering, sorted by month descending
+        return Array.from(monthlyMap.entries())
+            .map(([month, dates]) => ({
+                month,
+                sessionCount: dates.length,
+                dates: dates, // Already sorted descending
+            }))
+            .sort((a, b) => b.month.localeCompare(a.month));
+
     }, [attendance, cls.id]);
+    
+    const toggleMonth = (month: string) => {
+        setExpandedMonth(prev => (prev === month ? null : month));
+    };
     
     return (
         <div className="space-y-4">
@@ -106,29 +139,57 @@ const AttendanceTab: React.FC<{ cls: any, attendance: AttendanceRecord[] }> = ({
                         onChange={e => setSelectedDate(e.target.value)}
                         className="form-input flex-grow"
                     />
-                    <Button onClick={() => navigate(ROUTES.ATTENDANCE_DETAIL.replace(':classId', cls.id).replace(':date', selectedDate))} className="flex-shrink-0">
+                    <Button onClick={() => navigate(ROUTES.ATTENDANCE_DETAIL.replace(':classId', cls.id).replace(':date', selectedDate), { state: { returnTo: `/class/${cls.id}`, defaultTab: 'attendance' } })} className="flex-shrink-0">
                         Điểm danh
                     </Button>
                 </div>
             </div>
             <div>
                 <h3 className="text-lg font-semibold mb-2">Lịch sử điểm danh</h3>
-                {attendanceHistory.length > 0 ? (
-                     <div className="space-y-3">
-                        {attendanceHistory.map(({ date, summary }) => (
-                            <div key={date} className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                                <div>
-                                    <p className="font-semibold">{date}</p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        Có mặt: <span className="text-green-600 font-semibold">{summary.present + summary.late}</span>, 
-                                        Vắng: <span className="text-red-600 font-semibold">{summary.absent}</span>
-                                    </p>
+                {monthlyAttendanceHistory.length > 0 ? (
+                     <div className="space-y-2">
+                        {monthlyAttendanceHistory.map(({ month, sessionCount, dates }) => {
+                            const [year, monthNum] = month.split('-');
+                            const isExpanded = expandedMonth === month;
+                            return (
+                                <div key={month} className="bg-slate-50 dark:bg-slate-700/50 rounded-lg transition-shadow hover:shadow-md">
+                                    <button
+                                        onClick={() => toggleMonth(month)}
+                                        className="w-full p-3 flex justify-between items-center text-left"
+                                        aria-expanded={isExpanded}
+                                    >
+                                        <div>
+                                            <p className="font-semibold text-base">Tháng {monthNum}/{year}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                Tổng số buổi: <span className="font-bold">{sessionCount}</span>
+                                            </p>
+                                        </div>
+                                        <span className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </span>
+                                    </button>
+                                    
+                                    {isExpanded && (
+                                        <div className="px-3 pb-3 space-y-2 border-t border-slate-200 dark:border-slate-600">
+                                            {dates.map(({ date, summary }) => (
+                                                <div key={date} className="p-3 bg-white dark:bg-slate-800 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                                                    <div>
+                                                        <p className="font-semibold">{new Date(date + 'T00:00:00').toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                            Có mặt: <span className="text-green-600 font-semibold">{summary.present + summary.late}</span>, 
+                                                            Vắng: <span className="text-red-600 font-semibold">{summary.absent}</span>
+                                                        </p>
+                                                    </div>
+                                                    <Link to={ROUTES.ATTENDANCE_DETAIL.replace(':classId', cls.id).replace(':date', date)} state={{ returnTo: `/class/${cls.id}`, defaultTab: 'attendance' }}>
+                                                        <Button variant="secondary" size="sm">Xem / Sửa</Button>
+                                                    </Link>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                                <Link to={ROUTES.ATTENDANCE_DETAIL.replace(':classId', cls.id).replace(':date', date)}>
-                                    <Button variant="secondary">Xem / Sửa</Button>
-                                </Link>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 ) : (
                     <p className="text-gray-500 text-center py-4">Chưa có lịch sử điểm danh.</p>
@@ -256,12 +317,21 @@ const AnnouncementsTab: React.FC<{
 export const ClassDetailScreen: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const location = useLocation();
-    const { state, addProgressReport } = useData();
+    const navigate = useNavigate();
+    const { state, addProgressReport, updateProgressReport, deleteProgressReport, deleteClass } = useData();
     const { user, role } = useAuth();
     const { toast } = useToast();
     const { classes, students, teachers, progressReports, attendance } = state;
     const [isReportModalOpen, setReportModalOpen] = useState(false);
+    const [editingReport, setEditingReport] = useState<ProgressReport | undefined>(undefined);
     const [activeTab, setActiveTab] = useState<ClassDetailTab>('students');
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [deleteReportConfirm, setDeleteReportConfirm] = useState<{ isOpen: boolean; report: ProgressReport | null }>({ isOpen: false, report: null });
+
+    const canManage = role === UserRole.ADMIN || role === UserRole.MANAGER;
+    // Allow teachers to manage reports if they are assigned to this class
+    const isAssignedTeacher = role === UserRole.TEACHER && classes.find(c => c.id === id)?.teacherIds.includes(user?.id || '');
+    const canManageReports = canManage || isAssignedTeacher;
 
     useEffect(() => {
         if (location.state?.defaultTab) {
@@ -370,14 +440,48 @@ export const ClassDetailScreen: React.FC = () => {
         { header: 'Nhận xét', accessor: 'comments' as keyof ProgressReport },
     ];
     
-    const handleAddReport = async (reportData: Omit<ProgressReport, 'id'>) => {
+    const handleSaveReport = async (reportData: Omit<ProgressReport, 'id'>) => {
         try {
-            await addProgressReport(reportData);
-            toast.success(`Đã thêm báo cáo cho học viên ${getStudentName(reportData.studentId)}.`);
+            if (editingReport) {
+                await updateProgressReport({ ...reportData, id: editingReport.id });
+                toast.success(`Đã cập nhật báo cáo cho học viên ${getStudentName(reportData.studentId)}.`);
+            } else {
+                await addProgressReport(reportData);
+                toast.success(`Đã thêm báo cáo cho học viên ${getStudentName(reportData.studentId)}.`);
+            }
             setReportModalOpen(false);
+            setEditingReport(undefined);
         } catch (error) {
             toast.error('Đã xảy ra lỗi. Vui lòng thử lại.');
         }
+    };
+
+    const handleDeleteReport = async () => {
+        if (deleteReportConfirm.report) {
+            try {
+                await deleteProgressReport(deleteReportConfirm.report.id);
+                toast.success('Đã xóa báo cáo tiến độ.');
+            } catch (error) {
+                toast.error('Lỗi khi xóa báo cáo.');
+            } finally {
+                setDeleteReportConfirm({ isOpen: false, report: null });
+            }
+        }
+    };
+
+    const handleEdit = () => {
+        navigate(ROUTES.CLASSES, { state: { editClassId: cls.id, returnTo: `/class/${cls.id}` } });
+    };
+
+    const handleDelete = async () => {
+        try {
+            await deleteClass(cls.id);
+            toast.success(`Đã xoá lớp học ${cls.name}`);
+            navigate(ROUTES.CLASSES, { replace: true });
+        } catch (error) {
+            toast.error('Lỗi khi xoá lớp học.');
+        }
+        setDeleteConfirmOpen(false);
     };
 
     const dayMap: Record<string, string> = {
@@ -397,16 +501,26 @@ export const ClassDetailScreen: React.FC = () => {
     return (
         <div className="space-y-6">
             <div className="card-base">
-                <h1 className="text-3xl font-bold">{cls.name}</h1>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-sm">
-                    <span className="bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full font-mono font-semibold">ID: {cls.id}</span>
-                    <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 px-3 py-1 rounded-full font-semibold">Môn: {cls.subject}</span>
-                    <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 px-3 py-1 rounded-full font-semibold">GV: {teacherNames}</span>
-                </div>
-                 <div className="mt-4 text-sm text-gray-600 dark:text-gray-300 flex flex-wrap gap-x-4 gap-y-1">
-                    {(cls.schedule || []).map((s, i) => (
-                        <div key={i} className="font-semibold">{`${dayMap[s.dayOfWeek]}: ${s.startTime} - ${s.endTime}`}</div>
-                    ))}
+                <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                    <div className="flex-grow">
+                        <h1 className="text-3xl font-bold">{cls.name}</h1>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 text-sm">
+                            <span className="bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full font-mono font-semibold">ID: {cls.id}</span>
+                            <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 px-3 py-1 rounded-full font-semibold">Môn: {cls.subject}</span>
+                            <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 px-3 py-1 rounded-full font-semibold">GV: {teacherNames}</span>
+                        </div>
+                        <div className="mt-4 text-sm text-gray-600 dark:text-gray-300 flex flex-wrap gap-x-4 gap-y-1">
+                            {(cls.schedule || []).map((s, i) => (
+                                <div key={i} className="font-semibold">{`${dayMap[s.dayOfWeek]}: ${s.startTime} - ${s.endTime}`}</div>
+                            ))}
+                        </div>
+                    </div>
+                    {canManage && (
+                        <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+                            <Button variant="secondary" onClick={handleEdit} className="flex-1 sm:flex-none">{ICONS.edit} Sửa</Button>
+                            <Button variant="danger" onClick={() => setDeleteConfirmOpen(true)} className="flex-1 sm:flex-none">{ICONS.delete} Xóa</Button>
+                        </div>
+                    )}
                 </div>
             </div>
             
@@ -456,8 +570,8 @@ export const ClassDetailScreen: React.FC = () => {
                             <h2 className="text-xl font-semibold">Sổ liên lạc - Báo cáo Tiến độ</h2>
                             <div className="relative group w-full md:w-auto">
                                 <Button 
-                                    onClick={() => setReportModalOpen(true)}
-                                    disabled={classStudents.length === 0 || role === UserRole.VIEWER}
+                                    onClick={() => { setEditingReport(undefined); setReportModalOpen(true); }}
+                                    disabled={classStudents.length === 0 || (!canManageReports)}
                                     className="w-full"
                                 >
                                     {ICONS.plus} Thêm Báo cáo
@@ -475,6 +589,24 @@ export const ClassDetailScreen: React.FC = () => {
                                 data={sortedClassProgressReports}
                                 sortConfig={reportSortConfig}
                                 onSort={handleReportSort}
+                                actions={canManageReports ? (report) => (
+                                    <div className="flex justify-end gap-2">
+                                        <button 
+                                            onClick={() => { setEditingReport(report); setReportModalOpen(true); }}
+                                            className="text-indigo-600 hover:text-indigo-900"
+                                            title="Sửa báo cáo"
+                                        >
+                                            {ICONS.edit}
+                                        </button>
+                                        <button 
+                                            onClick={() => setDeleteReportConfirm({ isOpen: true, report })}
+                                            className="text-red-600 hover:text-red-900"
+                                            title="Xóa báo cáo"
+                                        >
+                                            {ICONS.delete}
+                                        </button>
+                                    </div>
+                                ) : undefined}
                             />
                         </div>
                          <div className="md:hidden space-y-4">
@@ -484,8 +616,14 @@ export const ClassDetailScreen: React.FC = () => {
                                     title={<div className="flex justify-between w-full"><span>{getStudentName(report.studentId)}</span><span className="text-primary font-bold">{report.score}/10</span></div>}
                                     details={[
                                         { label: "Ngày", value: report.date },
-                                        { label: "Nhận xét", value: <i className="truncate block">{report.comments}</i> },
+                                        { label: "Nhận xét", value: <i className="block whitespace-normal">{report.comments}</i> },
                                     ]}
+                                    actions={canManageReports ? (
+                                        <div className="flex justify-end gap-3 mt-2">
+                                            <Button size="sm" variant="secondary" onClick={() => { setEditingReport(report); setReportModalOpen(true); }}>Sửa</Button>
+                                            <Button size="sm" variant="danger" onClick={() => setDeleteReportConfirm({ isOpen: true, report })}>Xóa</Button>
+                                        </div>
+                                    ) : undefined}
                                 />
                             ))}
                          </div>
@@ -497,15 +635,38 @@ export const ClassDetailScreen: React.FC = () => {
                 )}
             </div>
             
-            <Modal isOpen={isReportModalOpen} onClose={() => setReportModalOpen(false)} title="Thêm Báo cáo Tiến độ">
+            <Modal isOpen={isReportModalOpen} onClose={() => { setReportModalOpen(false); setEditingReport(undefined); }} title={editingReport ? "Cập nhật Báo cáo Tiến độ" : "Thêm Báo cáo Tiến độ"}>
                 <ProgressReportForm
                     classStudents={classStudents}
                     classId={cls.id}
                     creatorId={user.id}
-                    onSubmit={handleAddReport}
-                    onCancel={() => setReportModalOpen(false)}
+                    report={editingReport}
+                    onSubmit={handleSaveReport}
+                    onCancel={() => { setReportModalOpen(false); setEditingReport(undefined); }}
                 />
             </Modal>
+            
+            <ConfirmationModal
+                isOpen={deleteReportConfirm.isOpen}
+                onClose={() => setDeleteReportConfirm({ isOpen: false, report: null })}
+                onConfirm={handleDeleteReport}
+                title="Xác nhận Xóa Báo cáo"
+                message={<p>Bạn có chắc chắn muốn xóa báo cáo này của học viên <strong>{deleteReportConfirm.report ? getStudentName(deleteReportConfirm.report.studentId) : ''}</strong>?</p>}
+            />
+
+            <ConfirmationModal
+                isOpen={deleteConfirmOpen}
+                onClose={() => setDeleteConfirmOpen(false)}
+                onConfirm={handleDelete}
+                title="Xác nhận Xóa Lớp học"
+                message={
+                     <p>
+                        Bạn có chắc chắn muốn xóa lớp học <strong>{cls?.name}</strong>?
+                        <br/><br/>
+                        <span className="font-bold text-red-500">CẢNH BÁO:</span> Mọi dữ liệu điểm danh và báo cáo tiến độ của lớp này cũng sẽ bị xóa.
+                    </p>
+                }
+            />
         </div>
     );
 };
