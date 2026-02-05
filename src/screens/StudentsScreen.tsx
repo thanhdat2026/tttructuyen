@@ -80,11 +80,12 @@ const StudentForm: React.FC<{
     onSubmit: (payload: { student: Student, classIds: string[] }) => void; 
     onCancel: () => void;
     allClasses: Class[];
-}> = ({ student, onSubmit, onCancel, allClasses }) => {
+    generatedId?: string;
+}> = ({ student, onSubmit, onCancel, allClasses, generatedId }) => {
     const [formData, setFormData] = useState<Partial<Student>>({
-        id: '',
+        id: generatedId || '',
         name: '',
-        email: '',
+        email: generatedId ? `${generatedId}@thaydat.edu.vn` : '',
         phone: '',
         address: '',
         dob: '',
@@ -125,7 +126,23 @@ const StudentForm: React.FC<{
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData(prev => {
+            const newData = { ...prev, [name]: value };
+            
+            // Auto-update email when ID changes, if email matches the pattern of the old ID
+            if (name === 'id') {
+                const prevId = prev.id || '';
+                const currentEmail = prev.email || '';
+                const defaultDomain = '@thaydat.edu.vn';
+                
+                // If email is empty OR exactly matches [prevId]@thaydat.edu.vn
+                if (!currentEmail || currentEmail === `${prevId}${defaultDomain}`) {
+                    newData.email = `${value}${defaultDomain}`;
+                }
+            }
+            
+            return newData;
+        });
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -246,6 +263,19 @@ export const StudentsScreen: React.FC = () => {
         setEditingStudent(student);
         setModalOpen(true);
     };
+
+    const generatedStudentId = useMemo(() => {
+        let maxId = 0;
+        const regex = /^HS(\d+)$/i;
+        state.students.forEach(s => {
+            const match = s.id.match(regex);
+            if (match) {
+                const num = parseInt(match[1], 10);
+                if (num > maxId) maxId = num;
+            }
+        });
+        return `HS${String(maxId + 1).padStart(3, '0')}`;
+    }, [state.students]);
 
     useEffect(() => {
         const { editStudentId } = location.state || {};
@@ -583,6 +613,7 @@ export const StudentsScreen: React.FC = () => {
                     onSubmit={handleSubmit} 
                     onCancel={handleCloseModal}
                     allClasses={state.classes}
+                    generatedId={generatedStudentId}
                 />
             </Modal>
              <ConfirmationModal
