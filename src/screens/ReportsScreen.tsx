@@ -1,11 +1,10 @@
-
 import React, { useState, useMemo } from 'react';
 import { useData } from '../hooks/useDataContext';
 import { Card } from '../components/common/Card';
 import { ICONS } from '../constants';
 import { LineChart } from '../components/common/LineChart';
 import { PieChart } from '../components/common/PieChart';
-import { AttendanceStatus, FeeType, TransactionType, Transaction, Income } from '../types';
+import { AttendanceStatus, FeeType, TransactionType } from '../types';
 import { ReportDetailModal } from '../components/reports/ReportDetailModal';
 import { AttendanceReportTab } from '../components/reports/AttendanceReportTab';
 import { TransactionHistoryReportTab } from '../components/reports/TransactionHistoryReportTab';
