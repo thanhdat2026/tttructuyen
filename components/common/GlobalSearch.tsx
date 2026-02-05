@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../../hooks/useDataContext';
@@ -70,7 +71,23 @@ export const GlobalSearch: React.FC = () => {
         state.students.forEach(s => {
             const normalizedName = removeAccents(s.name.toLowerCase());
             if (normalizedName.includes(normalizedQuery) || s.phone.includes(debouncedQuery) || s.id.toLowerCase().includes(lowerQuery)) {
-                foundResults.push({ id: s.id, name: s.name, type: 'student', path: `/student/${s.id}`, context: `Phụ huynh: ${s.parentName}` });
+                // Find enrolled classes
+                const enrolledClassNames = state.classes
+                    .filter(c => c.studentIds.includes(s.id))
+                    .map(c => c.name)
+                    .join(', ');
+
+                const contextInfo = enrolledClassNames 
+                    ? `Lớp: ${enrolledClassNames}` 
+                    : `Phụ huynh: ${s.parentName}`;
+
+                foundResults.push({ 
+                    id: s.id, 
+                    name: s.name, 
+                    type: 'student', 
+                    path: `/student/${s.id}`, 
+                    context: contextInfo 
+                });
             }
         });
 
@@ -157,7 +174,7 @@ export const GlobalSearch: React.FC = () => {
                                         ${index === activeIndex ? 'bg-gray-100 dark:bg-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`
                                     }>
                                     <p className="font-semibold text-gray-800 dark:text-gray-200"><HighlightMatch text={result.name} query={debouncedQuery} /></p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">{result.context}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{result.context}</p>
                                 </li>
                             ))}
                         </ul>

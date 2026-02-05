@@ -4,7 +4,7 @@ import { useData } from '../../hooks/useDataContext';
 import { useAuth } from '../../hooks/useAuth';
 import { Table, SortConfig, Column } from '../common/Table';
 import { Button } from '../common/Button';
-import { Student, UserRole } from '../../types';
+import { Student, UserRole, PersonStatus } from '../../types';
 import { downloadAsCSV } from '../../services/csvExport';
 import { ICONS } from '../../constants';
 import { ListItemCard } from '../common/ListItemCard';
@@ -23,6 +23,7 @@ export const UnpaidStudentsReport: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [classFilter, setClassFilter] = useState('all');
     const [paymentModalState, setPaymentModalState] = useState<{ isOpen: boolean; student: Student | null }>({ isOpen: false, student: null });
+    const [showStats, setShowStats] = useState(false);
 
     const isViewer = role === UserRole.VIEWER;
 
@@ -39,6 +40,37 @@ export const UnpaidStudentsReport: React.FC = () => {
             prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
         );
     };
+
+    // --- Statistics by Class Logic ---
+    const classTuitionStats = useMemo(() => {
+        return classes.map(cls => {
+            let paidCount = 0;
+            let unpaidCount = 0;
+            let totalDebt = 0;
+
+            cls.studentIds.forEach(studentId => {
+                const student = students.find(s => s.id === studentId);
+                // Only count active students or students with debt
+                if (student && (student.status === PersonStatus.ACTIVE || student.balance < 0)) {
+                    if (student.balance < 0) {
+                        unpaidCount++;
+                        totalDebt += student.balance;
+                    } else {
+                        paidCount++;
+                    }
+                }
+            });
+
+            return {
+                id: cls.id,
+                name: cls.name,
+                paidCount,
+                unpaidCount,
+                totalDebt
+            };
+        }).sort((a, b) => b.unpaidCount - a.unpaidCount); // Sort by highest number of unpaid students
+    }, [classes, students]);
+
 
     const unpaidStudents = useMemo(() => {
         let studentsToFilter = students;
@@ -152,6 +184,48 @@ export const UnpaidStudentsReport: React.FC = () => {
 
     return (
         <>
+            <div className="card-base mb-6">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-white">Thống kê tình hình Học phí theo Lớp</h3>
+                    <button 
+                        onClick={() => setShowStats(!showStats)}
+                        className="text-sm text-primary hover:underline"
+                    >
+                        {showStats ? 'Ẩn thống kê' : 'Hiện thống kê'}
+                    </button>
+                </div>
+                
+                {showStats && (
+                    <div className="overflow-x-auto border rounded-lg dark:border-gray-700">
+                        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead className="bg-gray-50 dark:bg-gray-800">
+                                <tr>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tên Lớp</th>
+                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Đã hoàn thành</th>
+                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Chưa hoàn thành</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tổng nợ</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+                                {classTuitionStats.map(stat => (
+                                    <tr key={stat.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                        <td className="px-4 py-2 font-medium">{stat.name}</td>
+                                        <td className="px-4 py-2 text-center text-green-600 font-semibold">{stat.paidCount}</td>
+                                        <td className="px-4 py-2 text-center text-red-600 font-semibold">{stat.unpaidCount}</td>
+                                        <td className="px-4 py-2 text-right text-red-600 font-bold">{Math.abs(stat.totalDebt).toLocaleString('vi-VN')} ₫</td>
+                                    </tr>
+                                ))}
+                                {classTuitionStats.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="px-4 py-4 text-center text-gray-500">Chưa có dữ liệu lớp học.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
             <div className="card-base">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                     <h2 className="text-xl font-semibold">Báo cáo Công nợ Học phí</h2>
