@@ -5,7 +5,7 @@ import { Card } from '../components/common/Card';
 import { ICONS } from '../constants';
 import { LineChart } from '../components/common/LineChart';
 import { PieChart } from '../components/common/PieChart';
-import { AttendanceStatus, FeeType, TransactionType } from '../types';
+import { AttendanceStatus, FeeType, TransactionType, Transaction, Income } from '../types';
 import { ReportDetailModal } from '../components/reports/ReportDetailModal';
 import { AttendanceReportTab } from '../components/reports/AttendanceReportTab';
 import { TransactionHistoryReportTab } from '../components/reports/TransactionHistoryReportTab';
@@ -303,64 +303,88 @@ export const ReportsScreen: React.FC = () => {
     };
 
     const handleShowRevenueDetails = () => {
-        const tuitionItems = transactions
+        const relevantTransactions = transactions
             .filter(t => {
                 const isPayment = t.type === TransactionType.PAYMENT || t.type === TransactionType.ADJUSTMENT_CREDIT;
                 const isWithin = t.date >= startDate && t.date <= endDate;
                 const isNotRefund = !t.description.toLowerCase().includes('hủy hóa đơn');
                 const studentIsInClass = filteredStudentIds ? filteredStudentIds.has(t.studentId) : true;
                 return isPayment && isWithin && isNotRefund && t.amount > 0 && studentIsInClass;
-            })
-            .map(t => {
-                const studentName = students.find(s => s.id === t.studentId)?.name || 'Không rõ';
-                return {
-                    description: `[HP] ${studentName} - ${t.description}`,
-                    date: t.date,
-                    amount: t.amount,
-                    type: 'credit' as const
-                };
             });
         
-        const otherIncomeItems = classFilter === 'all' ? income
-            .filter(i => i.date >= startDate && i.date <= endDate)
-            .map(i => ({
-                description: `[Thu khác] ${i.description}`,
-                date: i.date,
-                amount: i.amount,
-                type: 'credit' as const
-            })) : [];
+        const relevantIncome = classFilter === 'all' ? income
+            .filter(i => i.date >= startDate && i.date <= endDate) : [];
 
-        // Sort descending by date (Newest first)
-        const allItems = [...tuitionItems, ...otherIncomeItems].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setDetailModal({ isOpen: true, title: `Chi tiết Doanh thu`, items: allItems });
+        // Combine into a raw array to sort by date then by ID to handle same-day order
+        const combined = [
+            ...relevantTransactions.map(t => ({ ...t, kind: 'transaction' as const })),
+            ...relevantIncome.map(i => ({ ...i, kind: 'income' as const }))
+        ];
+
+        // Sort descending by date (Newest first). If same date, sort by ID descending (Last entered first).
+        combined.sort((a, b) => {
+            const timeA = new Date(a.date).getTime();
+            const timeB = new Date(b.date).getTime();
+            if (timeA !== timeB) return timeB - timeA;
+            return b.id.localeCompare(a.id);
+        });
+
+        const items = combined.map(item => {
+            if (item.kind === 'transaction') {
+                const studentName = students.find(s => s.id === item.studentId)?.name || 'Không rõ';
+                return {
+                    description: `[HP] ${studentName} - ${item.description}`,
+                    date: item.date,
+                    amount: item.amount,
+                    type: 'credit' as const
+                };
+            } else {
+                return {
+                    description: `[Thu khác] ${item.description}`,
+                    date: item.date,
+                    amount: item.amount,
+                    type: 'credit' as const
+                };
+            }
+        });
+
+        setDetailModal({ isOpen: true, title: `Chi tiết Doanh thu`, items });
     };
 
     const handleShowExpenseDetails = () => {
         const items = expenses
             .filter(e => e.date >= startDate && e.date <= endDate)
+            .sort((a, b) => {
+                const dateA = new Date(a.date).getTime();
+                const dateB = new Date(b.date).getTime();
+                if (dateA !== dateB) return dateB - dateA;
+                return b.id.localeCompare(a.id);
+            })
             .map(e => ({
                 description: e.description,
                 date: e.date,
                 amount: e.amount,
                 type: 'debit' as const
             }));
-        
-        items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        setDetailModal({ isOpen: true, title: `Chi tiết Chi phí`, items: items });
+        setDetailModal({ isOpen: true, title: `Chi tiết Chi phí`, items });
     };
 
     const handleShowNewStudentsDetails = () => {
         const items = students
             .filter(s => s.createdAt >= startDate && s.createdAt <= endDate && (filteredStudentIds ? filteredStudentIds.has(s.id) : true))
+            .sort((a, b) => {
+                const dateA = new Date(a.createdAt).getTime();
+                const dateB = new Date(b.createdAt).getTime();
+                if (dateA !== dateB) return dateB - dateA;
+                return b.id.localeCompare(a.id);
+            })
             .map(s => ({
                 description: s.name,
                 date: s.createdAt,
             }));
-        
-        items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-        setDetailModal({ isOpen: true, title: `Chi tiết Học viên mới`, items: items });
+        setDetailModal({ isOpen: true, title: `Chi tiết Học viên mới`, items });
     };
     
     const setPeriod = (type: 'this_month' | 'last_month' | 'this_year') => {
