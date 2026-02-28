@@ -3,14 +3,15 @@ import { forwardRef } from 'react';
 import { Student, CenterSettings } from '../../types';
 
 interface PrintableClassDebtReportProps {
-    students: Student[];
+    students: (Student & { className?: string })[];
     className: string;
     settings: CenterSettings;
+    showClassColumn?: boolean;
 }
 
 const formatCurrency = (amount: number) => `${Math.abs(Math.round(amount)).toLocaleString('vi-VN')} ₫`;
 
-export const PrintableClassDebtReport = forwardRef<HTMLDivElement, PrintableClassDebtReportProps>(({ students, className, settings }, ref) => {
+export const PrintableClassDebtReport = forwardRef<HTMLDivElement, PrintableClassDebtReportProps>(({ students, className, settings, showClassColumn }, ref) => {
     
     const totalDebt = students
         .filter(s => s.balance < 0)
@@ -25,8 +26,14 @@ export const PrintableClassDebtReport = forwardRef<HTMLDivElement, PrintableClas
             <header className="text-center pb-2" style={textStyle}>
                 <h1 className="text-lg font-bold uppercase">{settings.name}</h1>
                 <p className="text-xs">{settings.address}</p>
+                {(settings.bankAccountNumber && settings.bankName) && (
+                    <p className="text-xs mt-1">
+                        STK: <span className="font-semibold">{settings.bankAccountNumber}</span> - {settings.bankName} 
+                        {settings.bankAccountHolder && ` (${settings.bankAccountHolder})`}
+                    </p>
+                )}
                 <div className="w-full border-t border-black my-4"></div>
-                <h2 className="text-xl font-bold mt-4 uppercase">BÁO CÁO CÔNG NỢ - LỚP {className.toUpperCase()}</h2>
+                <h2 className="text-xl font-bold mt-4 uppercase">BÁO CÁO CÔNG NỢ - {className.toUpperCase()}</h2>
                 <p className="text-xs">Ngày lập: {new Date().toLocaleDateString('vi-VN')}</p>
             </header>
 
@@ -38,6 +45,7 @@ export const PrintableClassDebtReport = forwardRef<HTMLDivElement, PrintableClas
                             <th className="py-2 px-2 font-bold border border-black w-12 text-center">STT</th>
                             <th className="py-2 px-2 font-bold border border-black w-24">Mã HV</th>
                             <th className="py-2 px-2 font-bold border border-black">Họ tên</th>
+                            {showClassColumn && <th className="py-2 px-2 font-bold border border-black">Lớp</th>}
                             <th className="py-2 px-2 font-bold border border-black text-right w-40">Số dư nợ</th>
                         </tr>
                     </thead>
@@ -47,6 +55,7 @@ export const PrintableClassDebtReport = forwardRef<HTMLDivElement, PrintableClas
                                 <td className="py-2 px-2 border border-black text-center">{index + 1}</td>
                                 <td className="py-2 px-2 border border-black">{student.id}</td>
                                 <td className="py-2 px-2 border border-black">{student.name}</td>
+                                {showClassColumn && <td className="py-2 px-2 border border-black">{student.className}</td>}
                                 <td className={`py-2 px-2 border border-black text-right font-bold`}>
                                     {formatCurrency(student.balance)}
                                 </td>
@@ -55,7 +64,7 @@ export const PrintableClassDebtReport = forwardRef<HTMLDivElement, PrintableClas
                     </tbody>
                     <tfoot>
                         <tr className="font-bold">
-                            <td colSpan={3} className="py-2 px-2 border border-black text-right">TỔNG CÔNG NỢ</td>
+                            <td colSpan={showClassColumn ? 4 : 3} className="py-2 px-2 border border-black text-right">TỔNG CÔNG NỢ</td>
                             <td className="py-2 px-2 border border-black text-right">{formatCurrency(totalDebt)}</td>
                         </tr>
                     </tfoot>

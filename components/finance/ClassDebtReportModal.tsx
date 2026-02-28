@@ -10,11 +10,12 @@ import { ICONS } from '../../constants';
 interface ClassDebtReportModalProps {
     isOpen: boolean;
     onClose: () => void;
-    students: Student[];
+    students: (Student & { className?: string })[];
     className: string;
+    showClassColumn?: boolean;
 }
 
-export const ClassDebtReportModal: React.FC<ClassDebtReportModalProps> = ({ isOpen, onClose, students, className }) => {
+export const ClassDebtReportModal: React.FC<ClassDebtReportModalProps> = ({ isOpen, onClose, students, className, showClassColumn }) => {
     const reportRef = useRef<HTMLDivElement>(null);
     const { state } = useData();
     const { toast } = useToast();
@@ -29,7 +30,7 @@ export const ClassDebtReportModal: React.FC<ClassDebtReportModalProps> = ({ isOp
         try {
             const canvas = await window.html2canvas(reportRef.current, { scale: 2.5, useCORS: true });
             const link = document.createElement('a');
-            link.download = `BaoCaoTaiChinh_Lop_${className.replace(/\s/g, '_')}.png`;
+            link.download = `BaoCaoTaiChinh_${className.replace(/\s/g, '_')}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
         } catch (error) {
@@ -42,9 +43,9 @@ export const ClassDebtReportModal: React.FC<ClassDebtReportModalProps> = ({ isOp
     
     return (
         <Modal 
-          isOpen={isOpen} 
-          onClose={onClose} 
-          title={`Báo cáo Tài chính - Lớp ${className}`}
+            isOpen={isOpen} 
+            onClose={onClose} 
+            title={`Báo cáo Tài chính - ${className}`}
         >
             <div className="bg-gray-200 dark:bg-gray-900 p-4 overflow-y-auto max-h-[60vh]">
                 <div className="mx-auto" style={{ width: '210mm' }}>
@@ -53,6 +54,7 @@ export const ClassDebtReportModal: React.FC<ClassDebtReportModalProps> = ({ isOp
                             students={students}
                             className={className}
                             settings={state.settings}
+                            showClassColumn={showClassColumn}
                         />
                     </div>
                 </div>
