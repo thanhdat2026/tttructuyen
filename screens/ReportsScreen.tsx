@@ -4,7 +4,7 @@ import { Card } from '../components/common/Card';
 import { ICONS } from '../constants';
 import { LineChart } from '../components/common/LineChart';
 import { PieChart } from '../components/common/PieChart';
-import { AttendanceStatus, FeeType, TransactionType } from '../types';
+import { AttendanceStatus, FeeType, TransactionType, PersonStatus } from '../types';
 import { ReportDetailModal } from '../components/reports/ReportDetailModal';
 import { AttendanceReportTab } from '../components/reports/AttendanceReportTab';
 import { TransactionHistoryReportTab } from '../components/reports/TransactionHistoryReportTab';
@@ -174,7 +174,7 @@ export const ReportsScreen: React.FC = () => {
         });
         
         const studentsForProvisional = students.filter(s => 
-            (s.status === 'ACTIVE') && 
+            (s.status === PersonStatus.ACTIVE) && 
             (filteredStudentIds ? filteredStudentIds.has(s.id) : true)
         );
         const activeStudentIds = new Set(studentsForProvisional.map(s => s.id));
@@ -201,13 +201,21 @@ export const ReportsScreen: React.FC = () => {
             (filteredStudentIds ? filteredStudentIds.has(s.id) : true)
         ).length;
 
+        // Inactive Students within period
+        const inactiveStudents = students.filter(s => 
+            s.status === PersonStatus.INACTIVE &&
+            s.statusChangedAt && s.statusChangedAt >= startDate && s.statusChangedAt <= endDate &&
+            (filteredStudentIds ? filteredStudentIds.has(s.id) : true)
+        ).length;
+
         return {
             totalRevenue,
             totalExpense: totalExpense,
             profit: totalRevenue - totalExpense,
             tuitionFeesCollected,
             provisionalTuitionFee,
-            newStudents
+            newStudents,
+            inactiveStudents
         };
     }, [invoices, income, expenses, students, classes, attendance, transactions, startDate, endDate, classFilter, filteredStudentIds]);
     
@@ -261,7 +269,7 @@ export const ReportsScreen: React.FC = () => {
             attendanceCountMap.set(key, (attendanceCountMap.get(key) || 0) + 1);
         });
         
-        const activeStudents = students.filter(s => s.status === 'ACTIVE' && (filteredStudentIds ? filteredStudentIds.has(s.id) : true));
+        const activeStudents = students.filter(s => s.status === PersonStatus.ACTIVE && (filteredStudentIds ? filteredStudentIds.has(s.id) : true));
         const studentMap = new Map(students.map(s => [s.id, s.name]));
         const classesToCalculate = filteredStudentIds ? classes.filter(c => c.id === classFilter) : classes;
 
@@ -385,6 +393,23 @@ export const ReportsScreen: React.FC = () => {
 
         setDetailModal({ isOpen: true, title: `Chi tiết Học viên mới`, items });
     };
+
+    const handleShowInactiveStudentsDetails = () => {
+        const items = students
+            .filter(s => s.status === PersonStatus.INACTIVE && s.statusChangedAt && s.statusChangedAt >= startDate && s.statusChangedAt <= endDate && (filteredStudentIds ? filteredStudentIds.has(s.id) : true))
+            .sort((a, b) => {
+                const dateA = new Date(a.statusChangedAt!).getTime();
+                const dateB = new Date(b.statusChangedAt!).getTime();
+                if (dateA !== dateB) return dateB - dateA;
+                return b.id.localeCompare(a.id);
+            })
+            .map(s => ({
+                description: s.name,
+                date: s.statusChangedAt!,
+            }));
+
+        setDetailModal({ isOpen: true, title: `Chi tiết Học viên tạm nghỉ`, items });
+    };
     
     const setPeriod = (type: 'this_month' | 'last_month' | 'this_year') => {
         const now = new Date();
@@ -478,6 +503,10 @@ export const ReportsScreen: React.FC = () => {
                             <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer transition-transform hover:scale-105" onClick={handleShowNewStudentsDetails}>
                                 <p className="text-sm font-medium text-gray-500">Học viên mới trong kỳ</p>
                                 <p className="text-2xl font-bold text-gray-800 dark:text-white mt-1">{periodKpiData.newStudents}</p>
+                            </div>
+                            <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer transition-transform hover:scale-105" onClick={handleShowInactiveStudentsDetails}>
+                                <p className="text-sm font-medium text-gray-500">Học viên tạm nghỉ trong kỳ</p>
+                                <p className="text-2xl font-bold text-gray-800 dark:text-white mt-1">{periodKpiData.inactiveStudents}</p>
                             </div>
                         </div>
 
