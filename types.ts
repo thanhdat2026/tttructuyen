@@ -39,7 +39,6 @@ export interface BasePerson {
   address: string;
   status: PersonStatus;
   statusChangedAt?: string;
-  statusHistory?: { status: PersonStatus; changedAt: string }[];
   createdAt: string;
   password?: string;
   gender?: 'Nam' | 'Nữ' | 'Khác';

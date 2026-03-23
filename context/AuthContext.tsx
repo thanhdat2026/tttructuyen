@@ -142,7 +142,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (isPasswordCorrect) {
       setAuth({ isAuthenticated: true, user, role });
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ userId: user.id, role }));
-      setStoredSession({ userId: user.id, role });
       return true;
     }
 
@@ -152,7 +151,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = async () => {
     setAuth({ isAuthenticated: false, role: null, user: null });
     localStorage.removeItem(LOCAL_STORAGE_KEY);
-    setStoredSession(null);
   };
   
   const value = { ...auth, login, logout, isAuthLoading };
