@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useData } from '../hooks/useDataContext';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../hooks/useAuth';
@@ -164,6 +164,8 @@ export const TeachersScreen: React.FC = () => {
     const { state, addTeacher, updateTeacher, deleteTeacher } = useData();
     const { role } = useAuth();
     const { toast } = useToast();
+    const location = useLocation();
+    const navigate = useNavigate();
     const [isModalOpen, setModalOpen] = useState(false);
     const [editingTeacher, setEditingTeacher] = useState<Teacher | undefined>(undefined);
     const [confirmModalState, setConfirmModalState] = useState<{ isOpen: boolean; teacher: Teacher | null }>({ isOpen: false, teacher: null });
@@ -174,6 +176,21 @@ export const TeachersScreen: React.FC = () => {
     const ITEMS_PER_PAGE = 10;
 
     const canManage = role === UserRole.ADMIN || role === UserRole.MANAGER;
+    
+    const handleOpenModal = (teacher?: Teacher) => {
+        setEditingTeacher(teacher);
+        setModalOpen(true);
+    };
+
+    useEffect(() => {
+        const { editTeacherId } = location.state || {};
+        if (editTeacherId && !isModalOpen) {
+            const teacherToEdit = state.teachers.find(t => t.id === editTeacherId);
+            if (teacherToEdit) {
+                handleOpenModal(teacherToEdit);
+            }
+        }
+    }, [location.state, state.teachers, isModalOpen]);
 
     const handleSort = (key: keyof Teacher) => {
         let direction: 'ascending' | 'descending' = 'ascending';
@@ -243,27 +260,32 @@ export const TeachersScreen: React.FC = () => {
             </span>
         ), sortable: true, sortKey: 'status' as keyof Teacher},
     ];
-    
-    const handleOpenModal = (teacher?: Teacher) => {
-        setEditingTeacher(teacher);
-        setModalOpen(true);
-    };
 
     const handleCloseModal = () => {
         setEditingTeacher(undefined);
         setModalOpen(false);
+        const { returnTo } = location.state || {};
+        if (returnTo) {
+            navigate(returnTo, { replace: true, state: {} });
+        }
     };
 
     const handleSubmit = async (data: Teacher) => {
+        const { returnTo } = location.state || {};
         try {
             if (editingTeacher) {
                 await updateTeacher({ originalId: editingTeacher.id, updatedTeacher: data });
                 toast.success(`Đã cập nhật thông tin giáo viên ${data.name}`);
+                setModalOpen(false);
+                setEditingTeacher(undefined);
+                if (returnTo) {
+                    navigate(`/teacher/${data.id}`, { replace: true, state: {} });
+                }
             } else {
                 await addTeacher(data);
                 toast.success(`Đã thêm giáo viên mới ${data.name}`);
+                handleCloseModal();
             }
-            handleCloseModal();
         } catch (error: any) {
             toast.error(error.message || 'Đã xảy ra lỗi. Vui lòng thử lại.');
         }

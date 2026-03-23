@@ -101,7 +101,22 @@ export const UnpaidStudentsReport: React.FC = () => {
     
     const indebtedStudentsInSelectedClass = useMemo(() => {
         if (classFilter === 'all') {
-            return [];
+            // Return all students with debt, sorted by class name then student name
+            const allIndebted = students.filter(s => s.balance < 0);
+            
+            // Map to include className
+            const withClassName = allIndebted.map(s => {
+                const studentClasses = classes.filter(c => c.studentIds.includes(s.id));
+                const className = studentClasses.map(c => c.name).join(', ');
+                return { ...s, className };
+            });
+
+            // Sort by class name, then student name
+            return withClassName.sort((a, b) => {
+                const classCompare = (a.className || '').localeCompare(b.className || '', 'vi');
+                if (classCompare !== 0) return classCompare;
+                return a.name.localeCompare(b.name, 'vi');
+            });
         }
         const selectedClass = classes.find(c => c.id === classFilter);
         if (!selectedClass) {
@@ -238,7 +253,7 @@ export const UnpaidStudentsReport: React.FC = () => {
                         </Button>
                         <Button 
                             onClick={() => setIsClassReportModalOpen(true)} 
-                            disabled={classFilter === 'all' || indebtedStudentsInSelectedClass.length === 0}
+                            disabled={indebtedStudentsInSelectedClass.length === 0}
                             variant="secondary"
                         >
                             {ICONS.download} In Báo Cáo Lớp
@@ -348,7 +363,8 @@ export const UnpaidStudentsReport: React.FC = () => {
                 isOpen={isClassReportModalOpen}
                 onClose={() => setIsClassReportModalOpen(false)}
                 students={indebtedStudentsInSelectedClass}
-                className={classes.find(c => c.id === classFilter)?.name || ''}
+                className={classFilter === 'all' ? 'Tất cả các lớp' : (classes.find(c => c.id === classFilter)?.name || '')}
+                showClassColumn={classFilter === 'all'}
             />
         </>
     )

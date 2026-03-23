@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useData } from '../hooks/useDataContext';
 import { useToast } from '../hooks/useToast';
@@ -451,8 +450,7 @@ export const SettingsScreen: React.FC = () => {
         { key: 'classes', label: 'Lớp học (bao gồm điểm danh, báo cáo)' },
     ];
     
-    const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: 10 }, (_, i) => currentYear - i + 2);
+    const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
     const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
 

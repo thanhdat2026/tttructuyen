@@ -108,6 +108,7 @@ export const FinanceScreen: React.FC = () => {
     
     const [activeTab, setActiveTab] = useState<FinanceTab>('overview');
     
+    // Default to current month
     const today = new Date();
     const startOfMonth = toLocalDateString(new Date(today.getFullYear(), today.getMonth(), 1));
     const endOfMonth = toLocalDateString(new Date(today.getFullYear(), today.getMonth() + 1, 0));

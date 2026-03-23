@@ -305,7 +305,12 @@ export const StudentsScreen: React.FC = () => {
             const normalizedName = removeAccents(s.name.toLowerCase());
             const phoneMatch = s.phone.includes(searchQuery);
             const nameMatch = normalizedName.includes(normalizedQuery);
-            return phoneMatch || nameMatch;
+            
+            // Check class names
+            const studentClasses = state.classes.filter(c => c.studentIds.includes(s.id));
+            const classMatch = studentClasses.some(c => removeAccents(c.name.toLowerCase()).includes(normalizedQuery));
+
+            return phoneMatch || nameMatch || classMatch;
         });
     }, [state.students, state.classes, searchQuery, classFilter]);
     
@@ -318,7 +323,7 @@ export const StudentsScreen: React.FC = () => {
             const getScore = (student: Student) => {
                 // Phone match is highest priority
                 if (student.phone.includes(searchQuery)) {
-                    return 3;
+                    return 4;
                 }
                 
                 const normalizedName = removeAccents(student.name.toLowerCase());
@@ -327,11 +332,18 @@ export const StudentsScreen: React.FC = () => {
 
                 // Last name match is second priority
                 if (lastName.startsWith(normalizedQuery)) {
+                    return 3;
+                }
+
+                // Any other name match is third priority
+                if (normalizedName.includes(normalizedQuery)) {
                     return 2;
                 }
 
-                // Any other name match is lowest priority
-                if (normalizedName.includes(normalizedQuery)) {
+                // Class match is lowest priority
+                const studentClasses = state.classes.filter(c => c.studentIds.includes(student.id));
+                const classMatch = studentClasses.some(c => removeAccents(c.name.toLowerCase()).includes(normalizedQuery));
+                if (classMatch) {
                     return 1;
                 }
 
@@ -386,7 +398,7 @@ export const StudentsScreen: React.FC = () => {
             });
         }
         return sortableItems;
-    }, [filteredStudents, sortConfig, searchQuery]);
+    }, [filteredStudents, sortConfig, searchQuery, state.classes]);
 
     const totalPages = Math.ceil(sortedStudents.length / ITEMS_PER_PAGE);
     const paginatedStudents = sortedStudents.slice(
@@ -412,6 +424,22 @@ export const StudentsScreen: React.FC = () => {
             sortKey: 'name' as keyof Student,
         },
         { header: 'Số điện thoại', accessor: 'phone' as keyof Student },
+        {
+            header: 'Lớp học',
+            accessor: (student: Student) => {
+                const enrolledClasses = state.classes.filter(c => c.studentIds.includes(student.id));
+                if (enrolledClasses.length === 0) return <span className="text-gray-400 italic text-xs">Chưa có lớp</span>;
+                return (
+                    <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {enrolledClasses.map(c => (
+                            <span key={c.id} className="px-2 py-0.5 text-[10px] bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full truncate max-w-full">
+                                {c.name}
+                            </span>
+                        ))}
+                    </div>
+                );
+            }
+        },
         { 
             header: 'Số dư', 
             accessor: (item: Student) => {
@@ -518,7 +546,7 @@ export const StudentsScreen: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <input 
                         type="text" 
-                        placeholder="Tìm kiếm học viên (tên, SĐT)..." 
+                        placeholder="Tìm kiếm học viên (tên, SĐT, lớp)..." 
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                         className="form-input"
@@ -576,6 +604,21 @@ export const StudentsScreen: React.FC = () => {
                             </div>
                         </div>
                         
+                        <div className="mt-2">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Lớp học:</p>
+                            <div className="flex flex-wrap gap-1">
+                                {(() => {
+                                    const enrolledClasses = state.classes.filter(c => c.studentIds.includes(student.id));
+                                    if (enrolledClasses.length === 0) return <span className="text-xs text-gray-400 italic">Chưa có lớp</span>;
+                                    return enrolledClasses.map(c => (
+                                        <span key={c.id} className="px-2 py-0.5 text-[10px] bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded-full">
+                                            {c.name}
+                                        </span>
+                                    ));
+                                })()}
+                            </div>
+                        </div>
+
                         <div className="mt-4 grid grid-cols-2 gap-4 text-sm border-t border-gray-100 dark:border-gray-700 pt-3">
                             <div>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">Số điện thoại</p>
