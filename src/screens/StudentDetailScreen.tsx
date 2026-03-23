@@ -207,6 +207,7 @@ export const StudentDetailScreen: React.FC = () => {
     const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean, item?: Transaction }>({ open: false });
     const [attendanceLogModal, setAttendanceLogModal] = useState<{ isOpen: boolean; classId: string | null; className: string | null }>({ isOpen: false, classId: null, className: null });
     const [deleteStudentConfirmOpen, setDeleteStudentConfirmOpen] = useState(false);
+    const [statusHistoryModalOpen, setStatusHistoryModalOpen] = useState(false);
 
     // Filter State
     const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1);
@@ -472,9 +473,24 @@ export const StudentDetailScreen: React.FC = () => {
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                          <div className="flex-grow">
                             <h1 className="text-3xl font-bold">{student.name}</h1>
-                            <span className={`mt-1 px-2 inline-flex text-sm leading-5 font-semibold rounded-full ${student.status === PersonStatus.ACTIVE ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                {student.status === PersonStatus.ACTIVE ? 'Đang hoạt động' : 'Tạm nghỉ'}
-                            </span>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className={`px-2 inline-flex text-sm leading-5 font-semibold rounded-full ${student.status === PersonStatus.ACTIVE ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                    {student.status === PersonStatus.ACTIVE ? 'Đang hoạt động' : 'Tạm nghỉ'}
+                                </span>
+                                {student.statusChangedAt && (
+                                    <span className="text-xs text-gray-500">
+                                        (Từ: {new Date(student.statusChangedAt).toLocaleDateString('vi-VN')})
+                                    </span>
+                                )}
+                                {student.statusHistory && student.statusHistory.length > 0 && (
+                                    <button 
+                                        onClick={() => setStatusHistoryModalOpen(true)}
+                                        className="text-xs text-primary hover:underline ml-2"
+                                    >
+                                        Xem lịch sử
+                                    </button>
+                                )}
+                            </div>
                         </div>
                         {canManage && (
                             <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
@@ -700,6 +716,33 @@ export const StudentDetailScreen: React.FC = () => {
                         </p>
                     }
                 />
+                <Modal
+                    isOpen={statusHistoryModalOpen}
+                    onClose={() => setStatusHistoryModalOpen(false)}
+                    title={`Lịch sử trạng thái: ${student.name}`}
+                >
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+                        {student.statusHistory && student.statusHistory.length > 0 ? (
+                            <div className="relative border-l border-gray-200 dark:border-gray-700 ml-3">
+                                {student.statusHistory.slice().reverse().map((history, index) => (
+                                    <div key={index} className="mb-6 ml-4">
+                                        <div className="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -left-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"></div>
+                                        <time className="mb-1 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">
+                                            {new Date(history.changedAt).toLocaleString('vi-VN')}
+                                        </time>
+                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-1">
+                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${history.status === PersonStatus.ACTIVE ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                {history.status === PersonStatus.ACTIVE ? 'Hoạt động' : 'Tạm nghỉ'}
+                                            </span>
+                                        </h3>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-center py-4 text-gray-500">Chưa có lịch sử thay đổi trạng thái.</p>
+                        )}
+                    </div>
+                </Modal>
             </div>
         </>
     );

@@ -38,6 +38,8 @@ export interface BasePerson {
   phone: string;
   address: string;
   status: PersonStatus;
+  statusChangedAt?: string;
+  statusHistory?: { status: PersonStatus; changedAt: string }[];
   createdAt: string;
   password?: string;
   gender?: 'Nam' | 'Nữ' | 'Khác';

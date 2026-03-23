@@ -33,7 +33,14 @@ export function applyOperation(
         case 'addStudent': {
             const { student, classIds } = payload;
             if (data.students.some(s => s.id === student.id)) throw new Error(`Học viên với mã '${student.id}' đã tồn tại.`);
-            const newStudent = { ...student, createdAt: new Date().toISOString().split('T')[0], balance: 0 };
+            const now = new Date().toISOString();
+            const newStudent = { 
+                ...student, 
+                createdAt: now.split('T')[0], 
+                balance: 0, 
+                statusChangedAt: now,
+                statusHistory: [{ status: student.status, changedAt: now }]
+            };
             data.students.push(newStudent);
             data.classes.forEach(c => {
                 if (classIds.includes(c.id)) c.studentIds.push(newStudent.id);
@@ -44,6 +51,22 @@ export function applyOperation(
             const { originalId, updatedStudent, classIds } = payload;
             if (originalId !== updatedStudent.id && data.students.some(s => s.id === updatedStudent.id)) throw new Error(`Học viên với mã '${updatedStudent.id}' đã tồn tại.`);
             
+            const originalStudent = data.students.find(s => s.id === originalId);
+            
+            // Preserve existing history or initialize it
+            updatedStudent.statusHistory = originalStudent?.statusHistory || [];
+            if (originalStudent && !originalStudent.statusHistory && originalStudent.statusChangedAt) {
+                 updatedStudent.statusHistory = [{ status: originalStudent.status, changedAt: originalStudent.statusChangedAt }];
+            }
+
+            if (originalStudent && originalStudent.status !== updatedStudent.status) {
+                const now = new Date().toISOString();
+                updatedStudent.statusChangedAt = now;
+                updatedStudent.statusHistory.push({ status: updatedStudent.status, changedAt: now });
+            } else if (originalStudent && originalStudent.statusChangedAt) {
+                updatedStudent.statusChangedAt = originalStudent.statusChangedAt;
+            }
+
             data.students = data.students.map(s => s.id === originalId ? updatedStudent : s);
             if (originalId !== updatedStudent.id) {
                 data.attendance.forEach(a => { if (a.studentId === originalId) a.studentId = updatedStudent.id; });

@@ -1,5 +1,46 @@
 https://aistudio.google.com/apps/drive/1YtfiEQmVxL8DOTkRcWEzn5TP9pJFAkll?showPreview=true&showAssistant=true
 tk lienhe@thaydat.edu.vn
+HƯỚNG DẪN TRIỂN KHAI ỨNG DỤNG QUẢN LÝ TRUNG TÂM LÊN VERCEL
+Bước 1: Đưa mã nguồn lên GitHub
+Đăng nhập vào tài khoản GitHub.
+Tạo một Repository (kho lưu trữ) mới (nên để ở chế độ Private để bảo mật mã nguồn).
+Đẩy (Push) toàn bộ mã nguồn của ứng dụng này lên Repository vừa tạo.
+Bước 2: Tạo dự án mới trên Vercel
+Đăng nhập vào Vercel bằng tài khoản GitHub của bạn.
+Tại màn hình Dashboard, bấm nút "Add New..." -> Chọn "Project".
+Vercel sẽ hiển thị danh sách các Repository từ GitHub của bạn. Tìm Repository vừa tạo ở Bước 1 và bấm "Import".
+Ở phần Configure Project:
+Project Name: Đặt tên cho dự án (ví dụ: tt-toan-thay-dat).
+Framework Preset: Vercel thường tự nhận diện là Vite. Nếu không, hãy chọn Vite.
+Build and Output Settings: Giữ nguyên mặc định (Build command: npm run build, Output directory: dist).
+Bấm nút "Deploy" và chờ khoảng 1-2 phút để Vercel xây dựng giao diện. (Lúc này web đã chạy nhưng chưa có dữ liệu vì chưa kết nối Database).
+Bước 3: Tạo và kết nối Cơ sở dữ liệu (Vercel KV)
+Đây chính là bước tạo ra các cấu hình giống như trong bức ảnh bạn chụp.
+Sau khi Deploy xong, bấm vào "Continue to Dashboard" để vào trang quản lý dự án trên Vercel.
+Chuyển sang tab "Storage" (nằm ở thanh menu phía trên cùng).
+Bấm nút "Create Database" -> Chọn "KV (Redis)" -> Bấm "Continue".
+Đặt tên cho Database (ví dụ: tt-thaydat-db), chọn khu vực (Region) gần Việt Nam nhất (thường là Singapore (sin1) hoặc Hong Kong) -> Bấm "Create".
+Sau khi tạo xong, Vercel sẽ hỏi bạn muốn kết nối Database này với dự án nào. Hãy chọn dự án bạn vừa tạo ở Bước 2.
+Quan trọng: Khi kết nối thành công, Vercel sẽ tự động thêm các biến môi trường (KV_URL, KV_REST_API_TOKEN,...) vào dự án của bạn (giống hệt như bức ảnh bạn đã chụp). Bạn không cần phải copy/paste thủ công.
+Bước 4: Deploy lại để nhận Database
+Vì bạn vừa thêm Database sau khi Deploy lần đầu, bạn cần Deploy lại để ứng dụng nhận kết nối:
+Chuyển sang tab "Deployments".
+Bấm vào dấu 3 chấm ... ở bản deploy trên cùng -> Chọn "Redeploy".
+Chờ quá trình hoàn tất. Lúc này ứng dụng đã có cơ sở dữ liệu để lưu trữ thông tin học viên, hóa đơn, v.v.
+Bước 5: Cài đặt tên miền riêng (Tùy chọn)
+Để có đường link đẹp như ttonline.thaydat.edu.vn:
+Vào tab "Settings" của dự án trên Vercel -> Chọn mục "Domains".
+Nhập tên miền bạn muốn (ví dụ: trungtamA.edu.vn) và bấm "Add".
+Vercel sẽ cung cấp cho bạn thông tin bản ghi DNS (thường là CNAME trỏ về cname.vercel-dns.com hoặc bản ghi A trỏ về IP của Vercel).
+Đăng nhập vào trang quản lý tên miền của bạn (Mắt Bão, Tenten, Cloudflare...) và cấu hình bản ghi DNS theo yêu cầu của Vercel. Chờ vài phút để tên miền nhận diện.
+Bước 6: Khởi tạo dữ liệu ban đầu
+Truy cập vào đường link Vercel cung cấp hoặc tên miền riêng của bạn.
+Đăng nhập bằng tài khoản Admin mặc định của hệ thống.
+Khi đăng nhập lần đầu, cơ sở dữ liệu KV sẽ tự động được khởi tạo các cấu trúc cần thiết. Bạn có thể bắt đầu vào mục Cài đặt để đổi tên trung tâm, logo, thông tin ngân hàng và bắt đầu thêm Học viên/Giáo viên.
+💡 Mẹo nhỏ để quản lý dữ liệu:
+Nếu sau này bạn muốn xem dữ liệu thô hoặc xóa trắng dữ liệu để làm lại từ đầu, bạn có thể vào tab Storage trên Vercel -> Chọn KV Database của bạn -> Vào tab Data hoặc CLI để xem và thao tác trực tiếp với các key dữ liệu đang được lưu.
+Bạn hãy lưu lại hướng dẫn này nhé. Nếu có bước nào chưa rõ khi triển khai cho trung tâm mới, bạn cứ nhắn lại cho mình!
+
 Bước 1: Chọn lọc thay đổi
 Lệnh này xác định những file nào bạn muốn "đóng gói".
 

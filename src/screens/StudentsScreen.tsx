@@ -439,11 +439,18 @@ export const StudentsScreen: React.FC = () => {
             sortKey: 'balance' as keyof Student
         },
         { header: 'Trạng thái', accessor: (item: Student) => (
-            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                item.status === PersonStatus.ACTIVE ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-            }`}>
-                {item.status === PersonStatus.ACTIVE ? 'Hoạt động' : 'Tạm nghỉ'}
-            </span>
+            <div className="flex flex-col">
+                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full w-fit ${
+                    item.status === PersonStatus.ACTIVE ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
+                    {item.status === PersonStatus.ACTIVE ? 'Hoạt động' : 'Tạm nghỉ'}
+                </span>
+                {item.statusChangedAt && (
+                    <span className="text-[10px] text-gray-500 mt-1">
+                        Từ: {new Date(item.statusChangedAt).toLocaleDateString('vi-VN')}
+                    </span>
+                )}
+            </div>
         ), sortable: true, sortKey: 'status' as keyof Student },
     ];
 
@@ -557,9 +564,16 @@ export const StudentsScreen: React.FC = () => {
                                     <p className="text-sm text-gray-500 dark:text-gray-400 font-mono">{student.id}</p>
                                 </Link>
                             </div>
-                            <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold rounded-full shadow-sm ${student.status === PersonStatus.ACTIVE ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'} whitespace-nowrap mt-1`}>
-                                {student.status === PersonStatus.ACTIVE ? 'Hoạt động' : 'Tạm nghỉ'}
-                            </span>
+                            <div className="flex flex-col items-end">
+                                <span className={`px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold rounded-full shadow-sm ${student.status === PersonStatus.ACTIVE ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'} whitespace-nowrap mt-1`}>
+                                    {student.status === PersonStatus.ACTIVE ? 'Hoạt động' : 'Tạm nghỉ'}
+                                </span>
+                                {student.statusChangedAt && (
+                                    <span className="text-[10px] text-gray-500 mt-1">
+                                        Từ: {new Date(student.statusChangedAt).toLocaleDateString('vi-VN')}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                         
                         <div className="mt-4 grid grid-cols-2 gap-4 text-sm border-t border-gray-100 dark:border-gray-700 pt-3">
