@@ -8,6 +8,7 @@ import { AttendanceStatus, FeeType, TransactionType, PersonStatus } from '../typ
 import { ReportDetailModal } from '../components/reports/ReportDetailModal';
 import { AttendanceReportTab } from '../components/reports/AttendanceReportTab';
 import { TransactionHistoryReportTab } from '../components/reports/TransactionHistoryReportTab';
+import { TaxReportTab } from '../components/reports/TaxReportTab';
 
 const toLocalDateString = (date: Date): string => {
     const year = date.getFullYear();
@@ -20,7 +21,7 @@ const today = new Date();
 const startOfMonth = toLocalDateString(new Date(today.getFullYear(), today.getMonth(), 1));
 const endOfMonth = toLocalDateString(new Date(today.getFullYear(), today.getMonth() + 1, 0));
 
-type ReportTab = 'overview' | 'attendance' | 'transactions';
+type ReportTab = 'overview' | 'attendance' | 'transactions' | 'tax';
 
 export const ReportsScreen: React.FC = () => {
     const { state } = useData();
@@ -475,6 +476,7 @@ export const ReportsScreen: React.FC = () => {
                     <TabButton tabId="overview">Tổng quan Tài chính</TabButton>
                     <TabButton tabId="attendance">Báo cáo Chuyên cần</TabButton>
                     <TabButton tabId="transactions">Lịch sử Giao dịch</TabButton>
+                    <TabButton tabId="tax">Báo cáo Thuế</TabButton>
                 </nav>
             </div>
 
@@ -541,6 +543,9 @@ export const ReportsScreen: React.FC = () => {
                         endDate={endDate}
                         classFilter={classFilter}
                     />
+                )}
+                {activeTab === 'tax' && (
+                    <TaxReportTab />
                 )}
             </div>
             
