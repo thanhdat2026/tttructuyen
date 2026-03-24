@@ -31,7 +31,7 @@ export enum SalaryType {
   MONTHLY = 'MONTHLY',
 }
 
-export interface BasePerson {
+interface BasePerson {
   id: string;
   name: string;
   email?: string;
@@ -67,7 +67,7 @@ export interface Staff extends BasePerson {
   role: UserRole.MANAGER | UserRole.ACCOUNTANT;
 }
 
-export interface ClassFee {
+interface ClassFee {
   type: FeeType;
   amount: number;
 }

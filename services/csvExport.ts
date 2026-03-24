@@ -30,7 +30,7 @@ function convertToCSV<T extends object>(data: T[], columns: Record<keyof T, stri
  * @param csvString - The CSV content.
  * @param filename - The name of the file to download.
  */
-export function exportToCSV(csvString: string, filename: string): void {
+function exportToCSV(csvString: string, filename: string): void {
     const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     if (link.download !== undefined) {

@@ -2,7 +2,7 @@
 import React, { createContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { Student, Teacher, Staff, Class, AttendanceRecord, Invoice, ProgressReport, Income, Expense, CenterSettings, Payroll, Announcement, Transaction, UserRole, AppData } from '../types';
 import * as api from '../services/api';
-import { MOCK_SETTINGS } from '../services/mockData';
+import { MOCK_SETTINGS } from '../api/_lib/mockData';
 
 
 interface AppState {
