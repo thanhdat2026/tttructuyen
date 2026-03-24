@@ -241,10 +241,17 @@ export const TaxReportTab: React.FC = () => {
                         max-width: none !important;
                         width: 100% !important;
                         padding: 0 !important;
+                        margin: 0 !important;
                     }
+                    /* Ensure table rows don't break across pages if possible, but allow table to span multiple pages */
+                    table { page-break-inside:auto }
+                    tr    { page-break-inside:avoid; page-break-after:auto }
+                    thead { display:table-header-group }
+                    tfoot { display:table-footer-group }
+                    
                     @page {
                         size: A4 portrait;
-                        margin: 20mm;
+                        margin: 15mm;
                     }
                 }
             `}</style>
