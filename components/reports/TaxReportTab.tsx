@@ -12,6 +12,7 @@ export const TaxReportTab: React.FC = () => {
     const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
     const [startMonth, setStartMonth] = useState(currentMonthStr);
     const [endMonth, setEndMonth] = useState(currentMonthStr);
+    const [reportType, setReportType] = useState<'detailed' | 'monthly_summary'>('detailed');
     
     const printRef = useRef<HTMLDivElement>(null);
 
@@ -49,8 +50,28 @@ export const TaxReportTab: React.FC = () => {
         // Sort by date ascending
         combined.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+        if (reportType === 'monthly_summary') {
+            const monthlyMap = new Map<string, number>();
+            combined.forEach(item => {
+                const [y, m] = item.date.split('-');
+                const key = `${y}-${m}`;
+                monthlyMap.set(key, (monthlyMap.get(key) || 0) + item.amount);
+            });
+
+            const summaryData = Array.from(monthlyMap.entries()).map(([key, amount]) => {
+                const [y, m] = key.split('-');
+                return {
+                    date: `${y}-${m}-01`, // Use 1st of month for sorting/display
+                    description: `Doanh thu tháng ${m}/${y}`,
+                    amount
+                };
+            });
+            summaryData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            return summaryData;
+        }
+
         return combined;
-    }, [transactions, income, startMonth, endMonth]);
+    }, [transactions, income, startMonth, endMonth, reportType]);
 
     const totalAmount = reportData.reduce((sum, item) => sum + item.amount, 0);
 
@@ -60,6 +81,9 @@ export const TaxReportTab: React.FC = () => {
 
     const formatDate = (dateStr: string) => {
         const [y, m, d] = dateStr.split('-');
+        if (reportType === 'monthly_summary') {
+            return `Tháng ${m}/${y}`;
+        }
         return `${d}/${m}/${y}`;
     };
 
@@ -93,6 +117,19 @@ export const TaxReportTab: React.FC = () => {
                             className="form-input w-full sm:w-auto"
                         />
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            Loại báo cáo
+                        </label>
+                        <select
+                            value={reportType}
+                            onChange={(e) => setReportType(e.target.value as 'detailed' | 'monthly_summary')}
+                            className="form-select w-full sm:w-auto"
+                        >
+                            <option value="detailed">Chi tiết từng khoản</option>
+                            <option value="monthly_summary">Tổng hợp theo tháng</option>
+                        </select>
+                    </div>
                 </div>
                 <Button onClick={handlePrint} className="flex items-center gap-2">
                     {ICONS.print} In báo cáo
@@ -101,13 +138,13 @@ export const TaxReportTab: React.FC = () => {
 
             {/* Print Preview Area */}
             <div className="bg-white p-8 rounded-lg shadow-sm border border-slate-200 overflow-x-auto text-black print-area">
-                <div ref={printRef} className="min-w-[800px] font-serif" style={{ backgroundColor: 'white', color: 'black', padding: '20px' }}>
+                <div ref={printRef} className="min-w-[800px]" style={{ fontFamily: '"Times New Roman", Times, serif', backgroundColor: 'white', color: 'black', padding: '20px' }}>
                     
                     {/* Header */}
                     <div className="flex justify-between items-start mb-8">
                         <div className="w-1/2">
                             <p className="font-bold uppercase">HỘ, CÁ NHÂN KINH DOANH: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[100px] inline-block">{settings.name || ''}</span></p>
-                            <p>Địa chỉ: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[200px] inline-block">{settings.address || ''}</span></p>
+                            <p>Địa chỉ: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[200px] inline-block whitespace-normal break-words">{settings.address || ''}</span></p>
                             <p>Mã số thuế: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[150px] inline-block"></span></p>
                         </div>
                         <div className="w-1/2 text-right">
@@ -119,13 +156,13 @@ export const TaxReportTab: React.FC = () => {
                     {/* Title */}
                     <div className="text-center mb-6">
                         <h1 className="text-xl font-bold uppercase mb-2">SỔ DOANH THU BÁN HÀNG HÓA, DỊCH VỤ</h1>
-                        <p className="text-left max-w-2xl mx-auto">Địa điểm kinh doanh: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[200px] inline-block">{settings.address || ''}</span></p>
+                        <p className="text-left max-w-2xl mx-auto">Địa điểm kinh doanh: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[200px] inline-block whitespace-normal break-words">{settings.address || ''}</span></p>
                         <p className="text-left max-w-2xl mx-auto">Kỳ kê khai: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[150px] inline-block">{periodText}</span></p>
                     </div>
 
                     {/* Table */}
                     <div className="mb-2 italic">Đơn vị tính: VNĐ</div>
-                    <table className="w-full border-collapse border border-black mb-8">
+                    <table className="w-full border-collapse border border-black mb-8 table-fixed">
                         <thead>
                             <tr>
                                 <th className="border border-black p-2 text-center w-32">Ngày tháng</th>
@@ -142,9 +179,9 @@ export const TaxReportTab: React.FC = () => {
                             {reportData.length > 0 ? (
                                 reportData.map((row, index) => (
                                     <tr key={index}>
-                                        <td className="border border-black p-2 text-center">{formatDate(row.date)}</td>
-                                        <td className="border border-black p-2">{row.description}</td>
-                                        <td className="border border-black p-2 text-right">{row.amount.toLocaleString('vi-VN')}</td>
+                                        <td className="border border-black p-2 text-center align-top">{formatDate(row.date)}</td>
+                                        <td className="border border-black p-2 align-top whitespace-normal break-words">{row.description}</td>
+                                        <td className="border border-black p-2 text-right align-top">{row.amount.toLocaleString('vi-VN')}</td>
                                     </tr>
                                 ))
                             ) : (
