@@ -327,16 +327,14 @@ export const StudentDetailScreen: React.FC = () => {
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [attendance, student, attendanceLogModal.classId, filterMonth, filterYear]);
 
-    const handleAttendanceChange = async (recordToUpdate: AttendanceRecord, newStatus: AttendanceStatus) => {
-        if (recordToUpdate.status === newStatus) return;
-    
+    const handleAttendanceChange = async (recordToUpdate: AttendanceRecord, updates: Partial<AttendanceRecord>) => {
         const allRecordsForDay = attendance.filter(
             a => a.classId === recordToUpdate.classId && a.date === recordToUpdate.date && a.studentId !== recordToUpdate.studentId
         );
     
         const updatedRecord: AttendanceRecord = {
             ...recordToUpdate,
-            status: newStatus,
+            ...updates,
         };
     
         const newRecordsForDay = [...allRecordsForDay, updatedRecord];
@@ -675,22 +673,39 @@ export const StudentDetailScreen: React.FC = () => {
                     <div className="space-y-3 max-h-[60vh] overflow-y-auto">
                         {attendanceLogForModal.length > 0 ? (
                             attendanceLogForModal.map(record => (
-                                <div key={record.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-md">
-                                    <p className="font-semibold">{record.date}</p>
-                                    {canManage ? (
-                                        <select
-                                            value={record.status}
-                                            onChange={(e) => handleAttendanceChange(record, e.target.value as AttendanceStatus)}
-                                            className="form-select py-1 px-2 text-sm w-32"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            <option value={AttendanceStatus.PRESENT}>Có mặt</option>
-                                            <option value={AttendanceStatus.ABSENT}>Vắng</option>
-                                            <option value={AttendanceStatus.LATE}>Trễ</option>
-                                        </select>
-                                    ) : (
-                                        getStatusBadge(record.status)
-                                    )}
+                                <div key={record.id} className="flex flex-col gap-2 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-md">
+                                    <div className="flex items-center justify-between">
+                                        <p className="font-semibold">{record.date}</p>
+                                        {canManage ? (
+                                            <select
+                                                value={record.status}
+                                                onChange={(e) => handleAttendanceChange(record, { status: e.target.value as AttendanceStatus })}
+                                                className="form-select py-1 px-2 text-sm w-32"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <option value={AttendanceStatus.PRESENT}>Có mặt</option>
+                                                <option value={AttendanceStatus.ABSENT}>Vắng</option>
+                                                <option value={AttendanceStatus.LATE}>Trễ</option>
+                                            </select>
+                                        ) : (
+                                            getStatusBadge(record.status)
+                                        )}
+                                    </div>
+                                    <div className="w-full">
+                                        <input
+                                            key={record.id + '-' + (record.note || '')}
+                                            type="text"
+                                            placeholder="Ghi chú (ví dụ: Ốm, bận việc gia đình...)"
+                                            className="form-input text-sm w-full"
+                                            defaultValue={record.note || ''}
+                                            onBlur={(e) => {
+                                                if (e.target.value !== (record.note || '')) {
+                                                    handleAttendanceChange(record, { note: e.target.value });
+                                                }
+                                            }}
+                                            disabled={!canManage}
+                                        />
+                                    </div>
                                 </div>
                             ))
                         ) : (

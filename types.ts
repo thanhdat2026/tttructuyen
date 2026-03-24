@@ -94,6 +94,7 @@ export interface AttendanceRecord {
   studentId: string;
   date: string; // "YYYY-MM-DD"
   status: AttendanceStatus;
+  note?: string;
 }
 
 export interface Invoice {

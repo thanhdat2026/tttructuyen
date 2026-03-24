@@ -18,7 +18,7 @@ export const AttendanceScreen: React.FC = () => {
     const { role } = useAuth();
     const { classes, students, attendance } = state;
 
-    const [attendanceData, setAttendanceData] = useState<Map<string, AttendanceStatus>>(new Map());
+    const [attendanceData, setAttendanceData] = useState<Map<string, {status: AttendanceStatus, note: string}>>(new Map());
     const [isLoading, setIsLoading] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [confirmDeleteModalOpen, setConfirmDeleteModalOpen] = useState(false);
@@ -99,26 +99,47 @@ export const AttendanceScreen: React.FC = () => {
 
 
     useEffect(() => {
-        const initialData = new Map<string, AttendanceStatus>();
+        const initialData = new Map<string, {status: AttendanceStatus, note: string}>();
         classStudents.forEach(student => {
             const record = attendance.find(a => a.classId === classId && a.studentId === student.id && a.date === date);
-            initialData.set(student.id, record ? record.status : AttendanceStatus.UNMARKED);
+            initialData.set(student.id, {
+                status: record ? record.status : AttendanceStatus.UNMARKED,
+                note: record?.note || ''
+            });
         });
         setAttendanceData(initialData);
     }, [classId, date, attendance, classStudents]);
 
     const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
         if (!canTakeAttendance) return;
-        setAttendanceData(prev => new Map(prev).set(studentId, status));
+        setAttendanceData(prev => {
+            const newMap = new Map(prev);
+            const current = newMap.get(studentId) || { status: AttendanceStatus.UNMARKED, note: '' };
+            newMap.set(studentId, { ...current, status });
+            return newMap;
+        });
+    };
+
+    const handleNoteChange = (studentId: string, note: string) => {
+        if (!canTakeAttendance) return;
+        setAttendanceData(prev => {
+            const newMap = new Map(prev);
+            const current = newMap.get(studentId) || { status: AttendanceStatus.UNMARKED, note: '' };
+            newMap.set(studentId, { ...current, note });
+            return newMap;
+        });
     };
 
     const handleBulkChange = (status: AttendanceStatus) => {
         if (!canTakeAttendance) return;
-        const newMap = new Map<string, AttendanceStatus>();
-        classStudents.forEach(student => {
-            newMap.set(student.id, status);
+        setAttendanceData(prev => {
+            const newMap = new Map(prev);
+            classStudents.forEach(student => {
+                const current = newMap.get(student.id) || { status: AttendanceStatus.UNMARKED, note: '' };
+                newMap.set(student.id, { ...current, status });
+            });
+            return newMap;
         });
-        setAttendanceData(newMap);
     };
 
     const handleNavigateBack = () => {
@@ -132,15 +153,16 @@ export const AttendanceScreen: React.FC = () => {
 
         setIsLoading(true);
         const newRecords: AttendanceRecord[] = [];
-        for (const [studentId, status] of attendanceData.entries()) {
-            if (status !== AttendanceStatus.UNMARKED) {
+        for (const [studentId, data] of attendanceData.entries()) {
+            if (data.status !== AttendanceStatus.UNMARKED) {
                 const existingRecord = attendance.find(a => a.classId === classId && a.studentId === studentId && a.date === date);
                 newRecords.push({
                     id: existingRecord?.id || `A-${Date.now()}-${studentId}`,
                     classId: classId!,
                     studentId,
                     date: date!,
-                    status,
+                    status: data.status,
+                    note: data.note,
                 });
             }
         }
@@ -158,7 +180,7 @@ export const AttendanceScreen: React.FC = () => {
     }, [attendanceData, classId, date, canTakeAttendance, updateAttendance, toast, navigate, location.state]);
     
     const handleSubmit = () => {
-        const unmarkedCount = Array.from(attendanceData.values()).filter(status => status === AttendanceStatus.UNMARKED).length;
+        const unmarkedCount = Array.from(attendanceData.values()).filter(data => data.status === AttendanceStatus.UNMARKED).length;
         if (unmarkedCount > 0) {
             setUnmarkedConfirmModalOpen(true);
         } else {
@@ -209,12 +231,39 @@ export const AttendanceScreen: React.FC = () => {
                     </div>
                     
                     {classStudents.length > 0 && canTakeAttendance && (
-                        <div className="mb-4 p-3 bg-blue-50 dark:bg-gray-700 rounded-lg text-blue-800 dark:text-blue-200 text-sm">
-                           <p className="mb-2 font-semibold">Thao tác nhanh:</p>
-                           <div className="flex gap-2 w-full overflow-x-auto pb-1">
-                                <Button size="sm" variant="secondary" onClick={() => handleBulkChange(AttendanceStatus.PRESENT)} disabled={!canTakeAttendance} className="whitespace-nowrap">Tất cả có mặt</Button>
-                                <Button size="sm" onClick={() => handleBulkChange(AttendanceStatus.LATE)} disabled={!canTakeAttendance} className="bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-400 text-white whitespace-nowrap">Tất cả đi muộn</Button>
-                                <Button size="sm" variant="danger" onClick={() => handleBulkChange(AttendanceStatus.ABSENT)} disabled={!canTakeAttendance} className="whitespace-nowrap">Tất cả vắng</Button>
+                        <div className="mb-4 p-3 bg-blue-50 dark:bg-gray-700 rounded-lg text-blue-800 dark:text-blue-200 text-sm flex flex-col gap-3">
+                           <div>
+                               <p className="mb-2 font-semibold">Thao tác nhanh:</p>
+                               <div className="flex gap-2 w-full overflow-x-auto pb-1">
+                                    <Button size="sm" variant="secondary" onClick={() => handleBulkChange(AttendanceStatus.PRESENT)} disabled={!canTakeAttendance} className="whitespace-nowrap">Tất cả có mặt</Button>
+                                    <Button size="sm" onClick={() => handleBulkChange(AttendanceStatus.LATE)} disabled={!canTakeAttendance} className="bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-400 text-white whitespace-nowrap">Tất cả đi muộn</Button>
+                                    <Button size="sm" variant="danger" onClick={() => handleBulkChange(AttendanceStatus.ABSENT)} disabled={!canTakeAttendance} className="whitespace-nowrap">Tất cả vắng</Button>
+                               </div>
+                           </div>
+                           <div>
+                               <p className="mb-2 font-semibold">Ghi chú chung cho cả lớp:</p>
+                               <div className="flex gap-2">
+                                   <input
+                                       type="text"
+                                       placeholder="Ví dụ: Lớp nghỉ do giáo viên bận họp..."
+                                       className="form-input text-sm flex-1"
+                                       id="bulk-note-input"
+                                   />
+                                   <Button size="sm" variant="secondary" onClick={() => {
+                                       const note = (document.getElementById('bulk-note-input') as HTMLInputElement)?.value || '';
+                                       if (note) {
+                                           setAttendanceData(prev => {
+                                               const newMap = new Map(prev);
+                                               classStudents.forEach(student => {
+                                                   const current = newMap.get(student.id) || { status: AttendanceStatus.UNMARKED, note: '' };
+                                                   newMap.set(student.id, { ...current, note });
+                                               });
+                                               return newMap;
+                                           });
+                                           toast.success('Đã áp dụng ghi chú cho tất cả học viên.');
+                                       }
+                                   }}>Áp dụng</Button>
+                               </div>
                            </div>
                         </div>
                     )}
@@ -224,30 +273,42 @@ export const AttendanceScreen: React.FC = () => {
                             classStudents.map(student => {
                                 const isInactive = student.status !== PersonStatus.ACTIVE || !cls.studentIds.includes(student.id);
                                 return (
-                                    <div key={student.id} className={`bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border flex flex-col md:flex-row items-stretch md:items-center gap-4 ${isInactive ? 'border-orange-200 dark:border-orange-900/30 bg-orange-50/30 dark:bg-orange-900/10' : 'border-gray-100 dark:border-gray-700'}`}>
-                                        <div className="flex-grow flex justify-between items-start">
-                                            <div>
-                                                <span className={`font-bold text-base md:text-lg ${isInactive ? 'text-gray-500' : ''}`}>
-                                                    {student.name}
-                                                    {isInactive && <span className="text-xs text-orange-500 font-normal ml-2">(Đã nghỉ / Khác)</span>}
-                                                </span>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 px-2 py-0.5 rounded-full">
-                                                        Tháng này: {attendanceCounts.get(student.id) || 0} buổi
+                                    <div key={student.id} className={`bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border flex flex-col gap-4 ${isInactive ? 'border-orange-200 dark:border-orange-900/30 bg-orange-50/30 dark:bg-orange-900/10' : 'border-gray-100 dark:border-gray-700'}`}>
+                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
+                                            <div className="flex-grow flex justify-between items-start">
+                                                <div>
+                                                    <span className={`font-bold text-base md:text-lg ${isInactive ? 'text-gray-500' : ''}`}>
+                                                        {student.name}
+                                                        {isInactive && <span className="text-xs text-orange-500 font-normal ml-2">(Đã nghỉ / Khác)</span>}
                                                     </span>
-                                                    {attendanceData.get(student.id) === AttendanceStatus.UNMARKED && (
-                                                        <span className="text-xs font-bold bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200 px-2 py-0.5 rounded-full animate-pulse">
-                                                            Chưa điểm danh
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className="text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200 px-2 py-0.5 rounded-full">
+                                                            Tháng này: {attendanceCounts.get(student.id) || 0} buổi
                                                         </span>
-                                                    )}
+                                                        {attendanceData.get(student.id)?.status === AttendanceStatus.UNMARKED && (
+                                                            <span className="text-xs font-bold bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200 px-2 py-0.5 rounded-full animate-pulse">
+                                                                Chưa điểm danh
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
+                                            
+                                            <div className="flex gap-2 w-full md:w-auto">
+                                                <StatusButton current={attendanceData.get(student.id)?.status!} target={AttendanceStatus.PRESENT} onClick={() => handleStatusChange(student.id, AttendanceStatus.PRESENT)} label="Có mặt" color="bg-green-600" icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>} />
+                                                <StatusButton current={attendanceData.get(student.id)?.status!} target={AttendanceStatus.LATE} onClick={() => handleStatusChange(student.id, AttendanceStatus.LATE)} label="Trễ" color="bg-yellow-500" icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>} />
+                                                <StatusButton current={attendanceData.get(student.id)?.status!} target={AttendanceStatus.ABSENT} onClick={() => handleStatusChange(student.id, AttendanceStatus.ABSENT)} label="Vắng" color="bg-red-500" icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>} />
+                                            </div>
                                         </div>
-                                        
-                                        <div className="flex gap-2 w-full md:w-auto">
-                                            <StatusButton current={attendanceData.get(student.id)!} target={AttendanceStatus.PRESENT} onClick={() => handleStatusChange(student.id, AttendanceStatus.PRESENT)} label="Có mặt" color="bg-green-600" icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>} />
-                                            <StatusButton current={attendanceData.get(student.id)!} target={AttendanceStatus.LATE} onClick={() => handleStatusChange(student.id, AttendanceStatus.LATE)} label="Trễ" color="bg-yellow-500" icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>} />
-                                            <StatusButton current={attendanceData.get(student.id)!} target={AttendanceStatus.ABSENT} onClick={() => handleStatusChange(student.id, AttendanceStatus.ABSENT)} label="Vắng" color="bg-red-500" icon={<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>} />
+                                        <div className="w-full">
+                                            <input
+                                                type="text"
+                                                placeholder="Ghi chú (ví dụ: Ốm, bận việc gia đình...)"
+                                                className="form-input text-sm w-full"
+                                                value={attendanceData.get(student.id)?.note || ''}
+                                                onChange={(e) => handleNoteChange(student.id, e.target.value)}
+                                                disabled={!canTakeAttendance}
+                                            />
                                         </div>
                                     </div>
                                 );
