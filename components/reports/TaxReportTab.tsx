@@ -15,7 +15,8 @@ export const TaxReportTab: React.FC = () => {
     const [endMonth, setEndMonth] = useState(currentMonthStr);
     const [reportType, setReportType] = useState<'detailed' | 'monthly_summary'>('detailed');
     
-    const printRef = useRef<HTMLDivElement>(null);
+    const previewRef = useRef<HTMLDivElement>(null);
+    const [printHtml, setPrintHtml] = useState<string>('');
 
     const reportData = useMemo(() => {
         const [startYear, startM] = startMonth.split('-');
@@ -77,7 +78,12 @@ export const TaxReportTab: React.FC = () => {
     const totalAmount = reportData.reduce((sum, item) => sum + item.amount, 0);
 
     const handlePrint = () => {
-        window.print();
+        if (previewRef.current) {
+            setPrintHtml(previewRef.current.innerHTML);
+            setTimeout(() => {
+                window.print();
+            }, 100);
+        }
     };
 
     const formatDate = (dateStr: string) => {
@@ -91,87 +97,6 @@ export const TaxReportTab: React.FC = () => {
     const periodText = startMonth === endMonth 
         ? `Tháng ${startMonth.split('-')[1]} năm ${startMonth.split('-')[0]}`
         : `Từ tháng ${startMonth.split('-')[1]}/${startMonth.split('-')[0]} đến tháng ${endMonth.split('-')[1]}/${endMonth.split('-')[0]}`;
-
-    const printContent = (
-        <div className="print-area-portal hidden print:block bg-white text-black w-full">
-            <div ref={printRef} className="w-full max-w-[800px] mx-auto" style={{ fontFamily: '"Times New Roman", Times, serif', backgroundColor: 'white', color: 'black', padding: '20px' }}>
-                
-                {/* Header */}
-                <div className="flex justify-between items-start mb-8 text-[15px]">
-                    <div className="w-1/2 pr-4">
-                        <p className="font-bold uppercase mb-1">HỘ, CÁ NHÂN KINH DOANH: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[100px] inline-block font-normal">{settings.name || ''}</span></p>
-                        <p className="mb-1">Địa chỉ: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[200px] inline-block whitespace-normal break-words">{settings.address || ''}</span></p>
-                        <p>Mã số thuế: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[150px] inline-block"></span></p>
-                    </div>
-                    <div className="w-1/2 text-center pl-4">
-                        <p className="font-bold mb-1">Mẫu số S1a-HKD</p>
-                        <p className="italic text-sm">(Kèm theo Thông tư số 152/2025/TT-BTC<br/>ngày 31 tháng 12 năm 2025 của Bộ trưởng<br/>Bộ Tài chính)</p>
-                    </div>
-                </div>
-
-                {/* Title */}
-                <div className="text-center mb-8">
-                    <h1 className="text-xl font-bold uppercase mb-4">SỔ DOANH THU BÁN HÀNG HÓA, DỊCH VỤ</h1>
-                    <div className="text-left max-w-[500px] mx-auto text-[15px]">
-                        <p className="mb-1">Địa điểm kinh doanh: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[200px] inline-block whitespace-normal break-words">{settings.address || ''}</span></p>
-                        <p>Kỳ kê khai: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[150px] inline-block">{periodText}</span></p>
-                    </div>
-                </div>
-
-                {/* Table */}
-                <div className="mb-2 italic text-[15px]">Đơn vị tính: VNĐ</div>
-                <table className="w-full border-collapse border border-black mb-8 table-fixed text-[15px]">
-                    <thead>
-                        <tr>
-                            <th className="border border-black p-2 text-center w-[120px]">Ngày tháng</th>
-                            <th className="border border-black p-2 text-center">Diễn giải</th>
-                            <th className="border border-black p-2 text-center w-[150px]">Số tiền</th>
-                        </tr>
-                        <tr className="bg-gray-50">
-                            <th className="border border-black p-1 text-center font-normal">A</th>
-                            <th className="border border-black p-1 text-center font-normal">B</th>
-                            <th className="border border-black p-1 text-center font-normal">1</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {reportData.length > 0 ? (
-                            reportData.map((row, index) => (
-                                <tr key={index}>
-                                    <td className="border border-black p-2 text-center align-top">{formatDate(row.date)}</td>
-                                    <td className="border border-black p-2 align-top whitespace-normal break-words">{row.description}</td>
-                                    <td className="border border-black p-2 text-right align-top">{row.amount.toLocaleString('vi-VN')}</td>
-                                </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td className="border border-black p-2 text-center h-8"></td>
-                                <td className="border border-black p-2 h-8"></td>
-                                <td className="border border-black p-2 h-8"></td>
-                            </tr>
-                        )}
-                        <tr>
-                            <td colSpan={2} className="border border-black p-2 font-bold text-center">Tổng cộng</td>
-                            <td className="border border-black p-2 font-bold text-right">{totalAmount.toLocaleString('vi-VN')}</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                {/* Footer */}
-                <div className="flex justify-end mt-8 text-[15px]">
-                    <div className="text-center w-[300px]">
-                        <p className="italic mb-1">
-                            Ngày <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[30px] inline-block text-center">{today.getDate()}</span> 
-                            tháng <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[30px] inline-block text-center">{today.getMonth() + 1}</span> 
-                            năm <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[50px] inline-block text-center">{today.getFullYear()}</span>
-                        </p>
-                        <p className="font-bold uppercase">NGƯỜI ĐẠI DIỆN HỘ KINH DOANH/<br/>CÁ NHÂN KINH DOANH</p>
-                        <p className="italic text-sm mb-24">(Ký, ghi rõ họ tên, đóng dấu (nếu có))</p>
-                        <p className="font-bold"><span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[150px] inline-block text-center">{settings.name}</span></p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
 
     return (
         <div className="space-y-6">
@@ -220,7 +145,13 @@ export const TaxReportTab: React.FC = () => {
 
             {/* Screen Preview Area */}
             <div className="bg-white p-8 rounded-lg shadow-sm border border-slate-200 overflow-x-auto text-black print:hidden">
-                <div className="w-full max-w-[800px] mx-auto" style={{ fontFamily: '"Times New Roman", Times, serif', backgroundColor: 'white', color: 'black', padding: '20px' }}>
+                <div 
+                    ref={previewRef}
+                    contentEditable
+                    suppressContentEditableWarning
+                    className="w-full max-w-[800px] mx-auto outline-none" 
+                    style={{ fontFamily: '"Times New Roman", Times, serif', backgroundColor: 'white', color: 'black', padding: '20px' }}
+                >
                     
                     {/* Header */}
                     <div className="flex justify-between items-start mb-8 text-[15px]">
@@ -252,11 +183,6 @@ export const TaxReportTab: React.FC = () => {
                                 <th className="border border-black p-2 text-center w-[120px]">Ngày tháng</th>
                                 <th className="border border-black p-2 text-center">Diễn giải</th>
                                 <th className="border border-black p-2 text-center w-[150px]">Số tiền</th>
-                            </tr>
-                            <tr className="bg-gray-50">
-                                <th className="border border-black p-1 text-center font-normal">A</th>
-                                <th className="border border-black p-1 text-center font-normal">B</th>
-                                <th className="border border-black p-1 text-center font-normal">1</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -299,7 +225,13 @@ export const TaxReportTab: React.FC = () => {
             </div>
 
             {/* Render Print Portal */}
-            {createPortal(printContent, document.body)}
+            {createPortal(
+                <div 
+                    className="print-area-portal hidden print:block bg-white text-black w-full"
+                    dangerouslySetInnerHTML={{ __html: printHtml }}
+                />, 
+                document.body
+            )}
             
             {/* Print Styles */}
             <style>{`
