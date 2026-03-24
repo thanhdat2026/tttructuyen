@@ -268,8 +268,9 @@ const AnnouncementsTab: React.FC<{
         try {
             await addAnnouncement({
                 ...data,
+                targetAudience: 'CLASS',
                 classId: classId,
-                createdAt: new Date().toISOString().split('T')[0],
+                createdAt: new Date().toISOString(),
                 createdBy: user.name,
             });
             toast.success('Đã gửi thông báo đến lớp học.');

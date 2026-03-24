@@ -546,7 +546,11 @@ export function applyOperation(
             break;
         }
         case 'addAnnouncement': {
-            const newAnnouncement = { ...payload, id: generateUniqueId('ANN'), createdAt: new Date().toISOString().split('T')[0] };
+            const newAnnouncement = { 
+                ...payload, 
+                id: generateUniqueId('ANN'), 
+                createdAt: new Date().toISOString() 
+            };
             data.announcements.unshift(newAnnouncement);
             break;
         }

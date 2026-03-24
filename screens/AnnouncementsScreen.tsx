@@ -5,15 +5,20 @@ import { useToast } from '../hooks/useToast';
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
 import { ICONS } from '../constants';
-import { Announcement, UserRole, ProgressReport } from '../types';
+import { Announcement, UserRole, ProgressReport, AnnouncementTarget } from '../types';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 
 const AnnouncementForm: React.FC<{
-    onSubmit: (data: { title: string; content: string }) => void;
+    onSubmit: (data: { title: string; content: string; targetAudience: AnnouncementTarget; classId?: string; targetStudentIds?: string[]; scheduledFor?: string }) => void;
     onCancel: () => void;
 }> = ({ onSubmit, onCancel }) => {
+    const { state } = useData();
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
+    const [targetAudience, setTargetAudience] = useState<AnnouncementTarget>('ALL');
+    const [classId, setClassId] = useState('');
+    const [targetStudentIds, setTargetStudentIds] = useState<string[]>([]);
+    const [scheduledFor, setScheduledFor] = useState('');
     const titleInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -22,7 +27,23 @@ const AnnouncementForm: React.FC<{
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit({ title, content });
+        onSubmit({ 
+            title, 
+            content, 
+            targetAudience, 
+            classId: (targetAudience === 'CLASS' || targetAudience === 'SPECIFIC_STUDENTS') ? classId : undefined, 
+            targetStudentIds: targetAudience === 'SPECIFIC_STUDENTS' ? targetStudentIds : undefined, 
+            scheduledFor: scheduledFor || undefined 
+        });
+    };
+
+    const selectedClass = state.classes.find(c => c.id === classId);
+    const studentsInClass = selectedClass ? state.students.filter(s => selectedClass.studentIds.includes(s.id)) : [];
+
+    const handleStudentToggle = (id: string) => {
+        setTargetStudentIds(prev => 
+            prev.includes(id) ? prev.filter(sId => sId !== id) : [...prev, id]
+        );
     };
 
     return (
@@ -38,6 +59,80 @@ const AnnouncementForm: React.FC<{
                     required
                 />
             </div>
+            <div>
+                <label className="block text-sm font-medium">Đối tượng nhận thông báo</label>
+                <select
+                    value={targetAudience}
+                    onChange={(e) => {
+                        setTargetAudience(e.target.value as AnnouncementTarget);
+                        if (e.target.value !== 'CLASS' && e.target.value !== 'SPECIFIC_STUDENTS') {
+                            setClassId('');
+                            setTargetStudentIds([]);
+                        }
+                    }}
+                    className="form-select mt-1"
+                >
+                    <option value="ALL">Tất cả mọi người</option>
+                    <option value="TEACHERS">Tất cả Giáo viên</option>
+                    <option value="STUDENTS">Tất cả Học viên</option>
+                    <option value="CLASS">Một lớp học cụ thể</option>
+                    <option value="SPECIFIC_STUDENTS">Một số học viên trong lớp</option>
+                </select>
+            </div>
+
+            {(targetAudience === 'CLASS' || targetAudience === 'SPECIFIC_STUDENTS') && (
+                <div>
+                    <label className="block text-sm font-medium">Chọn lớp học</label>
+                    <select
+                        value={classId}
+                        onChange={(e) => {
+                            setClassId(e.target.value);
+                            setTargetStudentIds([]);
+                        }}
+                        className="form-select mt-1"
+                        required
+                    >
+                        <option value="">-- Chọn lớp học --</option>
+                        {state.classes.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
+            {targetAudience === 'SPECIFIC_STUDENTS' && classId && (
+                <div>
+                    <label className="block text-sm font-medium mb-2">Chọn học viên</label>
+                    <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-2 dark:border-gray-700">
+                        {studentsInClass.map(student => (
+                            <label key={student.id} className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={targetStudentIds.includes(student.id)}
+                                    onChange={() => handleStudentToggle(student.id)}
+                                    className="form-checkbox text-blue-600"
+                                />
+                                <span>{student.name}</span>
+                            </label>
+                        ))}
+                        {studentsInClass.length === 0 && (
+                            <p className="text-sm text-gray-500">Lớp học này chưa có học viên.</p>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            <div>
+                <label className="block text-sm font-medium">Thời gian hiển thị (Không bắt buộc)</label>
+                <input
+                    type="datetime-local"
+                    value={scheduledFor}
+                    onChange={(e) => setScheduledFor(e.target.value)}
+                    className="form-input mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">Nếu để trống, thông báo sẽ hiển thị ngay lập tức.</p>
+            </div>
+
             <div>
                 <label className="block text-sm font-medium">Nội dung</label>
                 <textarea
@@ -173,11 +268,11 @@ export const AnnouncementsScreen: React.FC = () => {
     const canManageProgress = role === UserRole.ADMIN || role === UserRole.MANAGER || role === UserRole.TEACHER;
 
     // --- Announcements Handlers ---
-    const handleAddAnnouncement = async (data: { title: string; content: string }) => {
+    const handleAddAnnouncement = async (data: { title: string; content: string; targetAudience: AnnouncementTarget; classId?: string; targetStudentIds?: string[]; scheduledFor?: string }) => {
         try {
             await addAnnouncement({
                 ...data,
-                createdAt: new Date().toISOString().split('T')[0],
+                createdAt: new Date().toISOString(),
                 createdBy: user?.name || 'Admin',
             });
             toast.success('Đã đăng thông báo mới.');
@@ -278,35 +373,52 @@ export const AnnouncementsScreen: React.FC = () => {
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {state.announcements.map(ann => (
-                            <div key={ann.id} className="card-base">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <div className="flex items-center gap-4">
-                                            <h2 className="text-xl font-bold text-primary">{ann.title}</h2>
-                                            {ann.classId && (
+                        {state.announcements.map(ann => {
+                            let targetLabel = 'Tất cả';
+                            if (ann.targetAudience === 'TEACHERS') targetLabel = 'Giáo viên';
+                            else if (ann.targetAudience === 'STUDENTS') targetLabel = 'Học viên';
+                            else if (ann.targetAudience === 'CLASS' && ann.classId) {
+                                targetLabel = `Lớp: ${state.classes.find(c => c.id === ann.classId)?.name || 'N/A'}`;
+                            } else if (ann.targetAudience === 'SPECIFIC_STUDENTS' && ann.classId) {
+                                targetLabel = `Một số học viên lớp: ${state.classes.find(c => c.id === ann.classId)?.name || 'N/A'}`;
+                            }
+
+                            const isScheduled = ann.scheduledFor && new Date(ann.scheduledFor) > new Date();
+
+                            return (
+                                <div key={ann.id} className={`card-base ${isScheduled ? 'opacity-70 border-dashed' : ''}`}>
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <div className="flex items-center gap-4 flex-wrap">
+                                                <h2 className="text-xl font-bold text-primary">{ann.title}</h2>
                                                 <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200">
-                                                    Lớp: {state.classes.find(c => c.id === ann.classId)?.name || 'N/A'}
+                                                    Gửi đến: {targetLabel}
                                                 </span>
-                                            )}
+                                                {isScheduled && (
+                                                    <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200 flex items-center gap-1">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                                        Lên lịch: {new Date(ann.scheduledFor!).toLocaleString('vi-VN')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                                Tạo ngày {new Date(ann.createdAt).toLocaleString('vi-VN')} bởi {ann.createdBy}
+                                            </p>
                                         </div>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            Đăng ngày {ann.createdAt} bởi {ann.createdBy}
-                                        </p>
+                                        {canManageAnnouncements && (
+                                            <button
+                                                onClick={() => setConfirmAnnModal({open: true, item: ann})}
+                                                className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50"
+                                                title="Xóa thông báo"
+                                            >
+                                                {ICONS.delete}
+                                            </button>
+                                        )}
                                     </div>
-                                    {canManageAnnouncements && (
-                                        <button
-                                            onClick={() => setConfirmAnnModal({open: true, item: ann})}
-                                            className="text-red-500 hover:text-red-700 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50"
-                                            title="Xóa thông báo"
-                                        >
-                                            {ICONS.delete}
-                                        </button>
-                                    )}
+                                    <p className="mt-4 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{ann.content}</p>
                                 </div>
-                                <p className="mt-4 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{ann.content}</p>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )
             )}

@@ -112,11 +112,35 @@ export const ParentDashboardScreen: React.FC = () => {
 
     const relevantAnnouncements = useMemo(() => {
         if (!student) return [];
+        const now = new Date();
+        
+        // Filter out future scheduled announcements
+        const visibleAnnouncements = state.announcements.filter(a => {
+            if (!a.scheduledFor) return true;
+            return new Date(a.scheduledFor) <= now;
+        });
+
         const enrolledClassIds = new Set(
             state.classes.filter(c => c.studentIds.includes(student.id)).map(c => c.id)
         );
-        return state.announcements
-            .filter(ann => !ann.classId || enrolledClassIds.has(ann.classId))
+        
+        return visibleAnnouncements
+            .filter(ann => {
+                // Show if targeted to ALL or STUDENTS
+                if (!ann.targetAudience || ann.targetAudience === 'ALL' || ann.targetAudience === 'STUDENTS') return true;
+                
+                // Show if targeted to a CLASS the student is in
+                if (ann.targetAudience === 'CLASS' && ann.classId) {
+                    return enrolledClassIds.has(ann.classId);
+                }
+
+                // Show if targeted to SPECIFIC_STUDENTS and this student is included
+                if (ann.targetAudience === 'SPECIFIC_STUDENTS' && ann.targetStudentIds) {
+                    return ann.targetStudentIds.includes(student.id);
+                }
+                
+                return false;
+            })
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }, [student, state.classes, state.announcements]);
 

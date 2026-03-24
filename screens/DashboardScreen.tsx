@@ -309,8 +309,17 @@ const TeacherDashboard: React.FC = () => {
     
     const relevantAnnouncements = useMemo(() => {
         const teacherId = (user as Teacher)?.id;
+        const now = new Date();
+        
+        // Filter out future scheduled announcements
+        const visibleAnnouncements = announcements.filter(a => {
+            if (!a.scheduledFor) return true;
+            return new Date(a.scheduledFor) <= now;
+        });
+
         if (!teacherId) {
-            return announcements.filter(a => !a.classId)
+            // For Admin/Manager, show ALL announcements, or those targeted to them
+            return visibleAnnouncements
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         }
 
@@ -318,8 +327,18 @@ const TeacherDashboard: React.FC = () => {
             classes.filter(cls => (cls.teacherIds || []).includes(teacherId)).map(c => c.id)
         );
 
-        return announcements
-            .filter(ann => !ann.classId || teacherClassIds.has(ann.classId))
+        return visibleAnnouncements
+            .filter(ann => {
+                // Show if targeted to ALL or TEACHERS
+                if (!ann.targetAudience || ann.targetAudience === 'ALL' || ann.targetAudience === 'TEACHERS') return true;
+                
+                // Show if targeted to a CLASS the teacher teaches
+                if ((ann.targetAudience === 'CLASS' || ann.targetAudience === 'SPECIFIC_STUDENTS') && ann.classId) {
+                    return teacherClassIds.has(ann.classId);
+                }
+                
+                return false;
+            })
             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }, [classes, user, announcements]);
 

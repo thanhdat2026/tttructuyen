@@ -210,13 +210,18 @@ export interface Payroll {
   classDetails: PayrollClassDetail[];
 }
 
+export type AnnouncementTarget = 'ALL' | 'TEACHERS' | 'STUDENTS' | 'CLASS' | 'SPECIFIC_STUDENTS';
+
 export interface Announcement {
     id: string;
     title: string;
     content: string;
-    createdAt: string; // "YYYY-MM-DD"
+    createdAt: string; // "YYYY-MM-DDTHH:mm:ss" or similar
     createdBy: string; // User's name
-    classId?: string;
+    targetAudience?: AnnouncementTarget;
+    classId?: string; // Used if targetAudience is 'CLASS' or 'SPECIFIC_STUDENTS'
+    targetStudentIds?: string[]; // Used if targetAudience is 'SPECIFIC_STUDENTS'
+    scheduledFor?: string; // "YYYY-MM-DDTHH:mm"
 }
 
 export interface SearchResult {
