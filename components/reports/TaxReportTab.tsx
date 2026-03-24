@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useData } from '../../hooks/useDataContext';
 import { TransactionType } from '../../types';
 import { Button } from '../common/Button';
@@ -91,9 +92,90 @@ export const TaxReportTab: React.FC = () => {
         ? `Tháng ${startMonth.split('-')[1]} năm ${startMonth.split('-')[0]}`
         : `Từ tháng ${startMonth.split('-')[1]}/${startMonth.split('-')[0]} đến tháng ${endMonth.split('-')[1]}/${endMonth.split('-')[0]}`;
 
+    const printContent = (
+        <div className="print-area-portal hidden print:block bg-white text-black w-full">
+            <div ref={printRef} className="w-full max-w-[800px] mx-auto" style={{ fontFamily: '"Times New Roman", Times, serif', backgroundColor: 'white', color: 'black', padding: '20px' }}>
+                
+                {/* Header */}
+                <div className="flex justify-between items-start mb-8 text-[15px]">
+                    <div className="w-1/2 pr-4">
+                        <p className="font-bold uppercase mb-1">HỘ, CÁ NHÂN KINH DOANH: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[100px] inline-block font-normal">{settings.name || ''}</span></p>
+                        <p className="mb-1">Địa chỉ: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[200px] inline-block whitespace-normal break-words">{settings.address || ''}</span></p>
+                        <p>Mã số thuế: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[150px] inline-block"></span></p>
+                    </div>
+                    <div className="w-1/2 text-center pl-4">
+                        <p className="font-bold mb-1">Mẫu số S1a-HKD</p>
+                        <p className="italic text-sm">(Kèm theo Thông tư số 152/2025/TT-BTC<br/>ngày 31 tháng 12 năm 2025 của Bộ trưởng<br/>Bộ Tài chính)</p>
+                    </div>
+                </div>
+
+                {/* Title */}
+                <div className="text-center mb-8">
+                    <h1 className="text-xl font-bold uppercase mb-4">SỔ DOANH THU BÁN HÀNG HÓA, DỊCH VỤ</h1>
+                    <div className="text-left max-w-[500px] mx-auto text-[15px]">
+                        <p className="mb-1">Địa điểm kinh doanh: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[200px] inline-block whitespace-normal break-words">{settings.address || ''}</span></p>
+                        <p>Kỳ kê khai: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[150px] inline-block">{periodText}</span></p>
+                    </div>
+                </div>
+
+                {/* Table */}
+                <div className="mb-2 italic text-[15px]">Đơn vị tính: VNĐ</div>
+                <table className="w-full border-collapse border border-black mb-8 table-fixed text-[15px]">
+                    <thead>
+                        <tr>
+                            <th className="border border-black p-2 text-center w-[120px]">Ngày tháng</th>
+                            <th className="border border-black p-2 text-center">Diễn giải</th>
+                            <th className="border border-black p-2 text-center w-[150px]">Số tiền</th>
+                        </tr>
+                        <tr className="bg-gray-50">
+                            <th className="border border-black p-1 text-center font-normal">A</th>
+                            <th className="border border-black p-1 text-center font-normal">B</th>
+                            <th className="border border-black p-1 text-center font-normal">1</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {reportData.length > 0 ? (
+                            reportData.map((row, index) => (
+                                <tr key={index}>
+                                    <td className="border border-black p-2 text-center align-top">{formatDate(row.date)}</td>
+                                    <td className="border border-black p-2 align-top whitespace-normal break-words">{row.description}</td>
+                                    <td className="border border-black p-2 text-right align-top">{row.amount.toLocaleString('vi-VN')}</td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td className="border border-black p-2 text-center h-8"></td>
+                                <td className="border border-black p-2 h-8"></td>
+                                <td className="border border-black p-2 h-8"></td>
+                            </tr>
+                        )}
+                        <tr>
+                            <td colSpan={2} className="border border-black p-2 font-bold text-center">Tổng cộng</td>
+                            <td className="border border-black p-2 font-bold text-right">{totalAmount.toLocaleString('vi-VN')}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                {/* Footer */}
+                <div className="flex justify-end mt-8 text-[15px]">
+                    <div className="text-center w-[300px]">
+                        <p className="italic mb-1">
+                            Ngày <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[30px] inline-block text-center">{today.getDate()}</span> 
+                            tháng <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[30px] inline-block text-center">{today.getMonth() + 1}</span> 
+                            năm <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[50px] inline-block text-center">{today.getFullYear()}</span>
+                        </p>
+                        <p className="font-bold uppercase">NGƯỜI ĐẠI DIỆN HỘ KINH DOANH/<br/>CÁ NHÂN KINH DOANH</p>
+                        <p className="italic text-sm mb-24">(Ký, ghi rõ họ tên, đóng dấu (nếu có))</p>
+                        <p className="font-bold"><span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[150px] inline-block text-center">{settings.name}</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 print:hidden">
                 <div className="flex flex-wrap gap-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -136,16 +218,16 @@ export const TaxReportTab: React.FC = () => {
                 </Button>
             </div>
 
-            {/* Print Preview Area */}
-            <div className="bg-white p-8 rounded-lg shadow-sm border border-slate-200 overflow-x-auto text-black print-area">
-                <div ref={printRef} className="w-full max-w-[800px] mx-auto" style={{ fontFamily: '"Times New Roman", Times, serif', backgroundColor: 'white', color: 'black', padding: '20px' }}>
+            {/* Screen Preview Area */}
+            <div className="bg-white p-8 rounded-lg shadow-sm border border-slate-200 overflow-x-auto text-black print:hidden">
+                <div className="w-full max-w-[800px] mx-auto" style={{ fontFamily: '"Times New Roman", Times, serif', backgroundColor: 'white', color: 'black', padding: '20px' }}>
                     
                     {/* Header */}
                     <div className="flex justify-between items-start mb-8 text-[15px]">
                         <div className="w-1/2 pr-4">
-                            <p className="font-bold uppercase mb-1">HỘ, CÁ NHÂN KINH DOANH: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[100px] inline-block font-normal">{settings.name || ''}</span></p>
-                            <p className="mb-1">Địa chỉ: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[200px] inline-block whitespace-normal break-words">{settings.address || ''}</span></p>
-                            <p>Mã số thuế: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[150px] inline-block"></span></p>
+                            <p className="font-bold uppercase mb-1">HỘ, CÁ NHÂN KINH DOANH: <span className="font-normal">{settings.name || ''}</span></p>
+                            <p className="mb-1">Địa chỉ: <span className="whitespace-normal break-words">{settings.address || ''}</span></p>
+                            <p>Mã số thuế: <span></span></p>
                         </div>
                         <div className="w-1/2 text-center pl-4">
                             <p className="font-bold mb-1">Mẫu số S1a-HKD</p>
@@ -157,8 +239,8 @@ export const TaxReportTab: React.FC = () => {
                     <div className="text-center mb-8">
                         <h1 className="text-xl font-bold uppercase mb-4">SỔ DOANH THU BÁN HÀNG HÓA, DỊCH VỤ</h1>
                         <div className="text-left max-w-[500px] mx-auto text-[15px]">
-                            <p className="mb-1">Địa điểm kinh doanh: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[200px] inline-block whitespace-normal break-words">{settings.address || ''}</span></p>
-                            <p>Kỳ kê khai: <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[150px] inline-block">{periodText}</span></p>
+                            <p className="mb-1">Địa điểm kinh doanh: <span className="whitespace-normal break-words">{settings.address || ''}</span></p>
+                            <p>Kỳ kê khai: <span>{periodText}</span></p>
                         </div>
                     </div>
 
@@ -204,44 +286,29 @@ export const TaxReportTab: React.FC = () => {
                     <div className="flex justify-end mt-8 text-[15px]">
                         <div className="text-center w-[300px]">
                             <p className="italic mb-1">
-                                Ngày <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[30px] inline-block text-center">{today.getDate()}</span> 
-                                tháng <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[30px] inline-block text-center">{today.getMonth() + 1}</span> 
-                                năm <span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[50px] inline-block text-center">{today.getFullYear()}</span>
+                                Ngày <span>{today.getDate()}</span> 
+                                {' '}tháng <span>{today.getMonth() + 1}</span> 
+                                {' '}năm <span>{today.getFullYear()}</span>
                             </p>
                             <p className="font-bold uppercase">NGƯỜI ĐẠI DIỆN HỘ KINH DOANH/<br/>CÁ NHÂN KINH DOANH</p>
                             <p className="italic text-sm mb-24">(Ký, ghi rõ họ tên, đóng dấu (nếu có))</p>
-                            <p className="font-bold"><span contentEditable className="outline-none border-b border-dashed border-gray-400 min-w-[150px] inline-block text-center">{settings.name}</span></p>
+                            <p className="font-bold"><span>{settings.name}</span></p>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Render Print Portal */}
+            {createPortal(printContent, document.body)}
             
             {/* Print Styles */}
             <style>{`
                 @media print {
-                    body * {
-                        visibility: hidden;
+                    body > *:not(.print-area-portal) {
+                        display: none !important;
                     }
-                    .print-area, .print-area * {
-                        visibility: visible;
-                    }
-                    .print-area {
-                        position: absolute;
-                        left: 0;
-                        top: 0;
-                        width: 100%;
-                        padding: 0;
-                        margin: 0;
-                        border: none;
-                        box-shadow: none;
-                        overflow: visible !important;
-                    }
-                    .print-area > div {
-                        min-width: 0 !important;
-                        max-width: none !important;
-                        width: 100% !important;
-                        padding: 0 !important;
-                        margin: 0 !important;
+                    .print-area-portal {
+                        display: block !important;
                     }
                     /* Ensure table rows don't break across pages if possible, but allow table to span multiple pages */
                     table { page-break-inside:auto }
