@@ -86,7 +86,7 @@ const AppLayout: React.FC = () => {
             case ROUTES.CLASSES: return 'Lớp học';
             case ROUTES.ATTENDANCE_HUB: return 'Điểm danh';
             case ROUTES.FINANCE: return 'Tài chính';
-            case ROUTES.ANNOUNCEMENTS: return 'Thông báo';
+            case ROUTES.ANNOUNCEMENTS: return 'Tiến độ học tập';
             case ROUTES.REPORTS: return 'Báo cáo';
             case ROUTES.SETTINGS: return 'Cài đặt';
             default: return 'EduCenter Pro';
@@ -202,7 +202,7 @@ const AppRoutes: React.FC = () => {
                     <Route path={ROUTES.FINANCE} element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.ACCOUNTANT, UserRole.VIEWER]}><FinanceScreen /></ProtectedRoute>} />
                     <Route path={ROUTES.REPORTS} element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.VIEWER]}><ReportsScreen /></ProtectedRoute>} />
                     <Route path={ROUTES.SETTINGS} element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.VIEWER]}><SettingsScreen /></ProtectedRoute>} />
-                    <Route path={ROUTES.ANNOUNCEMENTS} element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.VIEWER]}><AnnouncementsScreen /></ProtectedRoute>} />
+                    <Route path={ROUTES.ANNOUNCEMENTS} element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.TEACHER, UserRole.VIEWER]}><AnnouncementsScreen /></ProtectedRoute>} />
                 </Route>
 
                 {/* Parent Portal Routes */}
