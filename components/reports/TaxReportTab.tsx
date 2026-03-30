@@ -11,30 +11,42 @@ export const TaxReportTab: React.FC = () => {
     
     const today = new Date();
     const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const currentDateStr = today.toISOString().split('T')[0];
+    
+    const [filterMode, setFilterMode] = useState<'month' | 'date'>('month');
     const [startMonth, setStartMonth] = useState(currentMonthStr);
     const [endMonth, setEndMonth] = useState(currentMonthStr);
-    const [reportType, setReportType] = useState<'detailed' | 'monthly_summary'>('detailed');
+    const [startDate, setStartDate] = useState(currentDateStr);
+    const [endDate, setEndDate] = useState(currentDateStr);
+    
+    const [reportType, setReportType] = useState<'detailed' | 'daily_summary' | 'monthly_summary'>('detailed');
     
     const previewRef = useRef<HTMLDivElement>(null);
     const [printHtml, setPrintHtml] = useState<string>('');
 
     const reportData = useMemo(() => {
-        const [startYear, startM] = startMonth.split('-');
-        const startDate = `${startYear}-${startM}-01`;
-        
-        const [endYear, endM] = endMonth.split('-');
-        const endDate = new Date(parseInt(endYear), parseInt(endM), 0).toISOString().split('T')[0];
+        let start, end;
+        if (filterMode === 'month') {
+            const [startYear, startM] = startMonth.split('-');
+            start = `${startYear}-${startM}-01`;
+            
+            const [endYear, endM] = endMonth.split('-');
+            end = new Date(parseInt(endYear), parseInt(endM), 0).toISOString().split('T')[0];
+        } else {
+            start = startDate;
+            end = endDate;
+        }
 
         const relevantTransactions = transactions
             .filter(t => {
                 const isPayment = t.type === TransactionType.PAYMENT || t.type === TransactionType.ADJUSTMENT_CREDIT;
-                const isWithin = t.date >= startDate && t.date <= endDate;
+                const isWithin = t.date >= start && t.date <= end;
                 const isNotRefund = !t.description.toLowerCase().includes('hủy hóa đơn');
                 return isPayment && isWithin && isNotRefund && t.amount > 0;
             });
         
         const relevantIncome = income
-            .filter(i => i.date >= startDate && i.date <= endDate);
+            .filter(i => i.date >= start && i.date <= end);
 
         const combined = [
             ...relevantTransactions.map(t => ({ 
@@ -70,10 +82,27 @@ export const TaxReportTab: React.FC = () => {
             });
             summaryData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
             return summaryData;
+        } else if (reportType === 'daily_summary') {
+            const dailyMap = new Map<string, number>();
+            combined.forEach(item => {
+                const key = item.date;
+                dailyMap.set(key, (dailyMap.get(key) || 0) + item.amount);
+            });
+
+            const summaryData = Array.from(dailyMap.entries()).map(([key, amount]) => {
+                const [y, m, d] = key.split('-');
+                return {
+                    date: key,
+                    description: `Doanh thu ngày ${d}/${m}/${y}`,
+                    amount
+                };
+            });
+            summaryData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            return summaryData;
         }
 
         return combined;
-    }, [transactions, income, startMonth, endMonth, reportType]);
+    }, [transactions, income, startMonth, endMonth, startDate, endDate, filterMode, reportType]);
 
     const totalAmount = reportData.reduce((sum, item) => sum + item.amount, 0);
 
@@ -94,46 +123,93 @@ export const TaxReportTab: React.FC = () => {
         return `${d}/${m}/${y}`;
     };
 
-    const periodText = startMonth === endMonth 
-        ? `Tháng ${startMonth.split('-')[1]} năm ${startMonth.split('-')[0]}`
-        : `Từ tháng ${startMonth.split('-')[1]}/${startMonth.split('-')[0]} đến tháng ${endMonth.split('-')[1]}/${endMonth.split('-')[0]}`;
+    const periodText = filterMode === 'month'
+        ? (startMonth === endMonth 
+            ? `Tháng ${startMonth.split('-')[1]} năm ${startMonth.split('-')[0]}`
+            : `Từ tháng ${startMonth.split('-')[1]}/${startMonth.split('-')[0]} đến tháng ${endMonth.split('-')[1]}/${endMonth.split('-')[0]}`)
+        : (startDate === endDate
+            ? `Ngày ${formatDate(startDate)}`
+            : `Từ ngày ${formatDate(startDate)} đến ngày ${formatDate(endDate)}`);
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 print:hidden">
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-wrap gap-4 items-end">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                            Từ tháng
+                            Lọc theo
                         </label>
-                        <input
-                            type="month"
-                            value={startMonth}
-                            onChange={(e) => setStartMonth(e.target.value)}
-                            className="form-input w-full sm:w-auto"
-                        />
+                        <select
+                            value={filterMode}
+                            onChange={(e) => setFilterMode(e.target.value as 'month' | 'date')}
+                            className="form-select w-full sm:w-auto"
+                        >
+                            <option value="month">Tháng</option>
+                            <option value="date">Ngày</option>
+                        </select>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                            Đến tháng
-                        </label>
-                        <input
-                            type="month"
-                            value={endMonth}
-                            onChange={(e) => setEndMonth(e.target.value)}
-                            className="form-input w-full sm:w-auto"
-                        />
-                    </div>
+                    {filterMode === 'month' ? (
+                        <>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    Từ tháng
+                                </label>
+                                <input
+                                    type="month"
+                                    value={startMonth}
+                                    onChange={(e) => setStartMonth(e.target.value)}
+                                    className="form-input w-full sm:w-auto"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    Đến tháng
+                                </label>
+                                <input
+                                    type="month"
+                                    value={endMonth}
+                                    onChange={(e) => setEndMonth(e.target.value)}
+                                    className="form-input w-full sm:w-auto"
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    Từ ngày
+                                </label>
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="form-input w-full sm:w-auto"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    Đến ngày
+                                </label>
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="form-input w-full sm:w-auto"
+                                />
+                            </div>
+                        </>
+                    )}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                             Loại báo cáo
                         </label>
                         <select
                             value={reportType}
-                            onChange={(e) => setReportType(e.target.value as 'detailed' | 'monthly_summary')}
+                            onChange={(e) => setReportType(e.target.value as 'detailed' | 'daily_summary' | 'monthly_summary')}
                             className="form-select w-full sm:w-auto"
                         >
                             <option value="detailed">Chi tiết từng khoản</option>
+                            <option value="daily_summary">Tổng hợp theo ngày</option>
                             <option value="monthly_summary">Tổng hợp theo tháng</option>
                         </select>
                     </div>
