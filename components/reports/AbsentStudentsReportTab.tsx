@@ -45,11 +45,13 @@ export const AbsentStudentsReportTab: React.FC<AbsentStudentsReportTabProps> = (
         }
 
         // Find attendance records for the selected date range that are ABSENT
-        const absentRecords = attendance.filter(a => 
-            a.date >= startDate && a.date <= endDate &&
-            (classFilter === 'all' || a.classId === classFilter) &&
-            a.status === AttendanceStatus.ABSENT
-        );
+        const absentRecords = attendance.filter(a => {
+            const isAfterStart = !startDate || a.date >= startDate;
+            const isBeforeEnd = !endDate || a.date <= endDate;
+            return isAfterStart && isBeforeEnd &&
+                (classFilter === 'all' || a.classId === classFilter) &&
+                a.status === AttendanceStatus.ABSENT;
+        });
 
         const data: AbsentReportData[] = [];
         
