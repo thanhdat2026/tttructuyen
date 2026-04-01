@@ -63,7 +63,7 @@ interface DataContextType {
     deleteProgressReport: (reportId: string) => Promise<void>;
     generateInvoices: (payload: { month: number, year: number }) => Promise<void>;
     cancelInvoice: (invoiceId: string) => Promise<void>;
-    addAdjustment: (payload: { studentId: string; amount: number; date: string; description: string; type: 'CREDIT' | 'DEBIT' }) => Promise<void>;
+    addAdjustment: (payload: { studentId: string; amount: number; date: string; description: string; type: 'CREDIT' | 'DEBIT'; paymentMethod?: 'transfer' | 'cash' }) => Promise<void>;
     updateTransaction: (transaction: Transaction) => Promise<void>;
     deleteTransaction: (transactionId: string) => Promise<void>;
     updateInvoiceStatus: (payload: { invoiceId: string, status: 'PAID' | 'UNPAID' | 'CANCELLED', paidDate?: string }) => Promise<void>;

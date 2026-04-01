@@ -32,6 +32,7 @@ const IncomeForm: React.FC<{
         amount: item?.amount || 0,
         category: item?.category || IncomeCategory.OTHER,
         date: item?.date || getVietnamTime().split('T')[0],
+        paymentMethod: item?.paymentMethod || 'transfer',
     });
     const descRef = useRef<HTMLInputElement>(null);
 
@@ -70,6 +71,13 @@ const IncomeForm: React.FC<{
                     {Object.entries(incomeCategoryMap).map(([key, value]) => (
                         <option key={key} value={key}>{value}</option>
                     ))}
+                </select>
+            </div>
+            <div>
+                <label className="block text-sm font-medium">Hình thức thanh toán</label>
+                <select name="paymentMethod" value={formData.paymentMethod} onChange={handleChange} className="form-select mt-1">
+                    <option value="transfer">Chuyển khoản</option>
+                    <option value="cash">Tiền mặt</option>
                 </select>
             </div>
              <div className="flex justify-end space-x-4 pt-4 border-t dark:border-gray-700">
@@ -111,8 +119,8 @@ export const IncomeTab: React.FC = () => {
         let sortableItems = [...filteredItems];
         if (sortConfig) {
             sortableItems.sort((a, b) => {
-                const aValue = a[sortConfig.key];
-                const bValue = b[sortConfig.key];
+                const aValue = a[sortConfig.key] ?? '';
+                const bValue = b[sortConfig.key] ?? '';
                 if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
                 if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
                 return 0;
@@ -164,6 +172,7 @@ export const IncomeTab: React.FC = () => {
         { header: 'Ngày', accessor: (item) => formatVietnamDate(item.date), sortable: true, sortKey: 'date' },
         { header: 'Mô tả', accessor: 'description', sortable: true },
         { header: 'Hạng mục', accessor: (item) => incomeCategoryMap[item.category], sortable: true, sortKey: 'category' },
+        { header: 'Hình thức', accessor: (item) => item.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản', sortable: true, sortKey: 'paymentMethod' },
         { header: 'Số tiền', accessor: (item) => `${item.amount.toLocaleString('vi-VN')} ₫`, sortable: true, sortKey: 'amount' },
     ];
 

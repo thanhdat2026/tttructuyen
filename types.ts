@@ -124,6 +124,7 @@ export interface Transaction {
     description: string;
     amount: number; // Positive for credits/payments, negative for debits/invoices
     relatedInvoiceId?: string;
+    paymentMethod?: 'transfer' | 'cash';
 }
 
 
@@ -149,6 +150,7 @@ export interface Income {
   amount: number;
   category: IncomeCategory;
   date: string; // "YYYY-MM-DD"
+  paymentMethod?: 'transfer' | 'cash';
 }
 
 export enum ExpenseCategory {

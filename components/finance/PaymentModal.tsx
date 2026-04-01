@@ -21,6 +21,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
 
     const [amount, setAmount] = useState(0);
     const [date, setDate] = useState(getVietnamTime());
+    const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash'>('transfer');
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -31,6 +32,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
                 setAmount(0);
             }
             setDate(getVietnamTime()); // Reset date on open
+            setPaymentMethod('transfer'); // Reset payment method
         }
     }, [student, isOpen]);
 
@@ -51,6 +53,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
                 date: date,
                 description: `Thanh toán học phí trực tiếp`,
                 type: 'CREDIT',
+                paymentMethod: paymentMethod,
             });
 
             // 2. Smart Allocation Logic:
@@ -103,6 +106,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
                 <div>
                     <label className="block text-sm font-medium">Ngày thanh toán</label>
                     <input type="datetime-local" step="1" value={date} onChange={e => setDate(e.target.value)} className="form-input mt-1" required />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium">Hình thức thanh toán</label>
+                    <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as 'transfer' | 'cash')} className="form-select mt-1">
+                        <option value="transfer">Chuyển khoản</option>
+                        <option value="cash">Tiền mặt</option>
+                    </select>
                 </div>
                 <div className="flex justify-end gap-4 pt-4 border-t dark:border-gray-700">
                     <Button type="button" variant="secondary" onClick={onClose}>Hủy</Button>

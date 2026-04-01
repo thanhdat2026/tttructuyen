@@ -14,6 +14,7 @@ const ITEMS_PER_PAGE = 15;
 interface TransactionWithDetails extends Transaction {
     studentName: string;
     classNames: string;
+    paymentMethodStr: string;
 }
 
 interface TransactionHistoryReportTabProps {
@@ -58,6 +59,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
             ...t,
             studentName: studentMap.get(t.studentId)?.name || 'N/A',
             classNames: studentClassMap.get(t.studentId)?.join(', ') || 'N/A',
+            paymentMethodStr: t.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản',
         }));
 
         if (searchQuery) {
@@ -111,6 +113,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
             classNames: t.classNames,
             description: t.description,
             type: transactionTypeMap[t.type],
+            paymentMethod: t.paymentMethodStr,
             amount: t.amount,
         }));
         downloadAsCSV(dataToExport, {
@@ -119,6 +122,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
             classNames: 'Các lớp học',
             description: 'Diễn giải',
             type: 'Loại Giao dịch',
+            paymentMethod: 'Hình thức',
             amount: `Số tiền`
         }, `LichSuGiaoDich_${startDate}_${endDate}.csv`);
     };
@@ -129,6 +133,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
         { header: 'Lớp học', accessor: 'classNames' },
         { header: 'Diễn giải', accessor: 'description' },
         { header: 'Loại', accessor: (item) => transactionTypeMap[item.type], sortable: true, sortKey: 'type' },
+        { header: 'Hình thức', accessor: 'paymentMethodStr', sortable: true },
         { header: 'Số tiền', accessor: (item) => (
             <span className={item.amount >= 0 ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-red-600 dark:text-red-400 font-semibold'}>
                 {item.amount.toLocaleString('vi-VN')} ₫
@@ -165,6 +170,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
                         details={[
                             { label: 'Ngày', value: new Date(item.date).toLocaleString('vi-VN') },
                             { label: 'Diễn giải', value: item.description },
+                            { label: 'Hình thức', value: item.paymentMethodStr },
                             { label: 'Số tiền', value: (
                                 <span className={item.amount >= 0 ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-red-600 dark:text-red-400 font-semibold'}>
                                     {item.amount.toLocaleString('vi-VN')} ₫

@@ -347,11 +347,11 @@ export function applyOperation(
 
         // TRANSACTIONS
         case 'addAdjustment': {
-            const { studentId, amount, date, description, type } = payload;
+            const { studentId, amount, date, description, type, paymentMethod } = payload;
             const finalAmount = type === 'CREDIT' ? amount : -amount;
             const student = data.students.find(s => s.id === studentId);
             if (student) student.balance += finalAmount;
-            data.transactions.push({ id: generateUniqueId('TRX'), studentId, date, type: type === 'CREDIT' ? TransactionType.PAYMENT : TransactionType.ADJUSTMENT_DEBIT, description, amount: finalAmount });
+            data.transactions.push({ id: generateUniqueId('TRX'), studentId, date, type: type === 'CREDIT' ? TransactionType.PAYMENT : TransactionType.ADJUSTMENT_DEBIT, description, amount: finalAmount, paymentMethod: paymentMethod || 'transfer' });
             break;
         }
         case 'updateTransaction': {

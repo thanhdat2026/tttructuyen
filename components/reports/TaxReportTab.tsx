@@ -51,13 +51,15 @@ export const TaxReportTab: React.FC = () => {
         const combined = [
             ...relevantTransactions.map(t => ({ 
                 date: t.date, 
-                description: `Thu học phí - ${t.description}`, 
-                amount: t.amount 
+                description: `Thu học phí - ${t.description} (${t.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'})`, 
+                amount: t.amount,
+                paymentMethod: t.paymentMethod || 'transfer'
             })),
             ...relevantIncome.map(i => ({ 
                 date: i.date, 
-                description: i.description, 
-                amount: i.amount 
+                description: `${i.description} (${i.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'})`, 
+                amount: i.amount,
+                paymentMethod: i.paymentMethod || 'transfer'
             }))
         ];
 
@@ -68,15 +70,16 @@ export const TaxReportTab: React.FC = () => {
             const monthlyMap = new Map<string, number>();
             combined.forEach(item => {
                 const [y, m] = item.date.split('-');
-                const key = `${y}-${m}`;
+                const key = `${y}-${m}|${item.paymentMethod}`;
                 monthlyMap.set(key, (monthlyMap.get(key) || 0) + item.amount);
             });
 
             const summaryData = Array.from(monthlyMap.entries()).map(([key, amount]) => {
-                const [y, m] = key.split('-');
+                const [datePart, method] = key.split('|');
+                const [y, m] = datePart.split('-');
                 return {
                     date: `${y}-${m}-01`, // Use 1st of month for sorting/display
-                    description: `Doanh thu tháng ${m}/${y}`,
+                    description: `Doanh thu tháng ${m}/${y} (${method === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'})`,
                     amount
                 };
             });
@@ -85,15 +88,16 @@ export const TaxReportTab: React.FC = () => {
         } else if (reportType === 'daily_summary') {
             const dailyMap = new Map<string, number>();
             combined.forEach(item => {
-                const key = item.date;
+                const key = `${item.date}|${item.paymentMethod}`;
                 dailyMap.set(key, (dailyMap.get(key) || 0) + item.amount);
             });
 
             const summaryData = Array.from(dailyMap.entries()).map(([key, amount]) => {
-                const [y, m, d] = key.split('-');
+                const [datePart, method] = key.split('|');
+                const [y, m, d] = datePart.split('-');
                 return {
-                    date: key,
-                    description: `Doanh thu ngày ${d}/${m}/${y}`,
+                    date: datePart,
+                    description: `Doanh thu ngày ${d}/${m}/${y} (${method === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'})`,
                     amount
                 };
             });
