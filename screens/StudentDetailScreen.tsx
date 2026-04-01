@@ -519,6 +519,7 @@ export const StudentDetailScreen: React.FC = () => {
                                     <p><strong>Điện thoại:</strong> {student.phone}</p>
                                     <p><strong>Ngày sinh:</strong> {student.dob}</p>
                                     <p><strong>Phụ huynh:</strong> {student.parentName}</p>
+                                    <p><strong>Miễn giảm học phí:</strong> {student.discountPercentage ? `${student.discountPercentage}%` : 'Không'}</p>
                                     <p className="col-span-1 md:col-span-2"><strong>Địa chỉ:</strong> {student.address}</p>
                                 </div>
                             </div>

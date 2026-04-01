@@ -108,7 +108,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
     
     const handleExport = () => {
         const dataToExport = sortedData.map(t => ({
-            date: new Date(t.date).toLocaleString('vi-VN'),
+            date: new Date(t.date).toLocaleDateString('vi-VN'),
             studentName: t.studentName,
             classNames: t.classNames,
             description: t.description,
@@ -128,7 +128,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
     };
 
     const columns: Column<TransactionWithDetails>[] = [
-        { header: 'Ngày', accessor: (item) => new Date(item.date).toLocaleString('vi-VN'), sortable: true, sortKey: 'date' },
+        { header: 'Ngày', accessor: (item) => new Date(item.date).toLocaleDateString('vi-VN'), sortable: true, sortKey: 'date' },
         { header: 'Họ tên', accessor: 'studentName', sortable: true },
         { header: 'Lớp học', accessor: 'classNames' },
         { header: 'Diễn giải', accessor: 'description' },
@@ -168,7 +168,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
                         key={item.id}
                         title={item.studentName}
                         details={[
-                            { label: 'Ngày', value: new Date(item.date).toLocaleString('vi-VN') },
+                            { label: 'Ngày', value: new Date(item.date).toLocaleDateString('vi-VN') },
                             { label: 'Diễn giải', value: item.description },
                             { label: 'Hình thức', value: item.paymentMethodStr },
                             { label: 'Số tiền', value: (

@@ -125,9 +125,9 @@ const StudentForm: React.FC<{
 
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
+        const { name, value, type } = e.target;
         setFormData(prev => {
-            const newData = { ...prev, [name]: value };
+            const newData = { ...prev, [name]: type === 'number' ? (value ? Number(value) : undefined) : value };
             
             // Auto-update email when ID changes, if email matches the pattern of the old ID
             if (name === 'id') {
@@ -177,12 +177,16 @@ const StudentForm: React.FC<{
                         <label className="block text-sm font-medium">Ngày sinh</label>
                         <input type="date" name="dob" value={formData.dob} onChange={handleChange} className="form-input mt-1" />
                     </div>
-                     <div>
+                    <div>
                         <label className="block text-sm font-medium">Trạng thái</label>
                         <select name="status" value={formData.status} onChange={handleChange} className="form-select mt-1">
                             <option value={PersonStatus.ACTIVE}>Hoạt động</option>
                             <option value={PersonStatus.INACTIVE}>Tạm nghỉ</option>
                         </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium">Miễn giảm học phí (%)</label>
+                        <input type="number" name="discountPercentage" min="0" max="100" value={formData.discountPercentage || ''} onChange={handleChange} className="form-input mt-1" placeholder="Ví dụ: 50" />
                     </div>
                 </div>
             </fieldset>

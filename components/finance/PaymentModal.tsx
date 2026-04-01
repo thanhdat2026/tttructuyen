@@ -20,7 +20,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
     const { toast } = useToast();
 
     const [amount, setAmount] = useState(0);
-    const [date, setDate] = useState(getVietnamTime());
+    const [date, setDate] = useState(getVietnamTime().split('T')[0]);
     const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash'>('transfer');
     const [isLoading, setIsLoading] = useState(false);
 
@@ -31,7 +31,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
             } else {
                 setAmount(0);
             }
-            setDate(getVietnamTime()); // Reset date on open
+            setDate(getVietnamTime().split('T')[0]); // Reset date on open
             setPaymentMethod('transfer'); // Reset payment method
         }
     }, [student, isOpen]);
@@ -105,7 +105,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
                 </div>
                 <div>
                     <label className="block text-sm font-medium">Ngày thanh toán</label>
-                    <input type="datetime-local" step="1" value={date} onChange={e => setDate(e.target.value)} className="form-input mt-1" required />
+                    <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-input mt-1" required />
                 </div>
                 <div>
                     <label className="block text-sm font-medium">Hình thức thanh toán</label>

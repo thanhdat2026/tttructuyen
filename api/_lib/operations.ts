@@ -267,6 +267,13 @@ export function applyOperation(
                     totalAmount += classFee;
                 }
 
+                // Apply discount if any
+                if (student.discountPercentage && student.discountPercentage > 0) {
+                    const discountAmount = Math.round(totalAmount * (student.discountPercentage / 100));
+                    totalAmount -= discountAmount;
+                    details += `- Miễn giảm (${student.discountPercentage}%): -${discountAmount.toLocaleString('vi-VN')} ₫\n`;
+                }
+
                 // Round total amount to avoid floating point errors
                 totalAmount = Math.round(totalAmount);
 
@@ -295,8 +302,8 @@ export function applyOperation(
                             if (studentToUpdate) studentToUpdate.balance -= amountDifference;
                         }
                     }
-                } else if (totalAmount > 0) {
-                    // Create new invoice
+                } else if (details.trim() !== '') {
+                    // Create new invoice even if amount is 0 (e.g., 100% discount)
                     const invoiceId = generateUniqueId('INV');
                     data.invoices.push({ id: invoiceId, studentId: student.id, studentName: student.name, month: monthStr, amount: totalAmount, details: details.trim(), status: 'UNPAID', generatedDate: getVietnamTime().split('T')[0], paidDate: null });
                     

@@ -50,6 +50,7 @@ export interface Student extends BasePerson {
   parentName: string;
   email: string;
   balance: number; // Student's account balance. Positive = credit, Negative = debt.
+  discountPercentage?: number; // Discount percentage (0-100)
 }
 
 export interface Teacher extends BasePerson {
