@@ -66,7 +66,7 @@ interface DataContextType {
     addAdjustment: (payload: { studentId: string; amount: number; date: string; description: string; type: 'CREDIT' | 'DEBIT' }) => Promise<void>;
     updateTransaction: (transaction: Transaction) => Promise<void>;
     deleteTransaction: (transactionId: string) => Promise<void>;
-    updateInvoiceStatus: (payload: { invoiceId: string, status: 'PAID' | 'UNPAID' | 'CANCELLED' }) => Promise<void>;
+    updateInvoiceStatus: (payload: { invoiceId: string, status: 'PAID' | 'UNPAID' | 'CANCELLED', paidDate?: string }) => Promise<void>;
     generatePayrolls: (payload: { month: number, year: number }) => Promise<void>;
     updatePayroll: (payload: { payrollId: string; bonus: number; deduction: number; status: 'PAID' | 'UNPAID' }) => Promise<void>;
     addIncome: (data: Omit<Income, 'id'>) => Promise<void>;

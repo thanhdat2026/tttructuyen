@@ -40,7 +40,7 @@ export const TaxReportTab: React.FC = () => {
         const relevantTransactions = transactions
             .filter(t => {
                 const isPayment = t.type === TransactionType.PAYMENT || t.type === TransactionType.ADJUSTMENT_CREDIT;
-                const isWithin = t.date >= start && t.date <= end;
+                const isWithin = t.date.substring(0, 10) >= start && t.date.substring(0, 10) <= end;
                 const isNotRefund = !t.description.toLowerCase().includes('hủy hóa đơn');
                 return isPayment && isWithin && isNotRefund && t.amount > 0;
             });

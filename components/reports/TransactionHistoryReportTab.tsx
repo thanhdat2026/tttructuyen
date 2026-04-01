@@ -37,7 +37,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
     const [sortConfig, setSortConfig] = useState<SortConfig<TransactionWithDetails> | null>({ key: 'date', direction: 'descending' });
 
     const reportData = useMemo(() => {
-        let relevantTransactions = transactions.filter(t => t.date >= startDate && t.date <= endDate);
+        let relevantTransactions = transactions.filter(t => t.date.substring(0, 10) >= startDate && t.date.substring(0, 10) <= endDate);
 
         // Fix: Explicitly type the studentMap to ensure correct type inference from .get()
         const studentMap: Map<string, Student> = new Map(students.map((s: Student) => [s.id, s]));
@@ -106,7 +106,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
     
     const handleExport = () => {
         const dataToExport = sortedData.map(t => ({
-            date: t.date,
+            date: new Date(t.date).toLocaleString('vi-VN'),
             studentName: t.studentName,
             classNames: t.classNames,
             description: t.description,
@@ -124,7 +124,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
     };
 
     const columns: Column<TransactionWithDetails>[] = [
-        { header: 'Ngày', accessor: 'date', sortable: true },
+        { header: 'Ngày', accessor: (item) => new Date(item.date).toLocaleString('vi-VN'), sortable: true, sortKey: 'date' },
         { header: 'Họ tên', accessor: 'studentName', sortable: true },
         { header: 'Lớp học', accessor: 'classNames' },
         { header: 'Diễn giải', accessor: 'description' },
@@ -163,7 +163,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
                         key={item.id}
                         title={item.studentName}
                         details={[
-                            { label: 'Ngày', value: item.date },
+                            { label: 'Ngày', value: new Date(item.date).toLocaleString('vi-VN') },
                             { label: 'Diễn giải', value: item.description },
                             { label: 'Số tiền', value: (
                                 <span className={item.amount >= 0 ? 'text-green-600 dark:text-green-400 font-semibold' : 'text-red-600 dark:text-red-400 font-semibold'}>

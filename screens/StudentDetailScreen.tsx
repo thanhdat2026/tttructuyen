@@ -21,6 +21,8 @@ const transactionTypeMap: Record<TransactionType, string> = {
     [TransactionType.ADJUSTMENT_DEBIT]: 'Phí khác',
 };
 
+import { formatVietnamDate, getVietnamTime } from '../utils/date';
+
 const AdjustmentForm: React.FC<{
     transactionToEdit?: Transaction;
     onSubmit: (data: { sign: 'CREDIT' | 'DEBIT'; amount: number; date: string; description: string; }) => void;
@@ -29,7 +31,12 @@ const AdjustmentForm: React.FC<{
     const [sign, setSign] = useState<'CREDIT' | 'DEBIT'>(transactionToEdit && transactionToEdit.amount < 0 ? 'DEBIT' : 'CREDIT');
     const [amount, setAmount] = useState(transactionToEdit ? Math.abs(transactionToEdit.amount) : 0);
     const [description, setDescription] = useState(transactionToEdit?.description || '');
-    const [date, setDate] = useState(transactionToEdit?.date || new Date().toISOString().split('T')[0]);
+    
+    const initialDate = transactionToEdit?.date 
+        ? (transactionToEdit.date.includes('T') ? transactionToEdit.date : `${transactionToEdit.date}T00:00:00`)
+        : getVietnamTime();
+
+    const [date, setDate] = useState(initialDate);
     
     const descriptionInputRef = useRef<HTMLInputElement>(null);
 
@@ -90,7 +97,7 @@ const AdjustmentForm: React.FC<{
                 </div>
                 <div>
                     <label className="block text-sm font-medium">Ngày</label>
-                    <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-input mt-1" required />
+                    <input type="datetime-local" step="1" value={date} onChange={e => setDate(e.target.value)} className="form-input mt-1" required />
                 </div>
             </div>
             
@@ -422,7 +429,7 @@ export const StudentDetailScreen: React.FC = () => {
     const isEditable = (type: TransactionType) => type !== TransactionType.INVOICE;
 
     const transactionColumns = [
-        { header: 'Ngày', accessor: 'date' as keyof Transaction, sortable: true },
+        { header: 'Ngày', accessor: (item: Transaction) => formatVietnamDate(item.date), sortable: true, sortKey: 'date' as keyof Transaction },
         { header: 'Loại', accessor: (item: Transaction) => transactionTypeMap[item.type], sortable: true, sortKey: 'type' as keyof Transaction },
         { header: 'Mô tả', accessor: 'description' as keyof Transaction, sortable: true },
         { header: 'Số tiền', accessor: (item: Transaction) => (
@@ -472,7 +479,7 @@ export const StudentDetailScreen: React.FC = () => {
                                 </span>
                                 {student.statusChangedAt && (
                                     <span className="text-xs text-gray-500">
-                                        (Từ: {new Date(student.statusChangedAt).toLocaleDateString('vi-VN')})
+                                        (Từ: {formatVietnamDate(student.statusChangedAt)})
                                     </span>
                                 )}
                                 {student.statusHistory && student.statusHistory.length > 0 && (
@@ -607,7 +614,7 @@ export const StudentDetailScreen: React.FC = () => {
                                     key={item.id}
                                     title={<span className="font-semibold">{item.description}</span>}
                                     details={[
-                                        { label: "Ngày", value: item.date },
+                                        { label: "Ngày", value: formatVietnamDate(item.date) },
                                         { label: "Số tiền", value: <span className={item.amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>{item.amount.toLocaleString('vi-VN')} ₫</span> },
                                         { label: "Số dư cuối kỳ", value: <span className={`font-semibold ${item.endingBalance < 0 ? 'text-red-600 dark:text-red-400' : ''}`}>{item.endingBalance.toLocaleString('vi-VN')} ₫</span> },
                                     ]}
@@ -738,7 +745,7 @@ export const StudentDetailScreen: React.FC = () => {
                                     <div key={index} className="mb-6 ml-4">
                                         <div className="absolute w-3 h-3 bg-gray-200 rounded-full mt-1.5 -left-1.5 border border-white dark:border-gray-900 dark:bg-gray-700"></div>
                                         <time className="mb-1 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">
-                                            {new Date(history.changedAt).toLocaleString('vi-VN')}
+                                            {formatVietnamDate(history.changedAt)}
                                         </time>
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mt-1">
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${history.status === PersonStatus.ACTIVE ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>

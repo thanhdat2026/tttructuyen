@@ -8,6 +8,8 @@ import { ICONS } from '../constants';
 import { Announcement, UserRole, ProgressReport, AnnouncementTarget } from '../types';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 
+import { getVietnamTime, formatVietnamDate } from '../utils/date';
+
 const AnnouncementForm: React.FC<{
     onSubmit: (data: { title: string; content: string; targetAudience: AnnouncementTarget; classId?: string; targetStudentIds?: string[]; scheduledFor?: string }) => void;
     onCancel: () => void;
@@ -159,7 +161,7 @@ const ProgressReportForm: React.FC<{
     const { state } = useData();
     const [classId, setClassId] = useState(initialData?.classId || '');
     const [studentId, setStudentId] = useState(initialData?.studentId || '');
-    const [date, setDate] = useState(initialData?.date || new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(initialData?.date || getVietnamTime().split('T')[0]);
     const [score, setScore] = useState(initialData?.score?.toString() || '');
     const [comments, setComments] = useState(initialData?.comments || '');
 
@@ -272,7 +274,7 @@ export const AnnouncementsScreen: React.FC = () => {
         try {
             await addAnnouncement({
                 ...data,
-                createdAt: new Date().toISOString(),
+                createdAt: getVietnamTime(),
                 createdBy: user?.name || 'Admin',
             });
             toast.success('Đã đăng thông báo mới.');
@@ -397,12 +399,12 @@ export const AnnouncementsScreen: React.FC = () => {
                                                 {isScheduled && (
                                                     <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200 flex items-center gap-1">
                                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                                                        Lên lịch: {new Date(ann.scheduledFor!).toLocaleString('vi-VN')}
+                                                        Lên lịch: {formatVietnamDate(ann.scheduledFor!)}
                                                     </span>
                                                 )}
                                             </div>
                                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                                Tạo ngày {new Date(ann.createdAt).toLocaleString('vi-VN')} bởi {ann.createdBy}
+                                                Tạo ngày {formatVietnamDate(ann.createdAt)} bởi {ann.createdBy}
                                             </p>
                                         </div>
                                         {canManageAnnouncements && (

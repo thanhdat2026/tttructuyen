@@ -23,6 +23,8 @@ const expenseCategoryMap: Record<ExpenseCategory, string> = {
     [ExpenseCategory.OTHER]: 'Chi khác',
 };
 
+import { getVietnamTime, formatVietnamDate } from '../../utils/date';
+
 const ExpenseForm: React.FC<{
     item?: Expense;
     onSubmit: (data: Omit<Expense, 'id'>) => void;
@@ -32,7 +34,7 @@ const ExpenseForm: React.FC<{
         description: item?.description || '',
         amount: item?.amount || 0,
         category: item?.category || ExpenseCategory.OTHER,
-        date: item?.date || new Date().toISOString().split('T')[0],
+        date: item?.date || getVietnamTime().split('T')[0],
     });
     const descRef = useRef<HTMLInputElement>(null);
 
@@ -162,7 +164,7 @@ export const ExpenseTab: React.FC = () => {
     };
     
     const columns: Column<Expense>[] = [
-        { header: 'Ngày', accessor: 'date', sortable: true },
+        { header: 'Ngày', accessor: (item) => formatVietnamDate(item.date), sortable: true, sortKey: 'date' },
         { header: 'Mô tả', accessor: 'description', sortable: true },
         { header: 'Hạng mục', accessor: (item) => expenseCategoryMap[item.category], sortable: true, sortKey: 'category' },
         { header: 'Số tiền', accessor: (item) => `${item.amount.toLocaleString('vi-VN')} ₫`, sortable: true, sortKey: 'amount' },
@@ -184,7 +186,7 @@ export const ExpenseTab: React.FC = () => {
                 ) : undefined}/>
             </div>
              <div className="md:hidden space-y-4">
-                {paginatedItems.map(item => <ListItemCard key={item.id} title={item.description} details={[{label: "Ngày", value: item.date}, {label: "Số tiền", value: `${item.amount.toLocaleString('vi-VN')} ₫`}]} actions={canManage ? (<><Button size="sm" variant="secondary" onClick={() => handleOpenModal(item)}>Sửa</Button><Button size="sm" variant="danger" onClick={() => setItemToDelete(item)}>Xóa</Button></>) : undefined} />)}
+                {paginatedItems.map(item => <ListItemCard key={item.id} title={item.description} details={[{label: "Ngày", value: formatVietnamDate(item.date)}, {label: "Số tiền", value: `${item.amount.toLocaleString('vi-VN')} ₫`}]} actions={canManage ? (<><Button size="sm" variant="secondary" onClick={() => handleOpenModal(item)}>Sửa</Button><Button size="sm" variant="danger" onClick={() => setItemToDelete(item)}>Xóa</Button></>) : undefined} />)}
             </div>
 
             {paginatedItems.length > 0 && <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} totalItems={sortedItems.length} itemsPerPage={ITEMS_PER_PAGE} />}

@@ -6,6 +6,8 @@ import { Calendar } from '../components/common/Calendar';
 import { ClassSchedule } from '../types';
 import { ROUTES, ICONS } from '../constants';
 import { Link } from 'react-router-dom';
+import { AbsentStudentsModal } from '../components/attendance/AbsentStudentsModal';
+import { Button } from '../components/common/Button';
 
 const dayOfWeekToNumber: Record<ClassSchedule['dayOfWeek'], number> = {
     'Sunday': 0,
@@ -40,6 +42,7 @@ export const AttendanceHubScreen: React.FC = () => {
     const { state } = useData();
     const [displayMonth, setDisplayMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
+    const [showAbsentModal, setShowAbsentModal] = useState(false);
 
     const normalizedSelectedDate = useMemo(() => {
         const d = new Date(selectedDate);
@@ -137,6 +140,12 @@ export const AttendanceHubScreen: React.FC = () => {
             <div className="flex-grow bg-white dark:bg-slate-700 rounded-t-2xl shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] flex flex-col overflow-hidden">
                 <div className="flex-1 overflow-y-auto pt-4">
                      <div className="px-4 pb-24 md:pb-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-lg font-bold">Lịch học ngày {formatDateString(normalizedSelectedDate)}</h2>
+                            <Button variant="secondary" size="sm" onClick={() => setShowAbsentModal(true)}>
+                                Học sinh nghỉ
+                            </Button>
+                        </div>
                         {eventsForSelectedDay.length > 0 ? (
                             <div className="space-y-3 pt-2">
                                 {eventsForSelectedDay.map((event, idx) => (
@@ -169,6 +178,11 @@ export const AttendanceHubScreen: React.FC = () => {
                     </div>
                 </div>
             </div>
+            <AbsentStudentsModal 
+                isOpen={showAbsentModal} 
+                onClose={() => setShowAbsentModal(false)} 
+                date={formatDateString(normalizedSelectedDate)} 
+            />
         </div>
     );
 };

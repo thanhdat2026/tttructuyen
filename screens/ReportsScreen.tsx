@@ -24,6 +24,8 @@ const endOfMonth = toLocalDateString(new Date(today.getFullYear(), today.getMont
 
 type ReportTab = 'overview' | 'attendance' | 'absent' | 'transactions' | 'tax';
 
+import { formatVietnamDate } from '../utils/date';
+
 export const ReportsScreen: React.FC = () => {
     const { state } = useData();
     const { students, classes, invoices, income, expenses, attendance, transactions } = state;
@@ -80,13 +82,13 @@ export const ReportsScreen: React.FC = () => {
         // Fill Data
         // 1. Revenue from Transactions (Tuition)
         transactions.forEach(t => {
-            if (t.date >= startDate && t.date <= endDate) {
+            if (t.date.substring(0, 10) >= startDate && t.date.substring(0, 10) <= endDate) {
                 const isPayment = t.type === TransactionType.PAYMENT || t.type === TransactionType.ADJUSTMENT_CREDIT;
                 const isNotRefund = !t.description.toLowerCase().includes('hủy hóa đơn');
                 const studentIsInClass = filteredStudentIds ? filteredStudentIds.has(t.studentId) : true;
 
                 if (isPayment && isNotRefund && t.amount > 0 && studentIsInClass) {
-                    const key = isDaily ? t.date : t.date.slice(0, 7);
+                    const key = isDaily ? t.date.substring(0, 10) : t.date.slice(0, 7);
                     if (dataMap.has(key)) {
                         dataMap.get(key)!.revenue += t.amount;
                     }
@@ -142,7 +144,7 @@ export const ReportsScreen: React.FC = () => {
         const tuitionFeesCollected = transactions
             .filter(t => {
                 const isPayment = t.type === TransactionType.PAYMENT || t.type === TransactionType.ADJUSTMENT_CREDIT;
-                const isWithinPeriod = t.date >= startDate && t.date <= endDate;
+                const isWithinPeriod = t.date.substring(0, 10) >= startDate && t.date.substring(0, 10) <= endDate;
                 const isNotRefund = !t.description.toLowerCase().includes('hủy hóa đơn');
                 const studentIsInClass = filteredStudentIds ? filteredStudentIds.has(t.studentId) : true;
                 return isPayment && isWithinPeriod && isNotRefund && t.amount > 0 && studentIsInClass;
@@ -315,7 +317,7 @@ export const ReportsScreen: React.FC = () => {
         const relevantTransactions = transactions
             .filter(t => {
                 const isPayment = t.type === TransactionType.PAYMENT || t.type === TransactionType.ADJUSTMENT_CREDIT;
-                const isWithin = t.date >= startDate && t.date <= endDate;
+                const isWithin = t.date.substring(0, 10) >= startDate && t.date.substring(0, 10) <= endDate;
                 const isNotRefund = !t.description.toLowerCase().includes('hủy hóa đơn');
                 const studentIsInClass = filteredStudentIds ? filteredStudentIds.has(t.studentId) : true;
                 return isPayment && isWithin && isNotRefund && t.amount > 0 && studentIsInClass;
@@ -343,14 +345,14 @@ export const ReportsScreen: React.FC = () => {
                 const studentName = students.find(s => s.id === item.studentId)?.name || 'Không rõ';
                 return {
                     description: `[HP] ${studentName} - ${item.description}`,
-                    date: item.date,
+                    date: formatVietnamDate(item.date),
                     amount: item.amount,
                     type: 'credit' as const
                 };
             } else {
                 return {
                     description: `[Thu khác] ${item.description}`,
-                    date: item.date,
+                    date: formatVietnamDate(item.date),
                     amount: item.amount,
                     type: 'credit' as const
                 };
@@ -371,7 +373,7 @@ export const ReportsScreen: React.FC = () => {
             })
             .map(e => ({
                 description: e.description,
-                date: e.date,
+                date: formatVietnamDate(e.date),
                 amount: e.amount,
                 type: 'debit' as const
             }));
@@ -390,7 +392,7 @@ export const ReportsScreen: React.FC = () => {
             })
             .map(s => ({
                 description: s.name,
-                date: s.createdAt,
+                date: formatVietnamDate(s.createdAt),
             }));
 
         setDetailModal({ isOpen: true, title: `Chi tiết Học viên mới`, items });
@@ -407,7 +409,7 @@ export const ReportsScreen: React.FC = () => {
             })
             .map(s => ({
                 description: s.name,
-                date: s.statusChangedAt!,
+                date: formatVietnamDate(s.statusChangedAt!),
             }));
 
         setDetailModal({ isOpen: true, title: `Chi tiết Học viên tạm nghỉ`, items });
@@ -542,6 +544,8 @@ export const ReportsScreen: React.FC = () => {
                 {activeTab === 'absent' && (
                      <AbsentStudentsReportTab 
                         classFilter={classFilter}
+                        startDate={startDate}
+                        endDate={endDate}
                     />
                 )}
                 {activeTab === 'transactions' && (

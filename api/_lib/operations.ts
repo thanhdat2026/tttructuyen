@@ -17,6 +17,8 @@ import {
     ExpenseCategory
 } from '../../types.js';
 
+import { getVietnamTime } from '../../utils/date.js';
+
 
 const generateUniqueId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
 
@@ -33,7 +35,7 @@ export function applyOperation(
         case 'addStudent': {
             const { student, classIds } = payload;
             if (data.students.some(s => s.id === student.id)) throw new Error(`Học viên với mã '${student.id}' đã tồn tại.`);
-            const now = new Date().toISOString();
+            const now = getVietnamTime();
             const newStudent = { 
                 ...student, 
                 createdAt: now.split('T')[0], 
@@ -60,7 +62,7 @@ export function applyOperation(
             }
 
             if (originalStudent && originalStudent.status !== updatedStudent.status) {
-                const now = new Date().toISOString();
+                const now = getVietnamTime();
                 updatedStudent.statusChangedAt = now;
                 updatedStudent.statusHistory.push({ status: updatedStudent.status, changedAt: now });
             } else if (originalStudent && originalStudent.statusChangedAt) {
@@ -97,7 +99,7 @@ export function applyOperation(
         // TEACHER OPERATIONS
         case 'addTeacher': {
             if (data.teachers.some(item => item.id === payload.id)) throw new Error(`Giáo viên với mã '${payload.id}' đã tồn tại.`);
-            data.teachers.push({ ...payload, createdAt: new Date().toISOString().split('T')[0] });
+            data.teachers.push({ ...payload, createdAt: getVietnamTime().split('T')[0] });
             break;
         }
         case 'updateTeacher': {
@@ -121,7 +123,7 @@ export function applyOperation(
         // STAFF OPERATIONS
         case 'addStaff': {
             if (data.staff.some(item => item.id === payload.id)) throw new Error(`Nhân viên với mã '${payload.id}' đã tồn tại.`);
-            data.staff.push({ ...payload, createdAt: new Date().toISOString().split('T')[0] });
+            data.staff.push({ ...payload, createdAt: getVietnamTime().split('T')[0] });
             break;
         }
         case 'updateStaff': {
@@ -278,7 +280,7 @@ export function applyOperation(
                         
                         existingInvoice.amount = totalAmount;
                         existingInvoice.details = details.trim();
-                        existingInvoice.generatedDate = new Date().toISOString().split('T')[0]; // Update date to today
+                        existingInvoice.generatedDate = getVietnamTime().split('T')[0]; // Update date to today
                         
                         // Update related transaction
                         const relatedTransaction = data.transactions.find(t => t.relatedInvoiceId === existingInvoice.id);
@@ -296,10 +298,10 @@ export function applyOperation(
                 } else if (totalAmount > 0) {
                     // Create new invoice
                     const invoiceId = generateUniqueId('INV');
-                    data.invoices.push({ id: invoiceId, studentId: student.id, studentName: student.name, month: monthStr, amount: totalAmount, details: details.trim(), status: 'UNPAID', generatedDate: new Date().toISOString().split('T')[0], paidDate: null });
+                    data.invoices.push({ id: invoiceId, studentId: student.id, studentName: student.name, month: monthStr, amount: totalAmount, details: details.trim(), status: 'UNPAID', generatedDate: getVietnamTime().split('T')[0], paidDate: null });
                     
                     // Create debit transaction
-                    data.transactions.push({ id: generateUniqueId('TRX'), studentId: student.id, date: new Date().toISOString().split('T')[0], type: TransactionType.INVOICE, description: `Hóa đơn học phí tháng ${month}/${year}`, amount: -totalAmount, relatedInvoiceId: invoiceId });
+                    data.transactions.push({ id: generateUniqueId('TRX'), studentId: student.id, date: getVietnamTime().split('T')[0], type: TransactionType.INVOICE, description: `Hóa đơn học phí tháng ${month}/${year}`, amount: -totalAmount, relatedInvoiceId: invoiceId });
                     
                     // Update student balance
                     const studentToUpdate = data.students.find(s => s.id === student.id);
@@ -316,15 +318,28 @@ export function applyOperation(
             invoice.status = 'CANCELLED';
             const student = data.students.find(s => s.id === invoice.studentId);
             if (student) student.balance += invoice.amount;
-            data.transactions.push({ id: generateUniqueId('TRX'), studentId: invoice.studentId, date: new Date().toISOString().split('T')[0], type: TransactionType.ADJUSTMENT_CREDIT, description: `Hủy hóa đơn #${invoiceId}`, amount: invoice.amount, relatedInvoiceId: invoiceId });
+            data.transactions.push({ id: generateUniqueId('TRX'), studentId: invoice.studentId, date: getVietnamTime().split('T')[0], type: TransactionType.ADJUSTMENT_CREDIT, description: `Hủy hóa đơn #${invoiceId}`, amount: invoice.amount, relatedInvoiceId: invoiceId });
             break;
         }
         case 'updateInvoiceStatus': {
-             const { invoiceId, status } = payload;
+             const { invoiceId, status, paidDate } = payload;
              const invoice = data.invoices.find(inv => inv.id === invoiceId);
              if (invoice) {
                 invoice.status = status;
-                if (status === 'PAID') invoice.paidDate = new Date().toISOString().split('T')[0];
+                if (status === 'PAID') {
+                    if (paidDate) {
+                        invoice.paidDate = paidDate;
+                    } else {
+                        const vnTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
+                        const year = vnTime.getFullYear();
+                        const month = String(vnTime.getMonth() + 1).padStart(2, '0');
+                        const day = String(vnTime.getDate()).padStart(2, '0');
+                        const hours = String(vnTime.getHours()).padStart(2, '0');
+                        const minutes = String(vnTime.getMinutes()).padStart(2, '0');
+                        const seconds = String(vnTime.getSeconds()).padStart(2, '0');
+                        invoice.paidDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+                    }
+                }
                 else invoice.paidDate = null;
             }
             break;
@@ -369,7 +384,7 @@ export function applyOperation(
         case 'generatePayrolls': {
             const { month, year } = payload;
             const monthStr = `${year}-${String(month).padStart(2, '0')}`;
-            const calculationDate = new Date().toISOString().split('T')[0];
+            const calculationDate = getVietnamTime().split('T')[0];
             
             // Optimization: Pre-calculate sessions per class for the month using a Map
             const classSessionsMap = new Map<string, Set<string>>(); // classId -> Set of dates
@@ -481,7 +496,14 @@ export function applyOperation(
             if (status === 'PAID') {
                 // If marking as paid, set date if missing
                 if (!payroll.paidDate) {
-                     payroll.paidDate = new Date().toISOString().split('T')[0];
+                     const vnTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
+                     const year = vnTime.getFullYear();
+                     const month = String(vnTime.getMonth() + 1).padStart(2, '0');
+                     const day = String(vnTime.getDate()).padStart(2, '0');
+                     const hours = String(vnTime.getHours()).padStart(2, '0');
+                     const minutes = String(vnTime.getMinutes()).padStart(2, '0');
+                     const seconds = String(vnTime.getSeconds()).padStart(2, '0');
+                     payroll.paidDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
                 }
                 
                 // Create or Update Expense record automatically
@@ -549,7 +571,7 @@ export function applyOperation(
             const newAnnouncement = { 
                 ...payload, 
                 id: generateUniqueId('ANN'), 
-                createdAt: new Date().toISOString() 
+                createdAt: getVietnamTime() 
             };
             data.announcements.unshift(newAnnouncement);
             break;

@@ -5,6 +5,8 @@ import { Table, SortConfig } from '../../components/common/Table';
 import { Invoice, Student } from '../../types';
 import { ListItemCard } from '../../components/common/ListItemCard';
 
+import { formatVietnamDate } from '../../utils/date';
+
 export const ParentFinanceScreen: React.FC = () => {
     const { user } = useAuth();
     const { state } = useData();
@@ -50,7 +52,7 @@ export const ParentFinanceScreen: React.FC = () => {
             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                 item.status === 'PAID' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
             }`}>
-                {item.status === 'PAID' ? `Đã trả (${item.paidDate})` : 'Chưa trả'}
+                {item.status === 'PAID' ? `Đã trả (${item.paidDate ? formatVietnamDate(item.paidDate) : ''})` : 'Chưa trả'}
             </span>
         ), sortable: true, sortKey: 'status' as keyof Invoice },
     ];
@@ -80,7 +82,7 @@ export const ParentFinanceScreen: React.FC = () => {
                                 { label: "Số tiền", value: `${inv.amount.toLocaleString('vi-VN')} ₫` }
                             ]}
                             status={{
-                                text: inv.status === 'PAID' ? `Đã trả (${inv.paidDate})` : (inv.status === 'CANCELLED' ? 'Đã hủy' : 'Chưa trả'),
+                                text: inv.status === 'PAID' ? `Đã trả (${inv.paidDate ? formatVietnamDate(inv.paidDate) : ''})` : (inv.status === 'CANCELLED' ? 'Đã hủy' : 'Chưa trả'),
                                 colorClasses: inv.status === 'PAID' 
                                     ? 'bg-green-100 text-green-800' 
                                     : (inv.status === 'UNPAID' 

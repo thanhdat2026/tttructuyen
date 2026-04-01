@@ -66,6 +66,8 @@ const GenerateInvoicesModal: React.FC<{
     );
 };
 
+import { formatVietnamDate } from '../../utils/date';
+
 export const InvoicesTab: React.FC = () => {
     const { state, generateInvoices, cancelInvoice } = useData();
     const { role } = useAuth();
@@ -169,7 +171,8 @@ export const InvoicesTab: React.FC = () => {
     const getStatusBadge = (item: Invoice) => {
         switch (item.status) {
             case 'PAID':
-                return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Đã trả ({item.paidDate})</span>;
+                const formattedDate = item.paidDate ? formatVietnamDate(item.paidDate) : '';
+                return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Đã trả ({formattedDate})</span>;
             case 'UNPAID':
                  return <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Chưa trả</span>;
             case 'CANCELLED':

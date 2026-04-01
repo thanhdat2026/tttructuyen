@@ -11,6 +11,7 @@ import { Student, ProgressReport, AttendanceRecord, PersonStatus, UserRole, Atte
 import { ICONS, ROUTES } from '../constants';
 import { ListItemCard } from '../components/common/ListItemCard';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
+import { getVietnamTime } from '../utils/date';
 
 
 const ProgressReportForm: React.FC<{
@@ -25,7 +26,7 @@ const ProgressReportForm: React.FC<{
         studentId: report?.studentId || classStudents[0]?.id || '',
         score: report?.score || 0,
         comments: report?.comments || '',
-        date: report?.date || new Date().toISOString().split('T')[0],
+        date: report?.date || getVietnamTime().split('T')[0],
     });
     const scoreInputRef = useRef<HTMLInputElement>(null);
 
@@ -79,7 +80,7 @@ type ClassDetailTab = 'students' | 'attendance' | 'reports' | 'announcements';
 
 
 const AttendanceTab: React.FC<{ cls: any, attendance: AttendanceRecord[] }> = ({ cls, attendance }) => {
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedDate, setSelectedDate] = useState(getVietnamTime().split('T')[0]);
     const navigate = useNavigate();
     const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
 
@@ -270,7 +271,7 @@ const AnnouncementsTab: React.FC<{
                 ...data,
                 targetAudience: 'CLASS',
                 classId: classId,
-                createdAt: new Date().toISOString(),
+                createdAt: getVietnamTime(),
                 createdBy: user.name,
             });
             toast.success('Đã gửi thông báo đến lớp học.');

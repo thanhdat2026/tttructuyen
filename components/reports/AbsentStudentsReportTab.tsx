@@ -12,6 +12,8 @@ const ITEMS_PER_PAGE = 15;
 
 interface AbsentStudentsReportTabProps {
     classFilter: string;
+    startDate: string;
+    endDate: string;
 }
 
 export interface AbsentReportData {
@@ -22,15 +24,13 @@ export interface AbsentReportData {
     reason: string;
 }
 
-export const AbsentStudentsReportTab: React.FC<AbsentStudentsReportTabProps> = ({ classFilter }) => {
+export const AbsentStudentsReportTab: React.FC<AbsentStudentsReportTabProps> = ({ classFilter, startDate, endDate }) => {
     const { state } = useData();
     const { students, classes, attendance } = state;
     
-    // Default to today
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [sortConfig, setSortConfig] = useState<SortConfig<AbsentReportData> | null>({ key: 'name', direction: 'ascending' });
+    const [sortConfig, setSortConfig] = useState<SortConfig<AbsentReportData> | null>({ key: 'date', direction: 'descending' });
 
     const reportData = useMemo(() => {
         let relevantStudents = students.filter(s => s.status === PersonStatus.ACTIVE);
@@ -44,9 +44,9 @@ export const AbsentStudentsReportTab: React.FC<AbsentStudentsReportTabProps> = (
             relevantStudents = relevantStudents.filter(s => s.name.toLowerCase().includes(lowerQuery) || s.id.toLowerCase().includes(lowerQuery));
         }
 
-        // Find attendance records for the selected date that are ABSENT
+        // Find attendance records for the selected date range that are ABSENT
         const absentRecords = attendance.filter(a => 
-            a.date === selectedDate &&
+            a.date >= startDate && a.date <= endDate &&
             (classFilter === 'all' || a.classId === classFilter) &&
             a.status === AttendanceStatus.ABSENT
         );
@@ -69,7 +69,7 @@ export const AbsentStudentsReportTab: React.FC<AbsentStudentsReportTabProps> = (
 
         return data;
 
-    }, [students, classes, attendance, selectedDate, classFilter, searchQuery]);
+    }, [students, classes, attendance, startDate, endDate, classFilter, searchQuery]);
     
     const sortedData = useMemo(() => {
         let sortableItems = [...reportData];
@@ -111,7 +111,7 @@ export const AbsentStudentsReportTab: React.FC<AbsentStudentsReportTabProps> = (
     
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchQuery, classFilter, selectedDate]);
+    }, [searchQuery, classFilter, startDate, endDate]);
     
     const handleSort = (key: keyof AbsentReportData) => {
         let direction: 'ascending' | 'descending' = 'ascending';
@@ -128,7 +128,7 @@ export const AbsentStudentsReportTab: React.FC<AbsentStudentsReportTabProps> = (
             className: 'Lớp học',
             date: 'Ngày nghỉ',
             reason: 'Lý do'
-        }, `HocSinhNghiHoc_${selectedDate}.csv`);
+        }, `HocSinhNghiHoc_${startDate}_${endDate}.csv`);
     };
 
     const columns: Column<AbsentReportData>[] = [
@@ -144,13 +144,6 @@ export const AbsentStudentsReportTab: React.FC<AbsentStudentsReportTabProps> = (
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                 <h2 className="text-xl font-semibold">Học sinh nghỉ học theo ngày</h2>
                 <div className="flex flex-wrap gap-2 items-center">
-                    <span className="text-sm font-medium whitespace-nowrap">Chọn ngày:</span>
-                    <input 
-                        type="date" 
-                        value={selectedDate} 
-                        onChange={e => setSelectedDate(e.target.value)} 
-                        className="form-input py-1 px-2 text-sm w-36" 
-                    />
                     <Button onClick={handleExport} variant="secondary">{ICONS.export} Xuất CSV</Button>
                 </div>
             </div>
@@ -170,13 +163,14 @@ export const AbsentStudentsReportTab: React.FC<AbsentStudentsReportTabProps> = (
                 />
             </div>
             <div className="md:hidden space-y-4">
-                 {paginatedData.map(item => (
+                 {paginatedData.map((item, index) => (
                     <ListItemCard
-                        key={`${item.id}-${item.className}`}
+                        key={`${item.id}-${item.className}-${item.date}-${index}`}
                         title={item.name}
                         details={[
                             { label: 'Mã HV', value: item.id },
                             { label: 'Lớp học', value: item.className },
+                            { label: 'Ngày nghỉ', value: item.date },
                             { label: 'Lý do', value: item.reason }
                         ]}
                     />
@@ -193,9 +187,10 @@ export const AbsentStudentsReportTab: React.FC<AbsentStudentsReportTabProps> = (
             )}
             {paginatedData.length === 0 && (
                 <div className="text-center py-8 text-gray-500">
-                    Không có học sinh nào nghỉ học trong ngày này.
+                    Không có học sinh nào nghỉ học trong khoảng thời gian này.
                 </div>
             )}
         </div>
     );
 };
+

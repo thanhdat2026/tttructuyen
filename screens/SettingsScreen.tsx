@@ -110,6 +110,8 @@ const AdminPasswordSettings: React.FC = () => {
 };
 
 
+import { getVietnamTime } from '../utils/date';
+
 export const SettingsScreen: React.FC = () => {
     const { state, updateSettings, backupData, restoreData, resetToMockData, clearCollections, deleteAttendanceByMonth, clearAllTransactions } = useData();
     const { toast } = useToast();
@@ -242,7 +244,7 @@ export const SettingsScreen: React.FC = () => {
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `EduCenterPro_Backup_${new Date().toISOString().split('T')[0]}.json`;
+            link.download = `EduCenterPro_Backup_${getVietnamTime().split('T')[0]}.json`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -264,7 +266,7 @@ export const SettingsScreen: React.FC = () => {
             const dataToBackup = await backupData();
             const fileContent = JSON.stringify(dataToBackup, null, 2);
             const blob = new Blob([fileContent], { type: 'application/json' });
-            const fileName = `EduCenterPro_Backup_${new Date().toISOString()}.json`;
+            const fileName = `EduCenterPro_Backup_${getVietnamTime()}.json`;
 
             const metadata = {
                 name: fileName,

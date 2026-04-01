@@ -39,7 +39,7 @@ const OverviewTab: React.FC<{startDate: string, endDate: string}> = ({startDate,
 
         // 2. Thực thu từ Học phí (Cash Tuition): Từ giao dịch thanh toán thực tế trong khoảng thời gian
         const tuitionCollected = state.transactions
-            .filter(t => t.date >= startDate && t.date <= endDate && t.amount > 0)
+            .filter(t => t.date.substring(0, 10) >= startDate && t.date.substring(0, 10) <= endDate && t.amount > 0)
             .reduce((sum, t) => sum + t.amount, 0);
         
         // 3. Thực thu từ Nguồn khác (Other Income) trong khoảng thời gian

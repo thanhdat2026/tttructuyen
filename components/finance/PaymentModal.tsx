@@ -13,11 +13,14 @@ interface PaymentModalProps {
     student: Student | null;
 }
 
+import { getVietnamTime } from '../../utils/date';
+
 export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, student }) => {
     const { addAdjustment, updateInvoiceStatus, state } = useData();
     const { toast } = useToast();
+
     const [amount, setAmount] = useState(0);
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(getVietnamTime());
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -27,7 +30,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
             } else {
                 setAmount(0);
             }
-            setDate(new Date().toISOString().split('T')[0]); // Reset date on open
+            setDate(getVietnamTime()); // Reset date on open
         }
     }, [student, isOpen]);
 
@@ -68,7 +71,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
                 // Check if we have enough funds to cover this invoice
                 // We allow a small margin (100 VND) for potential floating point issues
                 if (availableFunds >= invoice.amount - 100) {
-                    await updateInvoiceStatus({ invoiceId: invoice.id, status: 'PAID' });
+                    await updateInvoiceStatus({ invoiceId: invoice.id, status: 'PAID', paidDate: date });
                     availableFunds -= invoice.amount;
                 } else {
                     // If remaining funds are not enough to fully pay the next invoice, we stop.
@@ -99,7 +102,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
                 </div>
                 <div>
                     <label className="block text-sm font-medium">Ngày thanh toán</label>
-                    <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-input mt-1" required />
+                    <input type="datetime-local" step="1" value={date} onChange={e => setDate(e.target.value)} className="form-input mt-1" required />
                 </div>
                 <div className="flex justify-end gap-4 pt-4 border-t dark:border-gray-700">
                     <Button type="button" variant="secondary" onClick={onClose}>Hủy</Button>
