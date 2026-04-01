@@ -50,13 +50,13 @@ export const TaxReportTab: React.FC = () => {
 
         const combined = [
             ...relevantTransactions.map(t => ({ 
-                date: t.date, 
+                date: t.date.substring(0, 10), 
                 description: `Thu học phí - ${t.description} (${t.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'})`, 
                 amount: t.amount,
                 paymentMethod: t.paymentMethod || 'transfer'
             })),
             ...relevantIncome.map(i => ({ 
-                date: i.date, 
+                date: i.date.substring(0, 10), 
                 description: `${i.description} (${i.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'})`, 
                 amount: i.amount,
                 paymentMethod: i.paymentMethod || 'transfer'
