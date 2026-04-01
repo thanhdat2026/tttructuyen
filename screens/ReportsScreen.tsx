@@ -7,6 +7,7 @@ import { PieChart } from '../components/common/PieChart';
 import { AttendanceStatus, FeeType, TransactionType, PersonStatus } from '../types';
 import { ReportDetailModal } from '../components/reports/ReportDetailModal';
 import { AttendanceReportTab } from '../components/reports/AttendanceReportTab';
+import { AbsentStudentsReportTab } from '../components/reports/AbsentStudentsReportTab';
 import { TransactionHistoryReportTab } from '../components/reports/TransactionHistoryReportTab';
 import { TaxReportTab } from '../components/reports/TaxReportTab';
 
@@ -21,7 +22,7 @@ const today = new Date();
 const startOfMonth = toLocalDateString(new Date(today.getFullYear(), today.getMonth(), 1));
 const endOfMonth = toLocalDateString(new Date(today.getFullYear(), today.getMonth() + 1, 0));
 
-type ReportTab = 'overview' | 'attendance' | 'transactions' | 'tax';
+type ReportTab = 'overview' | 'attendance' | 'absent' | 'transactions' | 'tax';
 
 export const ReportsScreen: React.FC = () => {
     const { state } = useData();
@@ -475,6 +476,7 @@ export const ReportsScreen: React.FC = () => {
                 <nav className="flex flex-wrap items-center gap-2 pb-2" aria-label="Tabs">
                     <TabButton tabId="overview">Tổng quan Tài chính</TabButton>
                     <TabButton tabId="attendance">Báo cáo Chuyên cần</TabButton>
+                    <TabButton tabId="absent">Học sinh nghỉ học</TabButton>
                     <TabButton tabId="transactions">Lịch sử Giao dịch</TabButton>
                     <TabButton tabId="tax">Báo cáo Thuế</TabButton>
                 </nav>
@@ -534,6 +536,11 @@ export const ReportsScreen: React.FC = () => {
                      <AttendanceReportTab 
                         startDate={startDate}
                         endDate={endDate}
+                        classFilter={classFilter}
+                    />
+                )}
+                {activeTab === 'absent' && (
+                     <AbsentStudentsReportTab 
                         classFilter={classFilter}
                     />
                 )}
