@@ -59,7 +59,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
             ...t,
             studentName: studentMap.get(t.studentId)?.name || 'N/A',
             classNames: studentClassMap.get(t.studentId)?.join(', ') || 'N/A',
-            paymentMethodStr: t.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản',
+            paymentMethodStr: t.type === TransactionType.INVOICE ? '-' : (t.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'),
         }));
 
         if (searchQuery) {

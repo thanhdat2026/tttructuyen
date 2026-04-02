@@ -289,6 +289,11 @@ export function applyOperation(
                         existingInvoice.details = details.trim();
                         existingInvoice.generatedDate = getVietnamTime().split('T')[0]; // Update date to today
                         
+                        if (totalAmount === 0) {
+                            existingInvoice.status = 'PAID';
+                            existingInvoice.paidDate = getVietnamTime().split('T')[0];
+                        }
+
                         // Update related transaction
                         const relatedTransaction = data.transactions.find(t => t.relatedInvoiceId === existingInvoice.id);
                         if(relatedTransaction) {
@@ -305,7 +310,18 @@ export function applyOperation(
                 } else if (details.trim() !== '') {
                     // Create new invoice even if amount is 0 (e.g., 100% discount)
                     const invoiceId = generateUniqueId('INV');
-                    data.invoices.push({ id: invoiceId, studentId: student.id, studentName: student.name, month: monthStr, amount: totalAmount, details: details.trim(), status: 'UNPAID', generatedDate: getVietnamTime().split('T')[0], paidDate: null });
+                    const isZeroAmount = totalAmount === 0;
+                    data.invoices.push({ 
+                        id: invoiceId, 
+                        studentId: student.id, 
+                        studentName: student.name, 
+                        month: monthStr, 
+                        amount: totalAmount, 
+                        details: details.trim(), 
+                        status: isZeroAmount ? 'PAID' : 'UNPAID', 
+                        generatedDate: getVietnamTime().split('T')[0], 
+                        paidDate: isZeroAmount ? getVietnamTime().split('T')[0] : null 
+                    });
                     
                     // Create debit transaction
                     data.transactions.push({ id: generateUniqueId('TRX'), studentId: student.id, date: getVietnamTime().split('T')[0], type: TransactionType.INVOICE, description: `Hóa đơn học phí tháng ${month}/${year}`, amount: -totalAmount, relatedInvoiceId: invoiceId });

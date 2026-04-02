@@ -1,5 +1,5 @@
-https://aistudio.google.com/apps/drive/1YtfiEQmVxL8DOTkRcWEzn5TP9pJFAkll?showPreview=true&showAssistant=true
-tk lienhe@thaydat.edu.vn
+https://aistudio.google.com/apps/4ad790e5-6269-4c74-bdd8-fd8f11098e4e?showAssistant=true&showCode=true
+tk admin@Lienchau.edu.vn
 HƯỚNG DẪN TRIỂN KHAI ỨNG DỤNG QUẢN LÝ TRUNG TÂM LÊN VERCEL
 Bước 1: Đưa mã nguồn lên GitHub
 Đăng nhập vào tài khoản GitHub.
