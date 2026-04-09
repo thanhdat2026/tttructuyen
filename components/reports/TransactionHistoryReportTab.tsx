@@ -8,6 +8,7 @@ import { Transaction, TransactionType, Class, Student } from '../../types';
 import { downloadAsCSV } from '../../services/csvExport';
 import { Pagination } from '../common/Pagination';
 import { ListItemCard } from '../common/ListItemCard';
+import { formatVietnamDate } from '../../utils/date';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -108,7 +109,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
     
     const handleExport = () => {
         const dataToExport = sortedData.map(t => ({
-            date: new Date(t.date).toLocaleDateString('vi-VN'),
+            date: formatVietnamDate(t.date),
             studentName: t.studentName,
             classNames: t.classNames,
             description: t.description,
@@ -128,7 +129,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
     };
 
     const columns: Column<TransactionWithDetails>[] = [
-        { header: 'Ngày', accessor: (item) => new Date(item.date).toLocaleDateString('vi-VN'), sortable: true, sortKey: 'date' },
+        { header: 'Ngày', accessor: (item) => formatVietnamDate(item.date), sortable: true, sortKey: 'date' },
         { header: 'Họ tên', accessor: 'studentName', sortable: true },
         { header: 'Lớp học', accessor: 'classNames' },
         { header: 'Diễn giải', accessor: 'description' },
@@ -168,7 +169,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
                         key={item.id}
                         title={item.studentName}
                         details={[
-                            { label: 'Ngày', value: new Date(item.date).toLocaleDateString('vi-VN') },
+                            { label: 'Ngày', value: formatVietnamDate(item.date) },
                             { label: 'Diễn giải', value: item.description },
                             { label: 'Hình thức', value: item.paymentMethodStr },
                             { label: 'Số tiền', value: (

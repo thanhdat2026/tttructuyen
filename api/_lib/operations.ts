@@ -30,6 +30,38 @@ export function applyOperation(
 ): Omit<AppData, 'loading'> {
     const { op, payload } = operation;
 
+    const recalculateStudentInvoices = (studentId: string) => {
+        const student = data.students.find(s => s.id === studentId);
+        if (!student) return;
+
+        const studentInvoices = data.invoices.filter(inv => inv.studentId === studentId && inv.status !== 'CANCELLED');
+        studentInvoices.sort((a, b) => new Date(a.generatedDate).getTime() - new Date(b.generatedDate).getTime());
+
+        let totalActiveInvoiceAmount = studentInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+        let availableFunds = student.balance + totalActiveInvoiceAmount;
+
+        for (const invoice of studentInvoices) {
+            if (invoice.amount === 0) {
+                if (invoice.status !== 'PAID') {
+                    invoice.status = 'PAID';
+                    invoice.paidDate = getVietnamTime();
+                }
+            } else if (availableFunds >= invoice.amount - 100) {
+                if (invoice.status !== 'PAID') {
+                    invoice.status = 'PAID';
+                    invoice.paidDate = getVietnamTime();
+                }
+                availableFunds -= invoice.amount;
+            } else {
+                if (invoice.status !== 'UNPAID') {
+                    invoice.status = 'UNPAID';
+                    invoice.paidDate = null;
+                }
+                availableFunds -= invoice.amount;
+            }
+        }
+    };
+
     switch (op) {
         // STUDENT OPERATIONS
         case 'addStudent': {
@@ -337,11 +369,13 @@ export function applyOperation(
             const { invoiceId } = payload;
             const invoice = data.invoices.find(inv => inv.id === invoiceId);
             if (!invoice || invoice.status === 'CANCELLED') break;
-            if (invoice.status === 'PAID') throw new Error("Không thể hủy hóa đơn đã thanh toán.");
+            if (invoice.status === 'PAID' && invoice.amount > 0) throw new Error("Không thể hủy hóa đơn đã thanh toán.");
             invoice.status = 'CANCELLED';
-            const student = data.students.find(s => s.id === invoice.studentId);
-            if (student) student.balance += invoice.amount;
-            data.transactions.push({ id: generateUniqueId('TRX'), studentId: invoice.studentId, date: getVietnamTime(), type: TransactionType.ADJUSTMENT_CREDIT, description: `Hủy hóa đơn #${invoiceId}`, amount: invoice.amount, relatedInvoiceId: invoiceId });
+            if (invoice.amount > 0) {
+                const student = data.students.find(s => s.id === invoice.studentId);
+                if (student) student.balance += invoice.amount;
+                data.transactions.push({ id: generateUniqueId('TRX'), studentId: invoice.studentId, date: getVietnamTime(), type: TransactionType.ADJUSTMENT_CREDIT, description: `Hủy hóa đơn #${invoiceId}`, amount: invoice.amount, relatedInvoiceId: invoiceId });
+            }
             break;
         }
         case 'updateInvoiceStatus': {
@@ -384,7 +418,10 @@ export function applyOperation(
             const amountDifference = transaction.amount - oldTransaction.amount;
             data.transactions = data.transactions.map(t => t.id === transaction.id ? transaction : t);
             const student = data.students.find(s => s.id === transaction.studentId);
-            if (student) student.balance += amountDifference;
+            if (student) {
+                student.balance += amountDifference;
+                recalculateStudentInvoices(student.id);
+            }
             break;
         }
         case 'deleteTransaction': {
@@ -393,7 +430,10 @@ export function applyOperation(
             if (!transaction) break;
             data.transactions = data.transactions.filter(t => t.id !== transactionId);
             const student = data.students.find(s => s.id === transaction.studentId);
-            if (student) student.balance -= transaction.amount;
+            if (student) {
+                student.balance -= transaction.amount;
+                recalculateStudentInvoices(student.id);
+            }
             break;
         }
          case 'clearAllTransactions': {

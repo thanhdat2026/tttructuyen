@@ -427,7 +427,7 @@ export const StudentDetailScreen: React.FC = () => {
         setDeleteStudentConfirmOpen(false);
     };
 
-    const isEditable = (type: TransactionType) => type !== TransactionType.INVOICE;
+    const isEditable = (type: TransactionType) => type !== TransactionType.INVOICE && type !== TransactionType.ADJUSTMENT_CREDIT;
 
     const transactionColumns = [
         { header: 'Ngày', accessor: (item: Transaction) => formatVietnamDate(item.date), sortable: true, sortKey: 'date' as keyof Transaction },
