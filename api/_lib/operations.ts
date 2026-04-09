@@ -30,7 +30,7 @@ export function applyOperation(
 ): Omit<AppData, 'loading'> {
     const { op, payload } = operation;
 
-    const recalculateStudentInvoices = (studentId: string) => {
+    const recalculateStudentInvoices = (studentId: string, triggerDate?: string) => {
         const student = data.students.find(s => s.id === studentId);
         if (!student) return;
 
@@ -44,12 +44,12 @@ export function applyOperation(
             if (invoice.amount === 0) {
                 if (invoice.status !== 'PAID') {
                     invoice.status = 'PAID';
-                    invoice.paidDate = getVietnamTime();
+                    invoice.paidDate = triggerDate || getVietnamTime();
                 }
             } else if (availableFunds >= invoice.amount - 100) {
                 if (invoice.status !== 'PAID') {
                     invoice.status = 'PAID';
-                    invoice.paidDate = getVietnamTime();
+                    invoice.paidDate = triggerDate || getVietnamTime();
                 }
                 availableFunds -= invoice.amount;
             } else {
@@ -316,10 +316,14 @@ export function applyOperation(
                     // Always update generatedDate and details to reflect current 'Generate' action
                     if (existingInvoice.status === 'UNPAID') {
                         const amountDifference = totalAmount - existingInvoice.amount;
+                        const detailsChanged = existingInvoice.details !== details.trim();
                         
                         existingInvoice.amount = totalAmount;
                         existingInvoice.details = details.trim();
-                        existingInvoice.generatedDate = getVietnamTime(); // Update date to today
+                        
+                        if (amountDifference !== 0 || detailsChanged) {
+                            existingInvoice.generatedDate = getVietnamTime(); // Update date to today only if changed
+                        }
                         
                         if (totalAmount === 0) {
                             existingInvoice.status = 'PAID';
@@ -407,7 +411,10 @@ export function applyOperation(
             const { studentId, amount, date, description, type, paymentMethod } = payload;
             const finalAmount = type === 'CREDIT' ? amount : -amount;
             const student = data.students.find(s => s.id === studentId);
-            if (student) student.balance += finalAmount;
+            if (student) {
+                student.balance += finalAmount;
+                recalculateStudentInvoices(student.id, date);
+            }
             data.transactions.push({ id: generateUniqueId('TRX'), studentId, date, type: type === 'CREDIT' ? TransactionType.PAYMENT : TransactionType.ADJUSTMENT_DEBIT, description, amount: finalAmount, paymentMethod: paymentMethod || 'transfer' });
             break;
         }
@@ -420,7 +427,7 @@ export function applyOperation(
             const student = data.students.find(s => s.id === transaction.studentId);
             if (student) {
                 student.balance += amountDifference;
-                recalculateStudentInvoices(student.id);
+                recalculateStudentInvoices(student.id, transaction.date);
             }
             break;
         }
@@ -432,7 +439,7 @@ export function applyOperation(
             const student = data.students.find(s => s.id === transaction.studentId);
             if (student) {
                 student.balance -= transaction.amount;
-                recalculateStudentInvoices(student.id);
+                recalculateStudentInvoices(student.id, getVietnamTime());
             }
             break;
         }
