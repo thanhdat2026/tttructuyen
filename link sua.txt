@@ -1,3 +1,5 @@
+Thời gian giao dịch giờ, phút, giây không hiển thị đúng thực tế, chỉ hiển thị 00:00:00, rà soát và sửa lại để thời gian hiện thị đầy đủ, chính xác. Đảm bảo tất cả các tính ứng dụng vẫn hoạt động ổn định.
+
 https://aistudio.google.com/apps/4ad790e5-6269-4c74-bdd8-fd8f11098e4e?showAssistant=true&showCode=true
 tk admin@Lienchau.edu.vn
 HƯỚNG DẪN TRIỂN KHAI ỨNG DỤNG QUẢN LÝ TRUNG TÂM LÊN VERCEL

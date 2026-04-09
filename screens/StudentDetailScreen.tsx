@@ -46,7 +46,8 @@ const AdjustmentForm: React.FC<{
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit({ sign, amount, date, description });
+        const finalDate = date.length === 16 ? `${date}:00` : date;
+        onSubmit({ sign, amount, date: finalDate, description });
     };
 
     return (

@@ -287,11 +287,11 @@ export function applyOperation(
                         
                         existingInvoice.amount = totalAmount;
                         existingInvoice.details = details.trim();
-                        existingInvoice.generatedDate = getVietnamTime().split('T')[0]; // Update date to today
+                        existingInvoice.generatedDate = getVietnamTime(); // Update date to today
                         
                         if (totalAmount === 0) {
                             existingInvoice.status = 'PAID';
-                            existingInvoice.paidDate = getVietnamTime().split('T')[0];
+                            existingInvoice.paidDate = getVietnamTime();
                         }
 
                         // Update related transaction
@@ -319,12 +319,12 @@ export function applyOperation(
                         amount: totalAmount, 
                         details: details.trim(), 
                         status: isZeroAmount ? 'PAID' : 'UNPAID', 
-                        generatedDate: getVietnamTime().split('T')[0], 
-                        paidDate: isZeroAmount ? getVietnamTime().split('T')[0] : null 
+                        generatedDate: getVietnamTime(), 
+                        paidDate: isZeroAmount ? getVietnamTime() : null 
                     });
                     
                     // Create debit transaction
-                    data.transactions.push({ id: generateUniqueId('TRX'), studentId: student.id, date: getVietnamTime().split('T')[0], type: TransactionType.INVOICE, description: `Hóa đơn học phí tháng ${month}/${year}`, amount: -totalAmount, relatedInvoiceId: invoiceId });
+                    data.transactions.push({ id: generateUniqueId('TRX'), studentId: student.id, date: getVietnamTime(), type: TransactionType.INVOICE, description: `Hóa đơn học phí tháng ${month}/${year}`, amount: -totalAmount, relatedInvoiceId: invoiceId });
                     
                     // Update student balance
                     const studentToUpdate = data.students.find(s => s.id === student.id);
@@ -341,7 +341,7 @@ export function applyOperation(
             invoice.status = 'CANCELLED';
             const student = data.students.find(s => s.id === invoice.studentId);
             if (student) student.balance += invoice.amount;
-            data.transactions.push({ id: generateUniqueId('TRX'), studentId: invoice.studentId, date: getVietnamTime().split('T')[0], type: TransactionType.ADJUSTMENT_CREDIT, description: `Hủy hóa đơn #${invoiceId}`, amount: invoice.amount, relatedInvoiceId: invoiceId });
+            data.transactions.push({ id: generateUniqueId('TRX'), studentId: invoice.studentId, date: getVietnamTime(), type: TransactionType.ADJUSTMENT_CREDIT, description: `Hủy hóa đơn #${invoiceId}`, amount: invoice.amount, relatedInvoiceId: invoiceId });
             break;
         }
         case 'updateInvoiceStatus': {

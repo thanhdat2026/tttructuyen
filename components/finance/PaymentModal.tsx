@@ -20,7 +20,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
     const { toast } = useToast();
 
     const [amount, setAmount] = useState(0);
-    const [date, setDate] = useState(getVietnamTime().split('T')[0]);
+    const [date, setDate] = useState(getVietnamTime().substring(0, 16));
     const [paymentMethod, setPaymentMethod] = useState<'transfer' | 'cash'>('transfer');
     const [isLoading, setIsLoading] = useState(false);
 
@@ -31,7 +31,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
             } else {
                 setAmount(0);
             }
-            setDate(getVietnamTime().split('T')[0]); // Reset date on open
+            setDate(getVietnamTime().substring(0, 16)); // Reset date on open
             setPaymentMethod('transfer'); // Reset payment method
         }
     }, [student, isOpen]);
@@ -47,10 +47,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
         setIsLoading(true);
         try {
             // 1. Record the payment transaction
+            const finalDate = date.length === 16 ? `${date}:00` : date;
             await addAdjustment({
                 studentId: student.id,
                 amount: amount,
-                date: date,
+                date: finalDate,
                 description: `Thanh toán học phí trực tiếp`,
                 type: 'CREDIT',
                 paymentMethod: paymentMethod,
@@ -74,7 +75,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
                 // Check if we have enough funds to cover this invoice
                 // We allow a small margin (100 VND) for potential floating point issues
                 if (availableFunds >= invoice.amount - 100) {
-                    await updateInvoiceStatus({ invoiceId: invoice.id, status: 'PAID', paidDate: date });
+                    await updateInvoiceStatus({ invoiceId: invoice.id, status: 'PAID', paidDate: finalDate });
                     availableFunds -= invoice.amount;
                 } else {
                     // If remaining funds are not enough to fully pay the next invoice, we stop.
@@ -105,7 +106,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({ isOpen, onClose, stu
                 </div>
                 <div>
                     <label className="block text-sm font-medium">Ngày thanh toán</label>
-                    <input type="date" value={date} onChange={e => setDate(e.target.value)} className="form-input mt-1" required />
+                    <input type="datetime-local" step="1" value={date} onChange={e => setDate(e.target.value)} className="form-input mt-1" required />
                 </div>
                 <div>
                     <label className="block text-sm font-medium">Hình thức thanh toán</label>

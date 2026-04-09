@@ -46,7 +46,7 @@ export const TaxReportTab: React.FC = () => {
             });
         
         const relevantIncome = income
-            .filter(i => i.date >= start && i.date <= end);
+            .filter(i => i.date.substring(0, 10) >= start && i.date.substring(0, 10) <= end);
 
         const combined = [
             ...relevantTransactions.map(t => ({ 
@@ -120,7 +120,8 @@ export const TaxReportTab: React.FC = () => {
     };
 
     const formatDate = (dateStr: string) => {
-        const [y, m, d] = dateStr.split('-');
+        const datePart = dateStr.split('T')[0];
+        const [y, m, d] = datePart.split('-');
         if (reportType === 'monthly_summary') {
             return `Tháng ${m}/${y}`;
         }

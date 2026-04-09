@@ -34,7 +34,7 @@ const ExpenseForm: React.FC<{
         description: item?.description || '',
         amount: item?.amount || 0,
         category: item?.category || ExpenseCategory.OTHER,
-        date: item?.date || getVietnamTime().split('T')[0],
+        date: item?.date ? (item.date.includes('T') ? item.date.substring(0, 16) : `${item.date}T00:00`) : getVietnamTime().substring(0, 16),
     });
     const descRef = useRef<HTMLInputElement>(null);
 
@@ -48,7 +48,8 @@ const ExpenseForm: React.FC<{
     
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit(formData);
+        const finalDate = formData.date.length === 16 ? `${formData.date}:00` : formData.date;
+        onSubmit({ ...formData, date: finalDate });
     };
 
     return (
@@ -64,7 +65,7 @@ const ExpenseForm: React.FC<{
                 </div>
                  <div>
                     <label className="block text-sm font-medium">Ngày</label>
-                    <input type="date" name="date" value={formData.date} onChange={handleChange} className="form-input mt-1" required />
+                    <input type="datetime-local" step="1" name="date" value={formData.date} onChange={handleChange} className="form-input mt-1" required />
                 </div>
             </div>
             <div>
