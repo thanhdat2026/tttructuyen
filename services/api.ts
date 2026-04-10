@@ -51,7 +51,6 @@ export const deleteAttendanceByMonth = (payload: { month: number; year: number; 
 
 export const generateInvoices = (payload: { month: number, year: number }) => patchData({ op: 'generateInvoices', payload });
 export const cancelInvoice = (invoiceId: string) => patchData({ op: 'cancelInvoice', payload: { invoiceId } });
-export const updateInvoiceStatus = (payload: { invoiceId: string, status: 'PAID' | 'UNPAID' | 'CANCELLED', paidDate?: string }) => patchData({ op: 'updateInvoiceStatus', payload });
 
 export const addAdjustment = (payload: { studentId: string; amount: number; date: string; description: string; type: 'CREDIT' | 'DEBIT'; paymentMethod?: 'transfer' | 'cash' }) => patchData({ op: 'addAdjustment', payload });
 export const updateTransaction = (payload: Transaction) => patchData({ op: 'updateTransaction', payload });

@@ -312,36 +312,34 @@ export function applyOperation(
                 const existingInvoice = data.invoices.find(inv => inv.studentId === student.id && inv.month === monthStr);
 
                 if (existingInvoice) {
-                    // Update existing UNPAID invoice
+                    // Update existing invoice (even if PAID)
                     // Always update generatedDate and details to reflect current 'Generate' action
-                    if (existingInvoice.status === 'UNPAID') {
-                        const amountDifference = totalAmount - existingInvoice.amount;
-                        const detailsChanged = existingInvoice.details !== details.trim();
-                        
-                        existingInvoice.amount = totalAmount;
-                        existingInvoice.details = details.trim();
-                        
-                        if (amountDifference !== 0 || detailsChanged) {
-                            existingInvoice.generatedDate = getVietnamTime(); // Update date to today only if changed
-                        }
-                        
-                        if (totalAmount === 0) {
-                            existingInvoice.status = 'PAID';
-                            existingInvoice.paidDate = getVietnamTime();
-                        }
+                    const amountDifference = totalAmount - existingInvoice.amount;
+                    const detailsChanged = existingInvoice.details !== details.trim();
+                    
+                    existingInvoice.amount = totalAmount;
+                    existingInvoice.details = details.trim();
+                    
+                    if (amountDifference !== 0 || detailsChanged) {
+                        existingInvoice.generatedDate = getVietnamTime(); // Update date to today only if changed
+                    }
+                    
+                    if (totalAmount === 0 && existingInvoice.status !== 'PAID') {
+                        existingInvoice.status = 'PAID';
+                        existingInvoice.paidDate = getVietnamTime();
+                    }
 
-                        // Update related transaction
-                        const relatedTransaction = data.transactions.find(t => t.relatedInvoiceId === existingInvoice.id);
-                        if(relatedTransaction) {
-                            relatedTransaction.amount = -totalAmount;
-                            relatedTransaction.date = existingInvoice.generatedDate; // Sync transaction date
-                        }
-                        
-                        // Update student balance if amount changed
-                        if (amountDifference !== 0) {
-                            const studentToUpdate = data.students.find(s => s.id === student.id);
-                            if (studentToUpdate) studentToUpdate.balance -= amountDifference;
-                        }
+                    // Update related transaction
+                    const relatedTransaction = data.transactions.find(t => t.relatedInvoiceId === existingInvoice.id);
+                    if(relatedTransaction) {
+                        relatedTransaction.amount = -totalAmount;
+                        relatedTransaction.date = existingInvoice.generatedDate; // Sync transaction date
+                    }
+                    
+                    // Update student balance if amount changed
+                    if (amountDifference !== 0) {
+                        const studentToUpdate = data.students.find(s => s.id === student.id);
+                        if (studentToUpdate) studentToUpdate.balance -= amountDifference;
                     }
                 } else if (details.trim() !== '') {
                     // Create new invoice even if amount is 0 (e.g., 100% discount)
@@ -366,6 +364,9 @@ export function applyOperation(
                     const studentToUpdate = data.students.find(s => s.id === student.id);
                     if (studentToUpdate) studentToUpdate.balance -= totalAmount;
                 }
+                
+                // Recalculate invoice statuses for this student to handle pre-payments
+                recalculateStudentInvoices(student.id, getVietnamTime());
             }
             break;
         }
@@ -380,29 +381,7 @@ export function applyOperation(
                 if (student) student.balance += invoice.amount;
                 data.transactions.push({ id: generateUniqueId('TRX'), studentId: invoice.studentId, date: getVietnamTime(), type: TransactionType.ADJUSTMENT_CREDIT, description: `Hủy hóa đơn #${invoiceId}`, amount: invoice.amount, relatedInvoiceId: invoiceId });
             }
-            break;
-        }
-        case 'updateInvoiceStatus': {
-             const { invoiceId, status, paidDate } = payload;
-             const invoice = data.invoices.find(inv => inv.id === invoiceId);
-             if (invoice) {
-                invoice.status = status;
-                if (status === 'PAID') {
-                    if (paidDate) {
-                        invoice.paidDate = paidDate;
-                    } else {
-                        const vnTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
-                        const year = vnTime.getFullYear();
-                        const month = String(vnTime.getMonth() + 1).padStart(2, '0');
-                        const day = String(vnTime.getDate()).padStart(2, '0');
-                        const hours = String(vnTime.getHours()).padStart(2, '0');
-                        const minutes = String(vnTime.getMinutes()).padStart(2, '0');
-                        const seconds = String(vnTime.getSeconds()).padStart(2, '0');
-                        invoice.paidDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-                    }
-                }
-                else invoice.paidDate = null;
-            }
+            recalculateStudentInvoices(invoice.studentId, getVietnamTime());
             break;
         }
 
@@ -439,7 +418,7 @@ export function applyOperation(
             const student = data.students.find(s => s.id === transaction.studentId);
             if (student) {
                 student.balance -= transaction.amount;
-                recalculateStudentInvoices(student.id, getVietnamTime());
+                recalculateStudentInvoices(student.id, transaction.date);
             }
             break;
         }

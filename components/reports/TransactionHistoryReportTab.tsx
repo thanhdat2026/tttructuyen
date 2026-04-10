@@ -60,7 +60,7 @@ export const TransactionHistoryReportTab: React.FC<TransactionHistoryReportTabPr
             ...t,
             studentName: studentMap.get(t.studentId)?.name || 'N/A',
             classNames: studentClassMap.get(t.studentId)?.join(', ') || 'N/A',
-            paymentMethodStr: (t.type === TransactionType.INVOICE || t.type === TransactionType.ADJUSTMENT_CREDIT) ? '-' : (t.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'),
+            paymentMethodStr: (t.type === TransactionType.INVOICE || t.type === TransactionType.ADJUSTMENT_CREDIT || t.type === TransactionType.ADJUSTMENT_DEBIT) ? '-' : (t.paymentMethod === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'),
         }));
 
         if (searchQuery) {
