@@ -12,7 +12,10 @@ export default async function handler(request: Request) {
         try {
             const mockData = getMockDataState();
             await kv.set(DATA_KEY, mockData);
-            return new Response(JSON.stringify({ message: 'Data reset successfully' }), { status: 200 });
+            return new Response(JSON.stringify(mockData), { 
+                headers: { 'Content-Type': 'application/json' },
+                status: 200 
+            });
         } catch (error) {
             console.error('Vercel KV Reset Error:', error);
             return new Response('Failed to reset data in Vercel KV.', { status: 500 });

@@ -8,6 +8,7 @@ import { DataProvider } from './context/DataContext';
 import { useData } from './hooks/useDataContext';
 import { ToastProvider } from './context/ToastContext';
 import { ToastContainer } from './components/common/Toast';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Layouts
 import { Sidebar } from './components/layout/Sidebar';
@@ -224,16 +225,18 @@ const AppRoutes: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <DataProvider>
-        <AuthProvider>
-            <ToastProvider>
-                <HashRouter>
-                    <AppRoutes />
-                </HashRouter>
-                <ToastContainer />
-            </ToastProvider>
-        </AuthProvider>
-    </DataProvider>
+    <ErrorBoundary>
+      <DataProvider>
+          <AuthProvider>
+              <ToastProvider>
+                  <HashRouter>
+                      <AppRoutes />
+                  </HashRouter>
+                  <ToastContainer />
+              </ToastProvider>
+          </AuthProvider>
+      </DataProvider>
+    </ErrorBoundary>
   );
 };
 

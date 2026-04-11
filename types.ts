@@ -51,6 +51,7 @@ export interface Student extends BasePerson {
   email: string;
   balance: number; // Student's account balance. Positive = credit, Negative = debt.
   discountPercentage?: number; // Discount percentage (0-100)
+  billedCourses?: string[]; // Array of classIds that have been billed as PER_COURSE
 }
 
 export interface Teacher extends BasePerson {
@@ -96,6 +97,7 @@ export interface AttendanceRecord {
   date: string; // "YYYY-MM-DD"
   status: AttendanceStatus;
   note?: string;
+  teacherIds?: string[]; // IDs of teachers who taught this session
 }
 
 export interface Invoice {

@@ -69,12 +69,13 @@ const GenerateInvoicesModal: React.FC<{
 import { formatVietnamDate } from '../../utils/date';
 
 export const InvoicesTab: React.FC = () => {
-    const { state, generateInvoices, cancelInvoice } = useData();
+    const { state, generateInvoices, cancelInvoice, updateInvoiceStatus } = useData();
     const { role } = useAuth();
     const { toast } = useToast();
     const [isGenerateModalOpen, setGenerateModalOpen] = useState(false);
     const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
     const [cancelConfirm, setCancelConfirm] = useState<Invoice | null>(null);
+    const [updateStatusConfirm, setUpdateStatusConfirm] = useState<{invoice: Invoice, status: 'PAID' | 'UNPAID'} | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [classFilter, setClassFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -165,6 +166,14 @@ export const InvoicesTab: React.FC = () => {
     const allSortedInvoiceIds = useMemo(() => sortedInvoices.map(inv => inv.id), [sortedInvoices]);
 
     useEffect(() => {
+        if (currentPage > totalPages && totalPages > 0) {
+            setCurrentPage(totalPages);
+        } else if (currentPage === 0 && totalPages > 0) {
+            setCurrentPage(1);
+        }
+    }, [currentPage, totalPages]);
+
+    useEffect(() => {
         setCurrentPage(1);
     }, [searchQuery, classFilter, sortConfig, statusFilter, filterMonth, filterYear]);
 
@@ -206,6 +215,19 @@ export const InvoicesTab: React.FC = () => {
             } catch (error: any) {
                 toast.error(error.message || 'Lỗi khi hủy hóa đơn.');
             }
+        }
+    };
+
+    const handleUpdateStatus = async () => {
+        if (!updateStatusConfirm) return;
+        const { invoice, status } = updateStatusConfirm;
+        try {
+            await updateInvoiceStatus({ invoiceId: invoice.id, status });
+            toast.success(`Đã cập nhật trạng thái hóa đơn thành ${status === 'PAID' ? 'Đã thu' : 'Chưa thu'}.`);
+        } catch (error: any) {
+            toast.error(error.message || 'Lỗi khi cập nhật trạng thái hóa đơn.');
+        } finally {
+            setUpdateStatusConfirm(null);
         }
     };
 
@@ -311,6 +333,12 @@ export const InvoicesTab: React.FC = () => {
                         <div className="flex items-center gap-2">
                             <button onClick={() => setViewInvoice(item)} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700" title="Xem chi tiết">{ICONS.search}</button>
                             {canManage && item.status === 'UNPAID' && (
+                                <button onClick={() => setUpdateStatusConfirm({invoice: item, status: 'PAID'})} className="p-1.5 rounded-md hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600" title="Đánh dấu đã thu">{ICONS.checkCircle}</button>
+                            )}
+                            {canManage && item.status === 'PAID' && (
+                                <button onClick={() => setUpdateStatusConfirm({invoice: item, status: 'UNPAID'})} className="p-1.5 rounded-md hover:bg-yellow-100 dark:hover:bg-yellow-900/30 text-yellow-600" title="Đánh dấu chưa thu">{ICONS.close}</button>
+                            )}
+                            {canManage && item.status === 'UNPAID' && (
                                 <button onClick={() => setCancelConfirm(item)} className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-red-500" title="Hủy hóa đơn">{ICONS.delete}</button>
                             )}
                         </div>
@@ -350,6 +378,12 @@ export const InvoicesTab: React.FC = () => {
                              <div className="flex items-center gap-2">
                                 <Button onClick={(e) => { e.stopPropagation(); setViewInvoice(inv); }} size="sm" variant="secondary">Xem</Button>
                                 {canManage && inv.status === 'UNPAID' && (
+                                    <Button onClick={(e) => { e.stopPropagation(); setUpdateStatusConfirm({invoice: inv, status: 'PAID'}); }} size="sm" variant="secondary" className="text-green-600">Đã thu</Button>
+                                )}
+                                {canManage && inv.status === 'PAID' && (
+                                    <Button onClick={(e) => { e.stopPropagation(); setUpdateStatusConfirm({invoice: inv, status: 'UNPAID'}); }} size="sm" variant="secondary" className="text-yellow-600">Chưa thu</Button>
+                                )}
+                                {canManage && inv.status === 'UNPAID' && (
                                     <Button onClick={(e) => { e.stopPropagation(); setCancelConfirm(inv); }} size="sm" variant="danger">Hủy</Button>
                                 )}
                             </div>
@@ -384,6 +418,17 @@ export const InvoicesTab: React.FC = () => {
                 onConfirm={handleCancelInvoice}
                 title="Xác nhận Hủy Hóa đơn"
                 message={<p>Bạn có chắc chắn muốn hủy hóa đơn <strong>#{cancelConfirm?.id}</strong>? Một giao dịch đảo ngược sẽ được tạo để điều chỉnh lại công nợ của học viên.</p>}
+            />
+            <ConfirmationModal
+                isOpen={!!updateStatusConfirm}
+                onClose={() => setUpdateStatusConfirm(null)}
+                onConfirm={handleUpdateStatus}
+                title={updateStatusConfirm?.status === 'PAID' ? "Xác nhận Thu tiền" : "Xác nhận Hủy thu tiền"}
+                message={
+                    updateStatusConfirm?.status === 'PAID' 
+                    ? <p>Bạn đang đánh dấu hóa đơn <strong>#{updateStatusConfirm.invoice.id}</strong> là Đã thu.<br/><br/><span className="text-yellow-600 font-medium">Lưu ý: Hệ thống quản lý theo "Ví học viên". Số tiền thu sẽ được nạp vào ví và ưu tiên cấn trừ cho các công nợ cũ nhất (nếu có).</span></p>
+                    : <p>Bạn có chắc chắn muốn chuyển hóa đơn <strong>#{updateStatusConfirm?.invoice.id}</strong> về trạng thái Chưa thu?</p>
+                }
             />
             <BulkInvoiceExportModal
                 isOpen={isBulkExportModalOpen}

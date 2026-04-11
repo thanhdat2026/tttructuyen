@@ -63,6 +63,7 @@ interface DataContextType {
     deleteProgressReport: (reportId: string) => Promise<void>;
     generateInvoices: (payload: { month: number, year: number }) => Promise<void>;
     cancelInvoice: (invoiceId: string) => Promise<void>;
+    updateInvoiceStatus: (payload: { invoiceId: string, status: 'PAID' | 'UNPAID' }) => Promise<void>;
     addAdjustment: (payload: { studentId: string; amount: number; date: string; description: string; type: 'CREDIT' | 'DEBIT'; paymentMethod?: 'transfer' | 'cash' }) => Promise<void>;
     updateTransaction: (transaction: Transaction) => Promise<void>;
     deleteTransaction: (transactionId: string) => Promise<void>;
@@ -125,7 +126,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const newState = await apiFunc(payload);
         setState({ ...newState, loading: false });
     } catch (err: any) {
-         setError(`Thao tác thất bại: ${err.message}`);
          throw err;
     } finally {
         setIsSubmitting(false);
@@ -167,6 +167,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     
     generateInvoices: handleStateUpdateOperation(api.generateInvoices),
     cancelInvoice: handleStateUpdateOperation(api.cancelInvoice),
+    updateInvoiceStatus: handleStateUpdateOperation(api.updateInvoiceStatus),
     
     addAdjustment: handleStateUpdateOperation(api.addAdjustment),
     updateTransaction: handleStateUpdateOperation(api.updateTransaction),
@@ -178,7 +179,6 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const newState = await api.clearAllTransactions();
             setState({ ...newState, loading: false });
         } catch (err: any) {
-            setError(err.message);
             throw err;
         } finally {
             setIsSubmitting(false);
@@ -205,16 +205,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     clearCollections: handleStateUpdateOperation(api.clearCollections),
     
     backupData: api.backupData,
-    restoreData: handleStateUpdateOperation(api.restoreData as any),
+    restoreData: handleStateUpdateOperation<Omit<AppData, 'loading'>>(api.restoreData),
     
     resetToMockData: async () => {
         if (isSubmitting) return;
         setIsSubmitting(true);
         try {
-            await api.resetToMockData();
-            await refreshData();
+            const newState = await api.resetToMockData();
+            setState({ ...newState, loading: false });
         } catch (err: any) {
-            setError(err.message);
             throw err;
         } finally {
             setIsSubmitting(false);

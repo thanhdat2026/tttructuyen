@@ -199,6 +199,14 @@ export const StaffScreen: React.FC = () => {
         currentPage * ITEMS_PER_PAGE
     );
 
+    useEffect(() => {
+        if (currentPage > totalPages && totalPages > 0) {
+            setCurrentPage(totalPages);
+        } else if (currentPage === 0 && totalPages > 0) {
+            setCurrentPage(1);
+        }
+    }, [currentPage, totalPages]);
+
      useEffect(() => {
         setCurrentPage(1);
     }, [searchQuery, sortConfig]);

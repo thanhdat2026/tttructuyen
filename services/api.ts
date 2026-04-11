@@ -51,6 +51,7 @@ export const deleteAttendanceByMonth = (payload: { month: number; year: number; 
 
 export const generateInvoices = (payload: { month: number, year: number }) => patchData({ op: 'generateInvoices', payload });
 export const cancelInvoice = (invoiceId: string) => patchData({ op: 'cancelInvoice', payload: { invoiceId } });
+export const updateInvoiceStatus = (payload: { invoiceId: string, status: 'PAID' | 'UNPAID' }) => patchData({ op: 'updateInvoiceStatus', payload });
 
 export const addAdjustment = (payload: { studentId: string; amount: number; date: string; description: string; type: 'CREDIT' | 'DEBIT'; paymentMethod?: 'transfer' | 'cash' }) => patchData({ op: 'addAdjustment', payload });
 export const updateTransaction = (payload: Transaction) => patchData({ op: 'updateTransaction', payload });
@@ -88,9 +89,10 @@ export async function restoreData(data: Omit<AppData, 'loading'>): Promise<Omit<
     return patchData({ op: 'restoreData', payload: data });
 }
 
-export const resetToMockData = async (): Promise<void> => {
+export const resetToMockData = async (): Promise<Omit<AppData, 'loading'>> => {
     const response = await fetch('/api/reset', { method: 'POST' });
     if (!response.ok) {
         throw new Error("Không thể khôi phục dữ liệu mặc định.");
     }
+    return response.json();
 };

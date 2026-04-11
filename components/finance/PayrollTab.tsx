@@ -159,6 +159,14 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ period }) => {
     const totalPages = Math.ceil(sortedPayrolls.length / ITEMS_PER_PAGE);
     const paginatedPayrolls = sortedPayrolls.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
     
+    useEffect(() => {
+        if (currentPage > totalPages && totalPages > 0) {
+            setCurrentPage(totalPages);
+        } else if (currentPage === 0 && totalPages > 0) {
+            setCurrentPage(1);
+        }
+    }, [currentPage, totalPages]);
+
     useEffect(() => { setCurrentPage(1); }, [searchQuery, sortConfig, selectedMonth, selectedYear]);
 
     const handleGenerate = async (month: number, year: number) => {

@@ -119,12 +119,15 @@ export function applyOperation(
         }
         case 'deleteStudent': {
             const { studentId } = payload;
+            if (data.transactions.some(t => t.studentId === studentId) || data.invoices.some(i => i.studentId === studentId)) {
+                throw new Error("Không thể xóa học viên đã có dữ liệu giao dịch hoặc hóa đơn.");
+            }
+            if (data.attendance.some(a => a.studentId === studentId)) {
+                throw new Error("Không thể xóa học viên đã có dữ liệu điểm danh.");
+            }
             data.students = data.students.filter(s => s.id !== studentId);
             data.classes.forEach(c => { c.studentIds = c.studentIds.filter(id => id !== studentId); });
-            data.attendance = data.attendance.filter(a => a.studentId !== studentId);
-            data.invoices = data.invoices.filter(i => i.studentId !== studentId);
             data.progressReports = data.progressReports.filter(p => p.studentId !== studentId);
-            data.transactions = data.transactions.filter(t => t.studentId !== studentId);
             break;
         }
         
@@ -137,18 +140,56 @@ export function applyOperation(
         case 'updateTeacher': {
             const { originalId, updatedTeacher } = payload;
             if (originalId !== updatedTeacher.id && data.teachers.some(t => t.id === updatedTeacher.id)) throw new Error("Mã giáo viên đã tồn tại.");
+            
+            const originalTeacher = data.teachers.find(t => t.id === originalId);
+            const nameChanged = originalTeacher && originalTeacher.name !== updatedTeacher.name;
+
             data.teachers = data.teachers.map(t => t.id === originalId ? updatedTeacher : t);
+            
             if (originalId !== updatedTeacher.id) {
                 data.classes.forEach(c => { c.teacherIds = c.teacherIds.map(tid => tid === originalId ? updatedTeacher.id : tid); });
-                data.payrolls = data.payrolls.filter(p => p.teacherId !== originalId);
+                data.attendance.forEach(a => {
+                    if (a.teacherIds) {
+                        a.teacherIds = a.teacherIds.map(tid => tid === originalId ? updatedTeacher.id : tid);
+                    }
+                });
+                data.payrolls.forEach(p => {
+                    if (p.teacherId === originalId) {
+                        const oldPayrollId = p.id;
+                        p.teacherId = updatedTeacher.id;
+                        p.teacherName = updatedTeacher.name;
+                        p.id = `PAY-${updatedTeacher.id}-${p.month}`;
+                        
+                        const expense = data.expenses.find(e => e.id === `EXP-${oldPayrollId}`);
+                        if (expense) {
+                            expense.id = `EXP-${p.id}`;
+                            expense.description = `Lương T${p.month.split('-')[1]} - ${updatedTeacher.name}`;
+                        }
+                    }
+                });
+            } else if (nameChanged) {
+                data.payrolls.forEach(p => {
+                    if (p.teacherId === originalId) {
+                        p.teacherName = updatedTeacher.name;
+                        const expense = data.expenses.find(e => e.id === `EXP-${p.id}`);
+                        if (expense) {
+                            expense.description = `Lương T${p.month.split('-')[1]} - ${updatedTeacher.name}`;
+                        }
+                    }
+                });
             }
             break;
         }
         case 'deleteTeacher': {
             const { teacherId } = payload;
+            if (data.payrolls.some(p => p.teacherId === teacherId)) {
+                throw new Error("Không thể xóa giáo viên đã có dữ liệu bảng lương.");
+            }
+            if (data.progressReports.some(p => p.createdBy === teacherId)) {
+                throw new Error("Không thể xóa giáo viên đã có dữ liệu báo cáo học tập.");
+            }
             data.teachers = data.teachers.filter(t => t.id !== teacherId);
             data.classes.forEach(c => { c.teacherIds = c.teacherIds.filter(id => id !== teacherId); });
-            data.payrolls = data.payrolls.filter(p => p.teacherId !== teacherId);
             break;
         }
 
@@ -178,17 +219,36 @@ export function applyOperation(
         case 'updateClass': {
             const { originalId, updatedClass } = payload;
             if (originalId !== updatedClass.id && data.classes.some(c => c.id === updatedClass.id)) throw new Error("Mã lớp đã tồn tại.");
+            
+            const originalClass = data.classes.find(c => c.id === originalId);
+            
             data.classes = data.classes.map(c => c.id === originalId ? updatedClass : c);
              if (originalId !== updatedClass.id) {
                 data.attendance.forEach(a => { if (a.classId === originalId) a.classId = updatedClass.id; });
                 data.progressReports.forEach(p => { if (p.classId === originalId) p.classId = updatedClass.id; });
+                data.announcements.forEach(a => { if (a.classId === originalId) a.classId = updatedClass.id; });
+            }
+            
+            if (originalClass && (originalId !== updatedClass.id || originalClass.name !== updatedClass.name)) {
+                data.payrolls.forEach(p => {
+                    if (p.classDetails) {
+                        p.classDetails.forEach(cd => {
+                            if (cd.classId === originalId) {
+                                cd.classId = updatedClass.id;
+                                cd.className = updatedClass.name;
+                            }
+                        });
+                    }
+                });
             }
             break;
         }
         case 'deleteClass': {
             const { classId } = payload;
+            if (data.attendance.some(a => a.classId === classId)) {
+                throw new Error("Không thể xóa lớp học đã có dữ liệu điểm danh.");
+            }
             data.classes = data.classes.filter(c => c.id !== classId);
-            data.attendance = data.attendance.filter(a => a.classId !== classId);
             data.progressReports = data.progressReports.filter(pr => pr.classId !== classId);
             data.announcements = data.announcements.filter(ann => ann.classId !== classId);
             break;
@@ -208,8 +268,15 @@ export function applyOperation(
 
             recordsByClassDate.forEach((newRecords, key) => {
                 const [classId, date] = key.split('|');
+                const cls = data.classes.find(c => c.id === classId);
+                const currentTeacherIds = cls ? cls.teacherIds : [];
+                
                 data.attendance = data.attendance.filter(a => !(a.classId === classId && a.date === date));
-                const recordsWithIds = newRecords.map(record => ({...record, id: record.id || generateUniqueId('ATT')}));
+                const recordsWithIds = newRecords.map(record => ({
+                    ...record, 
+                    id: record.id || generateUniqueId('ATT'),
+                    teacherIds: record.teacherIds || currentTeacherIds
+                }));
                 data.attendance.push(...recordsWithIds);
             });
             break;
@@ -265,6 +332,8 @@ export function applyOperation(
                     }
                 });
 
+                const coursesToMarkBilled: string[] = [];
+
                 for (const classId of relevantClassIds) {
                     const cls = data.classes.find(c => c.id === classId);
                     if (!cls) continue;
@@ -279,13 +348,23 @@ export function applyOperation(
                         (a.status === AttendanceStatus.PRESENT || a.status === AttendanceStatus.LATE)
                     ).length;
 
-                    if (cls.fee.type === FeeType.MONTHLY || cls.fee.type === FeeType.PER_COURSE) {
-                        // Only charge monthly/course fee if student is CURRENTLY enrolled and active.
+                    if (cls.fee.type === FeeType.MONTHLY) {
+                        // Only charge monthly fee if student is CURRENTLY enrolled and active.
                         // This prevents double-charging for monthly fees when a student transfers.
                         if (student.status === PersonStatus.ACTIVE && isEnrolled) {
                             classFee = cls.fee.amount;
                             if (classFee > 0) {
                                 details += `- Lớp ${cls.name}: ${Math.round(classFee).toLocaleString('vi-VN')} ₫\n`;
+                            }
+                        }
+                    } else if (cls.fee.type === FeeType.PER_COURSE) {
+                        if (student.status === PersonStatus.ACTIVE && isEnrolled) {
+                            if (!student.billedCourses?.includes(cls.id)) {
+                                classFee = cls.fee.amount;
+                                if (classFee > 0) {
+                                    details += `- Lớp ${cls.name} (Trọn khóa): ${Math.round(classFee).toLocaleString('vi-VN')} ₫\n`;
+                                }
+                                coursesToMarkBilled.push(cls.id);
                             }
                         }
                     } else if (cls.fee.type === FeeType.PER_SESSION) {
@@ -309,7 +388,7 @@ export function applyOperation(
                 // Round total amount to avoid floating point errors
                 totalAmount = Math.round(totalAmount);
 
-                const existingInvoice = data.invoices.find(inv => inv.studentId === student.id && inv.month === monthStr);
+                const existingInvoice = data.invoices.find(inv => inv.studentId === student.id && inv.month === monthStr && inv.status !== 'CANCELLED');
 
                 if (existingInvoice) {
                     // Update existing invoice (even if PAID)
@@ -330,7 +409,7 @@ export function applyOperation(
                     }
 
                     // Update related transaction
-                    const relatedTransaction = data.transactions.find(t => t.relatedInvoiceId === existingInvoice.id);
+                    const relatedTransaction = data.transactions.find(t => t.relatedInvoiceId === existingInvoice.id && t.type === TransactionType.INVOICE);
                     if(relatedTransaction) {
                         relatedTransaction.amount = -totalAmount;
                         relatedTransaction.date = existingInvoice.generatedDate; // Sync transaction date
@@ -367,6 +446,13 @@ export function applyOperation(
                 
                 // Recalculate invoice statuses for this student to handle pre-payments
                 recalculateStudentInvoices(student.id, getVietnamTime());
+
+                if (coursesToMarkBilled.length > 0) {
+                    const studentToUpdate = data.students.find(s => s.id === student.id);
+                    if (studentToUpdate) {
+                        studentToUpdate.billedCourses = [...(studentToUpdate.billedCourses || []), ...coursesToMarkBilled];
+                    }
+                }
             }
             break;
         }
@@ -381,6 +467,44 @@ export function applyOperation(
                 if (student) student.balance += invoice.amount;
                 data.transactions.push({ id: generateUniqueId('TRX'), studentId: invoice.studentId, date: getVietnamTime(), type: TransactionType.ADJUSTMENT_CREDIT, description: `Hủy hóa đơn #${invoiceId}`, amount: invoice.amount, relatedInvoiceId: invoiceId });
             }
+            recalculateStudentInvoices(invoice.studentId, getVietnamTime());
+            break;
+        }
+        case 'updateInvoiceStatus': {
+            const { invoiceId, status } = payload;
+            const invoice = data.invoices.find(inv => inv.id === invoiceId);
+            if (!invoice) throw new Error("Hóa đơn không tồn tại.");
+            if (invoice.status === 'CANCELLED') throw new Error("Không thể cập nhật hóa đơn đã hủy.");
+            
+            const oldStatus = invoice.status;
+            invoice.status = status;
+            
+            if (status === 'PAID' && oldStatus === 'UNPAID') {
+                invoice.paidDate = getVietnamTime();
+                // Create payment transaction
+                data.transactions.push({
+                    id: generateUniqueId('TRX'),
+                    studentId: invoice.studentId,
+                    date: getVietnamTime(),
+                    type: TransactionType.PAYMENT,
+                    description: `Thanh toán hóa đơn #${invoiceId}`,
+                    amount: invoice.amount,
+                    relatedInvoiceId: invoiceId,
+                    paymentMethod: 'transfer'
+                });
+                const student = data.students.find(s => s.id === invoice.studentId);
+                if (student) student.balance += invoice.amount;
+            } else if (status === 'UNPAID' && oldStatus === 'PAID') {
+                invoice.paidDate = null;
+                // Remove related payment transaction
+                const relatedTx = data.transactions.find(t => t.relatedInvoiceId === invoiceId && t.type === TransactionType.PAYMENT);
+                if (relatedTx) {
+                    data.transactions = data.transactions.filter(t => t.id !== relatedTx.id);
+                    const student = data.students.find(s => s.id === invoice.studentId);
+                    if (student) student.balance -= relatedTx.amount;
+                }
+            }
+            
             recalculateStudentInvoices(invoice.studentId, getVietnamTime());
             break;
         }
@@ -436,14 +560,25 @@ export function applyOperation(
             const calculationDate = getVietnamTime().split('T')[0];
             
             // Optimization: Pre-calculate sessions per class for the month using a Map
-            const classSessionsMap = new Map<string, Set<string>>(); // classId -> Set of dates
+            // Now we need to track sessions per teacher per class
+            const teacherClassSessionsMap = new Map<string, Set<string>>(); // "teacherId|classId" -> Set of dates
             
             data.attendance.forEach(a => {
                 if (a.date.startsWith(monthStr)) {
-                    if (!classSessionsMap.has(a.classId)) {
-                        classSessionsMap.set(a.classId, new Set());
+                    // If attendance record has teacherIds, use them. Otherwise fallback to current class teachers
+                    let tIds = a.teacherIds;
+                    if (!tIds || tIds.length === 0) {
+                        const cls = data.classes.find(c => c.id === a.classId);
+                        tIds = cls ? cls.teacherIds : [];
                     }
-                    classSessionsMap.get(a.classId)!.add(a.date);
+                    
+                    tIds.forEach(tId => {
+                        const key = `${tId}|${a.classId}`;
+                        if (!teacherClassSessionsMap.has(key)) {
+                            teacherClassSessionsMap.set(key, new Set());
+                        }
+                        teacherClassSessionsMap.get(key)!.add(a.date);
+                    });
                 }
             });
 
@@ -452,19 +587,25 @@ export function applyOperation(
             
             for(const teacher of allTeachers) {
                 let baseSalary = 0, totalSessionsTaught = 0;
-                
-                // Find classes assigned to this teacher
-                const teacherClasses = data.classes.filter(c => c.teacherIds.includes(teacher.id));
                 const classDetails: PayrollClassDetail[] = [];
                 
-                // Calculate sessions for each assigned class based on pre-calculated map
-                for (const cls of teacherClasses) {
-                    const sessions = classSessionsMap.get(cls.id)?.size || 0;
+                // Find all classes this teacher taught this month
+                const taughtClassIds = new Set<string>();
+                for (const key of teacherClassSessionsMap.keys()) {
+                    if (key.startsWith(`${teacher.id}|`)) {
+                        taughtClassIds.add(key.split('|')[1]);
+                    }
+                }
+                
+                for (const classId of taughtClassIds) {
+                    const cls = data.classes.find(c => c.id === classId);
+                    const className = cls ? cls.name : 'Lớp đã xóa';
+                    const sessions = teacherClassSessionsMap.get(`${teacher.id}|${classId}`)?.size || 0;
                     
                     if (sessions > 0) {
                         classDetails.push({
-                            classId: cls.id,
-                            className: cls.name,
+                            classId: classId,
+                            className: className,
                             sessionsTaught: sessions
                         });
                         totalSessionsTaught += sessions;
@@ -545,14 +686,7 @@ export function applyOperation(
             if (status === 'PAID') {
                 // If marking as paid, set date if missing
                 if (!payroll.paidDate) {
-                     const vnTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
-                     const year = vnTime.getFullYear();
-                     const month = String(vnTime.getMonth() + 1).padStart(2, '0');
-                     const day = String(vnTime.getDate()).padStart(2, '0');
-                     const hours = String(vnTime.getHours()).padStart(2, '0');
-                     const minutes = String(vnTime.getMinutes()).padStart(2, '0');
-                     const seconds = String(vnTime.getSeconds()).padStart(2, '0');
-                     payroll.paidDate = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+                     payroll.paidDate = getVietnamTime();
                 }
                 
                 // Create or Update Expense record automatically
@@ -609,10 +743,16 @@ export function applyOperation(
             break;
         }
         case 'updateExpense': {
+            if (payload.id.startsWith('EXP-PAY-')) {
+                throw new Error("Không thể sửa phiếu chi tự động từ bảng lương.");
+            }
             data.expenses = data.expenses.map(e => e.id === payload.id ? payload : e);
             break;
         }
         case 'deleteExpense': {
+            if (payload.itemId.startsWith('EXP-PAY-')) {
+                throw new Error("Không thể xóa phiếu chi tự động từ bảng lương.");
+            }
             data.expenses = data.expenses.filter(i => i.id !== payload.itemId);
             break;
         }

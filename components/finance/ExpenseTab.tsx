@@ -128,6 +128,14 @@ export const ExpenseTab: React.FC = () => {
     const totalPages = Math.ceil(sortedItems.length / ITEMS_PER_PAGE);
     const paginatedItems = sortedItems.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
+    useEffect(() => {
+        if (currentPage > totalPages && totalPages > 0) {
+            setCurrentPage(totalPages);
+        } else if (currentPage === 0 && totalPages > 0) {
+            setCurrentPage(1);
+        }
+    }, [currentPage, totalPages]);
+
     useEffect(() => { setCurrentPage(1); }, [searchQuery, sortConfig]);
 
     const handleOpenModal = (item?: Expense) => {
@@ -183,11 +191,12 @@ export const ExpenseTab: React.FC = () => {
 
             <div className="hidden md:block">
                 <Table<Expense> columns={columns} data={paginatedItems} sortConfig={sortConfig} onSort={handleSort} actions={canManage ? (item) => (
+                    item.id.startsWith('EXP-PAY-') ? <span className="text-gray-400 text-xs italic">Tự động</span> :
                     <><button onClick={() => handleOpenModal(item)}>{ICONS.edit}</button><button onClick={() => setItemToDelete(item)} className="text-red-500">{ICONS.delete}</button></>
                 ) : undefined}/>
             </div>
              <div className="md:hidden space-y-4">
-                {paginatedItems.map(item => <ListItemCard key={item.id} title={item.description} details={[{label: "Ngày", value: formatVietnamDate(item.date)}, {label: "Số tiền", value: `${item.amount.toLocaleString('vi-VN')} ₫`}]} actions={canManage ? (<><Button size="sm" variant="secondary" onClick={() => handleOpenModal(item)}>Sửa</Button><Button size="sm" variant="danger" onClick={() => setItemToDelete(item)}>Xóa</Button></>) : undefined} />)}
+                {paginatedItems.map(item => <ListItemCard key={item.id} title={item.description} details={[{label: "Ngày", value: formatVietnamDate(item.date)}, {label: "Số tiền", value: `${item.amount.toLocaleString('vi-VN')} ₫`}]} actions={canManage && !item.id.startsWith('EXP-PAY-') ? (<><Button size="sm" variant="secondary" onClick={() => handleOpenModal(item)}>Sửa</Button><Button size="sm" variant="danger" onClick={() => setItemToDelete(item)}>Xóa</Button></>) : undefined} />)}
             </div>
 
             {paginatedItems.length > 0 && <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} totalItems={sortedItems.length} itemsPerPage={ITEMS_PER_PAGE} />}
